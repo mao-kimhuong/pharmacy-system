@@ -1,0 +1,141 @@
+import asyncio
+import contextlib
+import logging
+from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
+from contextlib import asynccontextmanager
+from typing import Any
+
+from fastapi import APIRouter, Depends, FastAPI
+from fastapi.openapi.utils import get_openapi
+
+from .auth import CurrentUser, current_user
+from .config import BaseServiceSettings
+from .db import Database
+from .errors import register_error_handlers
+from .idempotency import IdempotencyMiddleware
+from .logging import setup_logging
+from .outbox_relay import RabbitPublisher, run_relay
+from .rate_limit import RateLimitMiddleware
+from .redis import RedisProvider
+
+log = logging.getLogger(__name__)
+
+
+def create_service_app(
+    settings: BaseServiceSettings,
+    db: Database,
+    router: APIRouter,
+    title: str,
+    *,
+    outbox_model: type | None = None,
+    redis: RedisProvider | None = None,
+    rate_limit_exempt: tuple[str, ...] = (),
+    on_startup: Sequence[Callable[[], Awaitable[None]]] = (),
+    background: Sequence[Callable[[asyncio.Event], Awaitable[None]]] = (),
+) -> FastAPI:
+    """Builds a service app with the same health/whoami routes, error format,
+    middlewares (per-user rate limit, Idempotency-Key) and outbox relay.
+
+    on_startup: coroutines run once at start (e.g. sync permission catalog).
+    background: long-running tasks, e.g. an EventConsumer.run; they get a stop event.
+    """
+    setup_logging()
+    prefix = settings.api_prefix
+    redis = redis or RedisProvider(settings.redis_url)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        for hook in on_startup:
+            await hook()
+        stop = asyncio.Event()
+        tasks = [asyncio.create_task(task(stop)) for task in background]
+        relay_task: asyncio.Task[None] | None = None
+        publisher: RabbitPublisher | None = None
+        if settings.outbox_relay_enabled and outbox_model is not None:
+            publisher = RabbitPublisher(settings.rabbitmq_url, settings.service_name)
+            relay_task = asyncio.create_task(
+                run_relay(
+                    lambda: db.sessionmaker,
+                    outbox_model,
+                    publisher,
+                    poll_seconds=settings.outbox_poll_seconds,
+                    batch_size=settings.outbox_batch_size,
+                    stop=stop,
+                )
+            )
+        yield
+        stop.set()
+        for task in [*tasks, relay_task]:
+            if task is not None:
+                with contextlib.suppress(Exception):
+                    await asyncio.wait_for(task, timeout=5)
+        if publisher is not None:
+            await publisher.close()
+        await redis.close()
+        await db.dispose()
+
+    show_docs = not settings.is_production
+    app = FastAPI(
+        title=title,
+        lifespan=lifespan,
+        docs_url=f"{prefix}/docs" if show_docs else None,
+        redoc_url=None,
+        openapi_url=f"{prefix}/openapi.json" if show_docs else None,
+    )
+    app.state.settings = settings
+    app.state.db = db
+    app.state.redis = redis
+    register_error_handlers(app)
+
+    # Order: the last added runs first. Rate limit runs before idempotency.
+    app.add_middleware(
+        IdempotencyMiddleware,
+        redis=redis,
+        service=settings.service_name,
+        ttl_seconds=settings.idempotency_ttl_seconds,
+    )
+    app.add_middleware(
+        RateLimitMiddleware,
+        redis=redis,
+        service=settings.service_name,
+        reads_per_minute=settings.rate_limit_reads_per_minute,
+        writes_per_minute=settings.rate_limit_writes_per_minute,
+        exempt_paths=(f"{prefix}/health", f"{prefix}/docs", f"{prefix}/openapi.json", *rate_limit_exempt),
+    )
+
+    @app.get(f"{prefix}/health", tags=["system"])
+    async def health() -> dict[str, str]:
+        return {"status": "ok", "service": settings.service_name}
+
+    @app.get(f"{prefix}/whoami", tags=["system"])
+    async def whoami(user: CurrentUser = Depends(current_user)) -> dict[str, Any]:
+        """Protected test endpoint: shows the user Traefik passed to this service."""
+        return {
+            "service": settings.service_name,
+            "user_id": str(user.id),
+            "role": user.role,
+            "branch_ids": sorted(str(b) for b in user.branch_ids),
+            "is_pharmacist": user.is_pharmacist,
+            "permissions": sorted(user.permissions),
+        }
+
+    app.include_router(router, prefix=prefix)
+    _add_bearer_auth_to_docs(app, title)
+    return app
+
+
+def _add_bearer_auth_to_docs(app: FastAPI, title: str) -> None:
+    """Adds an "Authorize" button to the API docs (paste the access token)."""
+
+    def custom_openapi() -> dict[str, Any]:
+        if app.openapi_schema:
+            return app.openapi_schema
+        schema = get_openapi(title=title, version="1.0.0", routes=app.routes)
+        schema.setdefault("components", {})["securitySchemes"] = {
+            "bearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
+        }
+        schema["security"] = [{"bearerAuth": []}]
+        app.openapi_schema = schema
+        return schema
+
+    app.openapi = custom_openapi  # type: ignore[method-assign]

@@ -1,0 +1,15 @@
+# Build context is the repo root, so this file applies to every service image.
+.env
+.env.*
+!.env.example
+secrets/
+.git/
+.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+**/*.egg-info/
+**/tests/
+web/
+docs/
+data/

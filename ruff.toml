@@ -1,0 +1,13 @@
+line-length = 110
+target-version = "py312"
+
+[lint]
+# S608: SQL built with string formatting (SQL injection guard, see spec)
+select = ["E", "F", "I", "B", "UP", "S608"]
+ignore = [
+  "B008",  # FastAPI Depends()/Header() in defaults
+  "E501",  # line length is handled by `ruff format`
+]
+
+[lint.isort]
+known-first-party = ["pharmacy_shared", "auth_service", "branch_service", "catalog_service", "inventory_service", "stockcount_service", "prescription_service", "controlled_service", "sales_service", "customers_service", "purchasing_service", "reports_service", "notification_service", "document_service", "ai_service"]

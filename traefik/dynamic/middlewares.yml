@@ -1,0 +1,77 @@
+# Shared middlewares, referenced from service labels as <name>@file.
+# Numbers follow the "Rate limits" table in docs/spec.md (Security & reliability).
+#
+# Router chains (see docker-compose.yml):
+#   public    (health, docs):  strip-identity-headers, security-headers-docs, ratelimit-per-ip
+#   login / refresh:           strip-identity-headers, security-headers, request-size-limit, ratelimit-login / -per-ip
+#   protected (everything):    strip-identity-headers, security-headers, request-size-limit, ratelimit-flood, auth-forward
+http:
+  middlewares:
+    # Deletes identity headers sent by the client, so nobody can pretend to be
+    # another user. auth-forward then sets them from the validated token.
+    strip-identity-headers:
+      headers:
+        customRequestHeaders:
+          X-User-Id: ""
+          X-Role: ""
+          X-Branch-Ids: ""
+          X-Is-Pharmacist: ""
+          X-Permissions: ""
+
+    security-headers:
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        frameDeny: true
+        contentTypeNosniff: true
+        referrerPolicy: no-referrer
+        contentSecurityPolicy: "default-src 'self'; frame-ancestors 'none'"
+
+    # Same, without the Content-Security-Policy: the API docs page loads its
+    # scripts from a CDN. Docs are switched off in production.
+    security-headers-docs:
+      headers:
+        stsSeconds: 31536000
+        frameDeny: true
+        contentTypeNosniff: true
+        referrerPolicy: no-referrer
+
+    # Routes reachable without logging in: 60/min per IP.
+    ratelimit-per-ip:
+      rateLimit:
+        average: 60
+        period: 1m
+        burst: 30
+
+    # Login per IP. A whole branch may share one internet connection, so this is
+    # looser than the spec's 5/min, which the auth service enforces per IP + phone.
+    ratelimit-login:
+      rateLimit:
+        average: 20
+        period: 1m
+        burst: 10
+
+    # Flood guard for logged-in traffic per IP. Fair use per staff member is
+    # enforced inside each service (600 reads, 120 writes per minute).
+    ratelimit-flood:
+      rateLimit:
+        average: 1200
+        period: 1m
+        burst: 200
+
+    request-size-limit:
+      buffering:
+        maxRequestBodyBytes: 10485760   # 10 MB
+
+    # Validates the access token through the auth service and passes the user
+    # to the service as X-User-Id / X-Role / X-Branch-Ids / X-Is-Pharmacist / X-Permissions.
+    auth-forward:
+      forwardAuth:
+        address: http://auth:8000/api/auth/v1/verify
+        trustForwardHeader: false
+        authResponseHeaders:
+          - X-User-Id
+          - X-Role
+          - X-Branch-Ids
+          - X-Is-Pharmacist
+          - X-Permissions

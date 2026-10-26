@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# Env and secrets (never commit)
+.env
+.env.*
+!.env.example
+secrets/
+
+# Editors / OS
+.DS_Store
+.idea/
+
+# Data
+data/
+*.log
+
+# Front end
+node_modules/
+dist/
+
+# Redis data files
+*.rdb

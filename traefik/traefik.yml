@@ -1,0 +1,30 @@
+# Static configuration. Local: HTTP on :80. Production: enable the websecure
+# entrypoint + Let's Encrypt (see comments) and redirect web -> websecure.
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+providers:
+  docker:
+    exposedByDefault: false
+    network: pharmacy_internal
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+api:
+  dashboard: false   # never expose the dashboard to the internet
+
+log:
+  level: INFO
+accessLog: {}
+
+# certificatesResolvers:
+#   le:
+#     acme:
+#       email: you@example.com
+#       storage: /letsencrypt/acme.json
+#       httpChallenge:
+#         entryPoint: web

@@ -1,0 +1,497 @@
+name: pharmacy
+
+x-service-env: &service-env
+  ENVIRONMENT: ${ENVIRONMENT:-local}
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+  RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+  JWT_SECRET: ${JWT_SECRET}
+
+x-service-deps: &service-deps
+  postgres:
+    condition: service_healthy
+  rabbitmq:
+    condition: service_healthy
+  redis:
+    condition: service_started
+
+services:
+  traefik:
+    image: traefik:v3.6  # v3.6.1+ needed for Docker Engine 29 (API auto-negotiation)
+    command:
+      - --configFile=/etc/traefik/traefik.yml
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - letsencrypt:/letsencrypt
+    networks: [edge, internal]
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD}
+      BRANCH_DB_PASSWORD: ${BRANCH_DB_PASSWORD}
+      CATALOG_DB_PASSWORD: ${CATALOG_DB_PASSWORD}
+      INVENTORY_DB_PASSWORD: ${INVENTORY_DB_PASSWORD}
+      STOCKCOUNT_DB_PASSWORD: ${STOCKCOUNT_DB_PASSWORD}
+      PRESCRIPTION_DB_PASSWORD: ${PRESCRIPTION_DB_PASSWORD}
+      CONTROLLED_DB_PASSWORD: ${CONTROLLED_DB_PASSWORD}
+      SALES_DB_PASSWORD: ${SALES_DB_PASSWORD}
+      CUSTOMERS_DB_PASSWORD: ${CUSTOMERS_DB_PASSWORD}
+      PURCHASING_DB_PASSWORD: ${PURCHASING_DB_PASSWORD}
+      REPORTS_DB_PASSWORD: ${REPORTS_DB_PASSWORD}
+      NOTIFICATION_DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD}
+      DOCUMENT_DB_PASSWORD: ${DOCUMENT_DB_PASSWORD}
+      AI_DB_PASSWORD: ${AI_DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    networks: [internal]
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    networks: [internal]
+    restart: unless-stopped
+
+  auth:
+    build:
+      context: .
+      dockerfile: services/auth/Dockerfile
+    environment:
+      <<: *service-env
+      SERVICE_NAME: auth
+      API_PREFIX: /api/auth/v1
+      DATABASE_URL: postgresql+asyncpg://auth_user:${AUTH_DB_PASSWORD}@postgres:5432/pharmacy_auth
+      TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:-}
+    depends_on: *service-deps
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.auth.loadbalancer.server.port=8000
+      # public: health check and API docs (docs are switched off in production)
+      - traefik.http.routers.auth-public.rule=Path(`/api/auth/v1/health`) || Path(`/api/auth/v1/docs`) || Path(`/api/auth/v1/openapi.json`)
+      - traefik.http.routers.auth-public.priority=100
+      - traefik.http.routers.auth-public.entrypoints=web
+      - traefik.http.routers.auth-public.service=auth
+      - traefik.http.routers.auth-public.middlewares=strip-identity-headers@file,security-headers-docs@file,ratelimit-per-ip@file
+      # public: login (strict limit) and refresh
+      - traefik.http.routers.auth-login.rule=Path(`/api/auth/v1/login`)
+      - traefik.http.routers.auth-login.priority=100
+      - traefik.http.routers.auth-login.entrypoints=web
+      - traefik.http.routers.auth-login.service=auth
+      - traefik.http.routers.auth-login.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-login@file
+      - traefik.http.routers.auth-refresh.rule=Path(`/api/auth/v1/refresh`)
+      - traefik.http.routers.auth-refresh.priority=100
+      - traefik.http.routers.auth-refresh.entrypoints=web
+      - traefik.http.routers.auth-refresh.service=auth
+      - traefik.http.routers.auth-refresh.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-per-ip@file
+      # protected: everything else needs a valid access token
+      - traefik.http.routers.auth.rule=PathPrefix(`/api/auth`)
+      - traefik.http.routers.auth.priority=10
+      - traefik.http.routers.auth.entrypoints=web
+      - traefik.http.routers.auth.service=auth
+      - traefik.http.routers.auth.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-flood@file,auth-forward@file
+    networks: [internal]
+    restart: unless-stopped
+
+  branch:
+    build:
+      context: .
+      dockerfile: services/branch/Dockerfile
+    environment:
+      <<: *service-env
+      SERVICE_NAME: branch
+      API_PREFIX: /api/branch/v1
+      DATABASE_URL: postgresql+asyncpg://branch_user:${BRANCH_DB_PASSWORD}@postgres:5432/pharmacy_branch
+    depends_on: *service-deps
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.branch.loadbalancer.server.port=8000
+      # public: health check and API docs (docs are switched off in production)
+      - traefik.http.routers.branch-public.rule=Path(`/api/branch/v1/health`) || Path(`/api/branch/v1/docs`) || Path(`/api/branch/v1/openapi.json`)
+      - traefik.http.routers.branch-public.priority=100
+      - traefik.http.routers.branch-public.entrypoints=web
+      - traefik.http.routers.branch-public.service=branch
+      - traefik.http.routers.branch-public.middlewares=strip-identity-headers@file,security-headers-docs@file,ratelimit-per-ip@file
+      # protected: everything else needs a valid access token
+      - traefik.http.routers.branch.rule=PathPrefix(`/api/branch`)
+      - traefik.http.routers.branch.priority=10
+      - traefik.http.routers.branch.entrypoints=web
+      - traefik.http.routers.branch.service=branch
+      - traefik.http.routers.branch.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-flood@file,auth-forward@file
+    networks: [internal]
+    restart: unless-stopped
+
+  catalog:
+    build:
+      context: .
+      dockerfile: services/catalog/Dockerfile
+    environment:
+      <<: *service-env
+      SERVICE_NAME: catalog
+      API_PREFIX: /api/catalog/v1
+      DATABASE_URL: postgresql+asyncpg://catalog_user:${CATALOG_DB_PASSWORD}@postgres:5432/pharmacy_catalog
+    depends_on: *service-deps
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.catalog.loadbalancer.server.port=8000
+      # public: health check and API docs (docs are switched off in production)
+      - traefik.http.routers.catalog-public.rule=Path(`/api/catalog/v1/health`) || Path(`/api/catalog/v1/docs`) || Path(`/api/catalog/v1/openapi.json`)
+      - traefik.http.routers.catalog-public.priority=100
+      - traefik.http.routers.catalog-public.entrypoints=web
+      - traefik.http.routers.catalog-public.service=catalog
+      - traefik.http.routers.catalog-public.middlewares=strip-identity-headers@file,security-headers-docs@file,ratelimit-per-ip@file
+      # protected: everything else needs a valid access token
+      - traefik.http.routers.catalog.rule=PathPrefix(`/api/catalog`)
+      - traefik.http.routers.catalog.priority=10
+      - traefik.http.routers.catalog.entrypoints=web
+      - traefik.http.routers.catalog.service=catalog
+      - traefik.http.routers.catalog.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-flood@file,auth-forward@file
+    networks: [internal]
+    restart: unless-stopped
+
+  inventory:
+    build:
+      context: .
+      dockerfile: services/inventory/Dockerfile
+    environment:
+      <<: *service-env
+      SERVICE_NAME: inventory
+      API_PREFIX: /api/inventory/v1
+      DATABASE_URL: postgresql+asyncpg://inventory_user:${INVENTORY_DB_PASSWORD}@postgres:5432/pharmacy_inventory
+    depends_on: *service-deps
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.inventory.loadbalancer.server.port=8000
+      # public: health check and API docs (docs are switched off in production)
+      - traefik.http.routers.inventory-public.rule=Path(`/api/inventory/v1/health`) || Path(`/api/inventory/v1/docs`) || Path(`/api/inventory/v1/openapi.json`)
+      - traefik.http.routers.inventory-public.priority=100
+      - traefik.http.routers.inventory-public.entrypoints=web
+      - traefik.http.routers.inventory-public.service=inventory
+      - traefik.http.routers.inventory-public.middlewares=strip-identity-headers@file,security-headers-docs@file,ratelimit-per-ip@file
+      # protected: everything else needs a valid access token
+      - traefik.http.routers.inventory.rule=PathPrefix(`/api/inventory`)
+      - traefik.http.routers.inventory.priority=10
+      - traefik.http.routers.inventory.entrypoints=web
+      - traefik.http.routers.inventory.service=inventory
+      - traefik.http.routers.inventory.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-flood@file,auth-forward@file
+    networks: [internal]
+    restart: unless-stopped
+
+  stockcount:
+    build:
+      context: .
+      dockerfile: services/stockcount/Dockerfile
+    environment:
+      <<: *service-env
+      SERVICE_NAME: stockcount
+      API_PREFIX: /api/stockcount/v1
+      DATABASE_URL: postgresql+asyncpg://stockcount_user:${STOCKCOUNT_DB_PASSWORD}@postgres:5432/pharmacy_stockcount
+    depends_on: *service-deps
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.stockcount.loadbalancer.server.port=8000
+      # public: health check and API docs (docs are switched off in production)
+      - traefik.http.routers.stockcount-public.rule=Path(`/api/stockcount/v1/health`) || Path(`/api/stockcount/v1/docs`) || Path(`/api/stockcount/v1/openapi.json`)
+      - traefik.http.routers.stockcount-public.priority=100
+      - traefik.http.routers.stockcount-public.entrypoints=web
+      - traefik.http.routers.stockcount-public.service=stockcount
+      - traefik.http.routers.stockcount-public.middlewares=strip-identity-headers@file,security-headers-docs@file,ratelimit-per-ip@file
+      # protected: everything else needs a valid access token
+      - traefik.http.routers.stockcount.rule=PathPrefix(`/api/stockcount`)
+      - traefik.http.routers.stockcount.priority=10
+      - traefik.http.routers.stockcount.entrypoints=web
+      - traefik.http.routers.stockcount.service=stockcount
+      - traefik.http.routers.stockcount.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-flood@file,auth-forward@file
+    networks: [internal]
+    restart: unless-stopped
+
+  prescription:
+    build:
+      context: .
+      dockerfile: services/prescription/Dockerfile
+    environment:
+      <<: *service-env
+      SERVICE_NAME: prescription
+      API_PREFIX: /api/prescription/v1
+      DATABASE_URL: postgresql+asyncpg://prescription_user:${PRESCRIPTION_DB_PASSWORD}@postgres:5432/pharmacy_prescription
+    depends_on: *service-deps
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.prescription.loadbalancer.server.port=8000
+      # public: health check and API docs (docs are switched off in production)
+      - traefik.http.routers.prescription-public.rule=Path(`/api/prescription/v1/health`) || Path(`/api/prescription/v1/docs`) || Path(`/api/prescription/v1/openapi.json`)
+      - traefik.http.routers.prescription-public.priority=100
+      - traefik.http.routers.prescription-public.entrypoints=web
+      - traefik.http.routers.prescription-public.service=prescription
+      - traefik.http.routers.prescription-public.middlewares=strip-identity-headers@file,security-headers-docs@file,ratelimit-per-ip@file
+      # protected: everything else needs a valid access token
+      - traefik.http.routers.prescription.rule=PathPrefix(`/api/prescription`)
+      - traefik.http.routers.prescription.priority=10
+      - traefik.http.routers.prescription.entrypoints=web
+      - traefik.http.routers.prescription.service=prescription
+      - traefik.http.routers.prescription.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-flood@file,auth-forward@file
+    networks: [internal]
+    restart: unless-stopped
+
+  controlled:
+    build:
+      context: .
+      dockerfile: services/controlled/Dockerfile
+    environment:
+      <<: *service-env
+      SERVICE_NAME: controlled
+      API_PREFIX: /api/controlled/v1
+      DATABASE_URL: postgresql+asyncpg://controlled_user:${CONTROLLED_DB_PASSWORD}@postgres:5432/pharmacy_controlled
+    depends_on: *service-deps
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.controlled.loadbalancer.server.port=8000
+      # public: health check and API docs (docs are switched off in production)
+      - traefik.http.routers.controlled-public.rule=Path(`/api/controlled/v1/health`) || Path(`/api/controlled/v1/docs`) || Path(`/api/controlled/v1/openapi.json`)
+      - traefik.http.routers.controlled-public.priority=100
+      - traefik.http.routers.controlled-public.entrypoints=web
+      - traefik.http.routers.controlled-public.service=controlled
+      - traefik.http.routers.controlled-public.middlewares=strip-identity-headers@file,security-headers-docs@file,ratelimit-per-ip@file
+      # protected: everything else needs a valid access token
+      - traefik.http.routers.controlled.rule=PathPrefix(`/api/controlled`)
+      - traefik.http.routers.controlled.priority=10
+      - traefik.http.routers.controlled.entrypoints=web
+      - traefik.http.routers.controlled.service=controlled
+      - traefik.http.routers.controlled.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-flood@file,auth-forward@file
+    networks: [internal]
+    restart: unless-stopped
+
+  sales:
+    build:
+      context: .
+      dockerfile: services/sales/Dockerfile
+    environment:
+      <<: *service-env
+      SERVICE_NAME: sales
+      API_PREFIX: /api/sales/v1
+      DATABASE_URL: postgresql+asyncpg://sales_user:${SALES_DB_PASSWORD}@postgres:5432/pharmacy_sales
+    depends_on: *service-deps
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.sales.loadbalancer.server.port=8000
+      # public: health check and API docs (docs are switched off in production)
+      - traefik.http.routers.sales-public.rule=Path(`/api/sales/v1/health`) || Path(`/api/sales/v1/docs`) || Path(`/api/sales/v1/openapi.json`)
+      - traefik.http.routers.sales-public.priority=100
+      - traefik.http.routers.sales-public.entrypoints=web
+      - traefik.http.routers.sales-public.service=sales
+      - traefik.http.routers.sales-public.middlewares=strip-identity-headers@file,security-headers-docs@file,ratelimit-per-ip@file
+      # protected: everything else needs a valid access token
+      - traefik.http.routers.sales.rule=PathPrefix(`/api/sales`)
+      - traefik.http.routers.sales.priority=10
+      - traefik.http.routers.sales.entrypoints=web
+      - traefik.http.routers.sales.service=sales
+      - traefik.http.routers.sales.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-flood@file,auth-forward@file
+    networks: [internal]
+    restart: unless-stopped
+
+  customers:
+    build:
+      context: .
+      dockerfile: services/customers/Dockerfile
+    environment:
+      <<: *service-env
+      SERVICE_NAME: customers
+      API_PREFIX: /api/customers/v1
+      DATABASE_URL: postgresql+asyncpg://customers_user:${CUSTOMERS_DB_PASSWORD}@postgres:5432/pharmacy_customers
+    depends_on: *service-deps
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.customers.loadbalancer.server.port=8000
+      # public: health check and API docs (docs are switched off in production)
+      - traefik.http.routers.customers-public.rule=Path(`/api/customers/v1/health`) || Path(`/api/customers/v1/docs`) || Path(`/api/customers/v1/openapi.json`)
+      - traefik.http.routers.customers-public.priority=100
+      - traefik.http.routers.customers-public.entrypoints=web
+      - traefik.http.routers.customers-public.service=customers
+      - traefik.http.routers.customers-public.middlewares=strip-identity-headers@file,security-headers-docs@file,ratelimit-per-ip@file
+      # protected: everything else needs a valid access token
+      - traefik.http.routers.customers.rule=PathPrefix(`/api/customers`)
+      - traefik.http.routers.customers.priority=10
+      - traefik.http.routers.customers.entrypoints=web
+      - traefik.http.routers.customers.service=customers
+      - traefik.http.routers.customers.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-flood@file,auth-forward@file
+    networks: [internal]
+    restart: unless-stopped
+
+  purchasing:
+    build:
+      context: .
+      dockerfile: services/purchasing/Dockerfile
+    environment:
+      <<: *service-env
+      SERVICE_NAME: purchasing
+      API_PREFIX: /api/purchasing/v1
+      DATABASE_URL: postgresql+asyncpg://purchasing_user:${PURCHASING_DB_PASSWORD}@postgres:5432/pharmacy_purchasing
+    depends_on: *service-deps
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.purchasing.loadbalancer.server.port=8000
+      # public: health check and API docs (docs are switched off in production)
+      - traefik.http.routers.purchasing-public.rule=Path(`/api/purchasing/v1/health`) || Path(`/api/purchasing/v1/docs`) || Path(`/api/purchasing/v1/openapi.json`)
+      - traefik.http.routers.purchasing-public.priority=100
+      - traefik.http.routers.purchasing-public.entrypoints=web
+      - traefik.http.routers.purchasing-public.service=purchasing
+      - traefik.http.routers.purchasing-public.middlewares=strip-identity-headers@file,security-headers-docs@file,ratelimit-per-ip@file
+      # protected: everything else needs a valid access token
+      - traefik.http.routers.purchasing.rule=PathPrefix(`/api/purchasing`)
+      - traefik.http.routers.purchasing.priority=10
+      - traefik.http.routers.purchasing.entrypoints=web
+      - traefik.http.routers.purchasing.service=purchasing
+      - traefik.http.routers.purchasing.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-flood@file,auth-forward@file
+    networks: [internal]
+    restart: unless-stopped
+
+  reports:
+    build:
+      context: .
+      dockerfile: services/reports/Dockerfile
+    environment:
+      <<: *service-env
+      SERVICE_NAME: reports
+      API_PREFIX: /api/reports/v1
+      DATABASE_URL: postgresql+asyncpg://reports_user:${REPORTS_DB_PASSWORD}@postgres:5432/pharmacy_reports
+    depends_on: *service-deps
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.reports.loadbalancer.server.port=8000
+      # public: health check and API docs (docs are switched off in production)
+      - traefik.http.routers.reports-public.rule=Path(`/api/reports/v1/health`) || Path(`/api/reports/v1/docs`) || Path(`/api/reports/v1/openapi.json`)
+      - traefik.http.routers.reports-public.priority=100
+      - traefik.http.routers.reports-public.entrypoints=web
+      - traefik.http.routers.reports-public.service=reports
+      - traefik.http.routers.reports-public.middlewares=strip-identity-headers@file,security-headers-docs@file,ratelimit-per-ip@file
+      # protected: everything else needs a valid access token
+      - traefik.http.routers.reports.rule=PathPrefix(`/api/reports`)
+      - traefik.http.routers.reports.priority=10
+      - traefik.http.routers.reports.entrypoints=web
+      - traefik.http.routers.reports.service=reports
+      - traefik.http.routers.reports.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-flood@file,auth-forward@file
+    networks: [internal]
+    restart: unless-stopped
+
+  notification:
+    build:
+      context: .
+      dockerfile: services/notification/Dockerfile
+    environment:
+      <<: *service-env
+      SERVICE_NAME: notification
+      API_PREFIX: /api/notifications/v1
+      DATABASE_URL: postgresql+asyncpg://notification_user:${NOTIFICATION_DB_PASSWORD}@postgres:5432/pharmacy_notification
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+    depends_on: *service-deps
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.notification.loadbalancer.server.port=8000
+      # public: health check and API docs (docs are switched off in production)
+      - traefik.http.routers.notification-public.rule=Path(`/api/notifications/v1/health`) || Path(`/api/notifications/v1/docs`) || Path(`/api/notifications/v1/openapi.json`)
+      - traefik.http.routers.notification-public.priority=100
+      - traefik.http.routers.notification-public.entrypoints=web
+      - traefik.http.routers.notification-public.service=notification
+      - traefik.http.routers.notification-public.middlewares=strip-identity-headers@file,security-headers-docs@file,ratelimit-per-ip@file
+      # protected: everything else needs a valid access token
+      - traefik.http.routers.notification.rule=PathPrefix(`/api/notifications`)
+      - traefik.http.routers.notification.priority=10
+      - traefik.http.routers.notification.entrypoints=web
+      - traefik.http.routers.notification.service=notification
+      - traefik.http.routers.notification.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-flood@file,auth-forward@file
+    networks: [internal]
+    restart: unless-stopped
+
+  document:
+    build:
+      context: .
+      dockerfile: services/document/Dockerfile
+    environment:
+      <<: *service-env
+      SERVICE_NAME: document
+      API_PREFIX: /api/documents/v1
+      DATABASE_URL: postgresql+asyncpg://document_user:${DOCUMENT_DB_PASSWORD}@postgres:5432/pharmacy_document
+    depends_on: *service-deps
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.document.loadbalancer.server.port=8000
+      # public: health check and API docs (docs are switched off in production)
+      - traefik.http.routers.document-public.rule=Path(`/api/documents/v1/health`) || Path(`/api/documents/v1/docs`) || Path(`/api/documents/v1/openapi.json`)
+      - traefik.http.routers.document-public.priority=100
+      - traefik.http.routers.document-public.entrypoints=web
+      - traefik.http.routers.document-public.service=document
+      - traefik.http.routers.document-public.middlewares=strip-identity-headers@file,security-headers-docs@file,ratelimit-per-ip@file
+      # protected: everything else needs a valid access token
+      - traefik.http.routers.document.rule=PathPrefix(`/api/documents`)
+      - traefik.http.routers.document.priority=10
+      - traefik.http.routers.document.entrypoints=web
+      - traefik.http.routers.document.service=document
+      - traefik.http.routers.document.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-flood@file,auth-forward@file
+    networks: [internal]
+    restart: unless-stopped
+
+  ai:
+    build:
+      context: .
+      dockerfile: services/ai/Dockerfile
+    environment:
+      <<: *service-env
+      SERVICE_NAME: ai
+      API_PREFIX: /api/ai/v1
+      DATABASE_URL: postgresql+asyncpg://ai_user:${AI_DB_PASSWORD}@postgres:5432/pharmacy_ai
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL}
+      DEEPSEEK_MODEL_FAST: ${DEEPSEEK_MODEL_FAST}
+      DEEPSEEK_MODEL_REASONING: ${DEEPSEEK_MODEL_REASONING}
+    depends_on: *service-deps
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.ai.loadbalancer.server.port=8000
+      # public: health check and API docs (docs are switched off in production)
+      - traefik.http.routers.ai-public.rule=Path(`/api/ai/v1/health`) || Path(`/api/ai/v1/docs`) || Path(`/api/ai/v1/openapi.json`)
+      - traefik.http.routers.ai-public.priority=100
+      - traefik.http.routers.ai-public.entrypoints=web
+      - traefik.http.routers.ai-public.service=ai
+      - traefik.http.routers.ai-public.middlewares=strip-identity-headers@file,security-headers-docs@file,ratelimit-per-ip@file
+      # protected: everything else needs a valid access token
+      - traefik.http.routers.ai.rule=PathPrefix(`/api/ai`)
+      - traefik.http.routers.ai.priority=10
+      - traefik.http.routers.ai.entrypoints=web
+      - traefik.http.routers.ai.service=ai
+      - traefik.http.routers.ai.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-flood@file,auth-forward@file
+    networks: [internal]
+    restart: unless-stopped
+
+networks:
+  edge:
+  internal:
+    internal: false  # set to true in production; only traefik needs the edge network
+
+volumes:
+  pgdata:
+  letsencrypt:
