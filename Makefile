@@ -1,6 +1,6 @@
 SERVICES := auth branch catalog inventory stockcount prescription controlled sales customers purchasing reports notification document ai
 
-.PHONY: help env up down logs ps owner smoke test test-docker test-db test-db-down lint migrate revision
+.PHONY: help env up down logs ps owner smoke test test-docker test-db test-db-down lint migrate revision resync
 
 help:
 	@echo "make env       copy .env.example to .env (first time)"
@@ -9,6 +9,7 @@ help:
 	@echo "make logs s=sales   follow one service's logs"
 	@echo "make owner     create the first owner account"
 	@echo "make smoke     check login + protected routes through Traefik"
+	@echo "make resync    re-send branches and products as events (after adding a listening service)"
 	@echo "make test      lint + tests for all services (starts test databases)"
 	@echo "make test-docker   the same, inside a python:3.12 container (no local Python needed)"
 	@echo "make migrate s=auth             run alembic upgrade head in a service"
@@ -34,6 +35,12 @@ owner:
 
 smoke:
 	python3 scripts/smoke.py
+
+# Services that start listening late (new queue) missed earlier events: re-send them.
+# Safe to repeat: consumers ignore what they already have.
+resync:
+	docker compose exec branch python -m branch_service.cli republish
+	docker compose exec catalog python -m catalog_service.cli republish
 
 test-db:
 	docker compose -f docker-compose.test.yml up -d --wait

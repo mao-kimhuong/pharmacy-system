@@ -10,6 +10,11 @@ class Settings(BaseServiceSettings):
     db_user: str = "purchasing_user"
     db_password: str = "change-me-purchasing"
 
+    # RabbitMQ consumer (local copies of branches and medicines)
+    event_consumer_enabled: bool = True
+    # Receiving: an expiry closer than this many days is accepted but flagged
+    short_expiry_days: int = 180
+
 
 @lru_cache
 def get_settings() -> Settings:

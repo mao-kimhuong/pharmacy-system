@@ -14,7 +14,13 @@ creating its categories and brands; the products stay), search by barcode,
 Khmer and English name, print labels as a PDF, a cashier gets 403 on edit and
 import, and the User Log shows the import.
 
-Without prompts: SMOKE_PHONE, SMOKE_PASSWORD, SMOKE_S1=y, SMOKE_S1B=y.
+S2 checks (optional, needs the S1b sample products): in a new test branch, a
+supplier and a PO for PARA500, AMOX500 and ORS, the PO PDF, receiving 2 lots per
+line (a past expiry refused, a short expiry flagged, the same Idempotency-Key not
+doubling stock), stock shown FEFO, paying the supplier to 0, a cashier seeing stock
+without cost fields, the User Log. The test branch, cashier and supplier are deactivated.
+
+Without prompts: SMOKE_PHONE, SMOKE_PASSWORD, SMOKE_S1=y, SMOKE_S1B=y, SMOKE_S2=y.
 
 Uses only the Python standard library.
 """
@@ -30,6 +36,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+from datetime import date, timedelta
 from pathlib import Path
 
 BASE = os.environ.get("BASE_URL", "http://localhost").rstrip("/")
@@ -368,6 +375,129 @@ def s1b_checks(token: str) -> None:
     check(log.get("total", 0) >= 1, "User Log shows changes to PARA500")
 
 
+def s2_checks(token: str) -> None:
+    cat, pur, inv = "/api/catalog/v1", "/api/purchasing/v1", "/api/inventory/v1"
+    products = {}
+    for sku in ("PARA500", "AMOX500", "ORS"):
+        _, found = call("GET", f"{cat}/medicines/search?q={sku}", token=token)
+        m = next((x for x in found.get("items", []) if x["sku"] == sku), None)
+        if m is None:
+            check(False, f"sample product {sku} exists (run the S1b step first)")
+            return
+        products[sku] = (m, next(p for p in m["pack_units"] if p["name"] == "box"))
+    made = make_test_cashier(token)
+    if made is None:
+        return
+    bid, cashier, phone, password = made
+    code = f"S2{random.randint(1000, 9999)}"
+    status, supplier = call("POST", f"{pur}/suppliers", {"code": code, "name": f"Smoke supplier {code}",
+                            "name_km": "អ្នកផ្គត់ផ្គង់", "payment_terms_days": 30}, token=token)  # fmt: skip
+    check(status == 201, f"owner creates supplier {code} -> 201 (got {status} {supplier.get('code', '')})")
+    if status != 201:
+        return remove_test_cashier(token, bid, cashier)
+
+    body = {"branch_id": bid, "supplier_id": supplier["id"], "note": "Smoke test PO", "lines": [
+        {"medicine_id": m["id"], "pack_unit_id": box["id"], "qty": 2, "unit_cost": "4.25"}
+        for m, box in products.values()]}  # fmt: skip
+
+    def create_po():
+        status, po = call("POST", f"{pur}/purchase-orders", body, token=token)
+        return (status, po) if po.get("code") not in ("UNKNOWN_BRANCH", "UNKNOWN_MEDICINE") else None
+
+    status, po = wait_for(create_po, tries=30) or (0, {"code": "UNKNOWN_BRANCH / UNKNOWN_MEDICINE"})
+    if not check(status == 201, f"PO for 3 sample products -> 201 (got {status} {po.get('code', '')}"
+                 f"{'; run make resync' if po.get('code') else ''})"):  # fmt: skip
+        return remove_test_cashier(token, bid, cashier)
+    status, po = call("POST", f"{pur}/purchase-orders/{po['id']}/send", token=token)
+    check(status == 200 and po.get("status") == "sent", f"PO {po.get('number')} sent")
+    pdf_body = json.dumps({"type": "purchase_order", "purchase_order_id": po["id"]}).encode()
+
+    def po_pdf():
+        status, pdf, ctype = call_raw("POST", "/api/documents/v1/render", pdf_body, token,
+                                      {"Content-Type": "application/json"})  # fmt: skip
+        return (pdf, ctype) if status == 200 else None
+
+    got = wait_for(po_pdf, tries=10)
+    if check(got is not None and got[0].startswith(b"%PDF"), "PO PDF printed"):
+        out = Path(tempfile.gettempdir()) / "pharmacy-smoke-po.pdf"
+        out.write_bytes(got[0])
+        print(f"        open {out}")
+
+    today = date.today()
+    soon, later, much_later = (
+        today + timedelta(days=60),
+        today + timedelta(days=500),
+        today + timedelta(days=700),
+    )
+    first = po["lines"][0]
+    status, err = call("POST", f"{pur}/purchase-orders/{po['id']}/receive", {"lines": [
+        {"po_line_id": first["id"], "lot_no": "OLD", "expiry_date": (today - timedelta(days=1)).isoformat(), "qty": 1}]},
+        token=token, headers={"Idempotency-Key": str(uuid.uuid4())})  # fmt: skip
+    check(
+        status == 409 and err.get("code") == "BATCH_EXPIRED",
+        f"past expiry refused -> 409 BATCH_EXPIRED (got {status})",
+    )
+
+    lines = []
+    for i, line in enumerate(po["lines"]):  # two lots per line; the first item's earlier lot is short-dated
+        lines.append(
+            {"po_line_id": line["id"], "lot_no": f"L{i}B", "expiry_date": much_later.isoformat(), "qty": 1}
+        )
+        lines.append({"po_line_id": line["id"], "lot_no": f"L{i}A",
+                      "expiry_date": (soon if i == 0 else later).isoformat(), "qty": 1})  # fmt: skip
+    key = {"Idempotency-Key": str(uuid.uuid4())}
+    status, receipt = call("POST", f"{pur}/purchase-orders/{po['id']}/receive", {"lines": lines,
+                           "supplier_invoice_no": "SMOKE-1"}, token=token, headers=key)  # fmt: skip
+    check(status == 201, f"received 2 lots per line -> 201 (got {status} {receipt.get('code', '')})")
+    flagged = [x["lot_no"] for x in receipt.get("lines", []) if x["short_expiry"]]
+    check(flagged == ["L0A"], f"short expiry flagged ({flagged})")
+    status, again = call("POST", f"{pur}/purchase-orders/{po['id']}/receive", {"lines": lines,
+                         "supplier_invoice_no": "SMOKE-1"}, token=token, headers=key)  # fmt: skip
+    check(
+        status == 201 and again.get("number") == receipt.get("number"),
+        "same Idempotency-Key replays the receipt",
+    )
+
+    expected = {m["sku"]: 2 * box["qty_in_base"] for m, box in products.values()}
+
+    def stock_arrived():
+        _, page = call("GET", f"{inv}/stock?branch_id={bid}", token=token)
+        items = {i["sku"]: i for i in page.get("items", [])}
+        return items if {k: items.get(k, {}).get("qty_on_hand") for k in expected} == expected else None
+
+    items = wait_for(stock_arrived, tries=40)
+    check(items is not None, f"stock arrived in the test branch, once ({expected})")
+    if items:
+        lots = [b["lot_no"] for b in items["PARA500"]["batches"]]
+        check(lots == ["L0A", "L0B"], f"batches shown FEFO, earliest expiry first ({lots})")
+
+    total = receipt.get("total", "0")
+    status, payment = call("POST", f"{pur}/supplier-payments", {"supplier_id": supplier["id"], "branch_id": bid,
+                           "method": "ABA", "amount": total}, token=token,
+                           headers={"Idempotency-Key": str(uuid.uuid4())})  # fmt: skip
+    check(status == 201, f"supplier paid {total} USD -> 201 (got {status} {payment.get('code', '')})")
+    _, bal = call("GET", f"{pur}/suppliers/{supplier['id']}/balance", token=token)
+    check(bal.get("owed") == "0.00", f"supplier balance is 0 ({bal.get('owed')})")
+
+    _, ctok = call("POST", "/api/auth/v1/login", {"phone": phone, "password": password})
+    status, raw, _ = call_raw("GET", f"{inv}/stock?branch_id={bid}", None, ctok.get("access_token", ""))
+    text = raw.decode()
+    check(status == 200 and "PARA500" in text and "cost_per_base" not in text and "stock_value" not in text,
+          f"cashier sees stock without cost fields ({status})")  # fmt: skip
+
+    for action, entity in (("purchase_order.created", po["id"]), ("goods.received", receipt.get("id")),
+                           ("supplier_payment.created", payment.get("id"))):  # fmt: skip
+
+        def logged(action=action, entity=entity):
+            _, log = call("GET", f"/api/auth/v1/audit-logs?action={action}&entity_id={entity}", token=token)
+            return log.get("total")
+
+        check(bool(wait_for(logged)), f"User Log shows {action}")
+
+    call("POST", f"{pur}/suppliers/{supplier['id']}/deactivate", {"reason": "smoke test"}, token=token)
+    remove_test_cashier(token, bid, cashier)
+
+
 def main() -> int:
     print(f"Smoke test against {BASE}\n")
     tokens = s0_checks()
@@ -386,6 +516,13 @@ def main() -> int:
     if run_s1b.strip().lower() in ("y", "yes", "1"):
         print()
         s1b_checks(tokens["access_token"])
+    run_s2 = os.environ.get("SMOKE_S2") or input(
+        "\nAlso run the S2 checks? It creates a test branch, supplier and PO, receives and pays it\n"
+        "(stock stays in the deactivated test branch). [y/N] "
+    )
+    if run_s2.strip().lower() in ("y", "yes", "1"):
+        print()
+        s2_checks(tokens["access_token"])
 
     status, _ = call(
         "POST",

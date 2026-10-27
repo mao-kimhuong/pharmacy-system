@@ -14,7 +14,6 @@ Rules:
 """
 
 import base64
-import html
 import io
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -24,15 +23,14 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.concurrency import run_in_threadpool
 
 from pharmacy_shared.errors import AppError, ErrorCode
 
 from ..models import ProductPackUnit
+from . import pdf
+from .pdf import FONTS, e, html_to_pdf
 
 Layout = Literal["shelf_50x30", "barcode_40x25", "a4_sheet"]
-# Latin first, then Khmer: each character takes the first font that has it.
-FONTS = '"Noto Sans", "DejaVu Sans", Helvetica, Arial, "Noto Sans Khmer", "Khmer OS", sans-serif'
 
 
 @dataclass(frozen=True)
@@ -102,8 +100,7 @@ def barcode_svg(code: str, module_height_mm: float) -> str:
     return "data:image/svg+xml;base64," + base64.b64encode(out.getvalue()).decode()
 
 
-def _e(text: str) -> str:
-    return html.escape(text, quote=True)
+_e = e
 
 
 def _label_html(label: Label, layout: Layout) -> str:
@@ -164,15 +161,8 @@ def build_html(labels: Iterable[Label], layout: Layout) -> str:
 
 
 def _render(page_html: str) -> bytes:
-    # Imported here: needs Pango (in the Docker image; `brew install pango` on a Mac).
-    from weasyprint import HTML
-    from weasyprint.urls import URLFetcher
-
-    # Our barcodes are inline data: images; nothing else is ever fetched (no SSRF).
-    fetcher = URLFetcher(allowed_protocols={"data"})
-    return HTML(string=page_html, url_fetcher=fetcher).write_pdf()
+    return pdf._render(page_html)
 
 
 async def render_pdf(labels: list[Label], layout: Layout) -> bytes:
-    # CPU-bound: keep it off the event loop.
-    return await run_in_threadpool(_render, build_html(labels, layout))
+    return await html_to_pdf(build_html(labels, layout))

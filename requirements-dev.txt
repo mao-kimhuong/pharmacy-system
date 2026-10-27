@@ -4,3 +4,5 @@ httpx>=0.27
 httpx2>=2.0  # used by FastAPI's TestClient
 ruff>=0.5
 pypdf>=4  # document tests read the generated PDFs
+openpyxl>=3.1  # pharmacy_shared.xlsx tests
+defusedxml>=0.7

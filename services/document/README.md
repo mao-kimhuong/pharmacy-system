@@ -27,3 +27,5 @@ Owns: Receipts, A4 invoices, labels, PO and register PDFs.
   `fonts-noto-core`; Code128 barcodes as SVG (python-barcode). Never ReportLab for Khmer.
 - Local tests need Pango: `brew install pango` (otherwise the PDF tests are skipped);
   `make test-docker` always runs them.
+- `POST /render` with `type: "purchase_order"` (S2): the A4 PO from the copy kept from
+  `purchase_order.*` events; permission `purchasing.order`, own branches only.

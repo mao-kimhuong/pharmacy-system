@@ -5,7 +5,7 @@ from pharmacy_shared.consumer import ProcessedMessageMixin
 from pharmacy_shared.db import Base
 from pharmacy_shared.outbox import OutboxMixin
 
-from .products import Product, ProductPackUnit
+from .products import Product, ProductPackUnit, PurchaseOrderCopy
 
 
 class OutboxEvent(OutboxMixin, Base):
@@ -16,4 +16,4 @@ class ProcessedMessage(ProcessedMessageMixin, Base):
     __tablename__ = "processed_messages"
 
 
-__all__ = ["Base", "OutboxEvent", "ProcessedMessage", "Product", "ProductPackUnit"]
+__all__ = ["Base", "OutboxEvent", "ProcessedMessage", "Product", "ProductPackUnit", "PurchaseOrderCopy"]

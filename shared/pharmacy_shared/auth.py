@@ -40,6 +40,9 @@ class CurrentUser:
     def has(self, permission: str) -> bool:
         return ALL_PERMISSIONS in self.permissions or permission in self.permissions
 
+    def has_any(self, *permissions: str) -> bool:
+        return any(self.has(p) for p in permissions)
+
     def require(self, permission: str) -> None:
         if not self.has(permission):
             raise AppError(
@@ -89,6 +92,22 @@ def requires(permission: str):  # noqa: ANN201 - returns a FastAPI dependency
 
     def dependency(user: CurrentUser = Depends(current_user)) -> CurrentUser:
         user.require(permission)
+        return user
+
+    return dependency
+
+
+def requires_any(*permissions: str):  # noqa: ANN201 - returns a FastAPI dependency
+    """Route dependency: allowed with any one of the permissions."""
+
+    def dependency(user: CurrentUser = Depends(current_user)) -> CurrentUser:
+        if not user.has_any(*permissions):
+            raise AppError(
+                ErrorCode.FORBIDDEN,
+                "You do not have permission to do this",
+                status_code=403,
+                details={"permission": " or ".join(permissions)},
+            )
         return user
 
     return dependency

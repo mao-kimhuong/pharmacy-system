@@ -59,6 +59,7 @@ CATALOG: tuple[PermissionDef, ...] = (
     P("purchasing.request", "Purchase", "Purchase requests"),
     P("purchasing.order", "Purchase", "Create purchase orders"),
     P("purchasing.receive", "Purchase", "Receive goods"),
+    P("purchasing.over_receive", "Purchase", "Receive more than ordered"),
     P("purchasing.pay", "Purchase", "Pay suppliers"),
     # Contacts
     P("contacts.customers", "Contacts", "Customers"),

@@ -1,13 +1,12 @@
-"""All routers of the purchasing service are included here.
-
-Mounted under /api/purchasing/v1. Endpoints for this service are listed in
-docs/spec.md (Screen -> API map, Menu structure, Endpoint reference).
-"""
+"""All routers of the purchasing service, mounted under /api/purchasing/v1."""
 
 from fastapi import APIRouter
 
-router = APIRouter()
+from .orders import router as orders_router
+from .payments import router as payments_router
+from .suppliers import router as suppliers_router
 
-# Example for sprint work:
-# from .<feature> import router as <feature>_router
-# router.include_router(<feature>_router, prefix="/<feature>", tags=["<feature>"])
+router = APIRouter()
+router.include_router(suppliers_router)
+router.include_router(orders_router)
+router.include_router(payments_router)

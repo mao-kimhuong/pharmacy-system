@@ -14,6 +14,8 @@ class Settings(BaseServiceSettings):
     event_consumer_enabled: bool = True
     # Most labels in one PDF
     max_labels: int = 1000
+    # A document whose data is still on its way (event) is waited for this long
+    document_wait_seconds: float = 5.0
 
 
 @lru_cache

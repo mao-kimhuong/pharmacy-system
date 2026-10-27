@@ -60,8 +60,11 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   Noto Khmer + psql), so label and init-script tests always run. Part of "done".
 - `make owner` – create the first owner account; `make smoke` – end-to-end check through Traefik
   (asks for the 2FA code; optional S1 checks create and deactivate a test branch + cashier; optional
-  S1b checks import the sample products (they stay), search, print labels, cashier 403s)
+  S1b checks import the sample products (they stay), search, print labels, cashier 403s; optional
+  S2 checks: supplier, PO + PDF, receive 2 lots per line, FEFO stock, pay to 0, cashier sees no cost)
 - `make revision s=<service> m="message"` then `make migrate s=<service>`
+- `make resync` – re-send branches and products as events (needed once when a service starts
+  listening after the data exists: RabbitMQ drops events for queues that did not exist yet)
 
 ## How things work (from S0)
 - **Who is calling:** `user: CurrentUser = Depends(current_user)`; then `user.require_branch(branch_id)`.
@@ -123,6 +126,42 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   in the image); Code128 via python-barcode SVG; text HTML-escaped; the URL fetcher only allows
   `data:`. Never ReportLab for Khmer. Locally `brew install pango` (else PDF tests skip).
   Receipts, invoices, PO and register PDFs (later sprints) should reuse this renderer.
+- **Local copies (from S2):** `pharmacy_shared.copies` – `ProductCopyMixin` / `PackUnitCopyMixin`
+  (tables `products`, `product_pack_units`) and `BranchCopyMixin` (`known_branches`) with
+  `upsert_product` / `upsert_branch`; used by document, purchasing and inventory. Add a listener:
+  routing keys in `services/events.py`, then `make resync` on existing stacks.
+- **Numbers (from S2):** `pharmacy_shared.numbering.next_number(session, DocSequence, branch_id,
+  code, "PO")` → `PP1-PO-2026-000001`; counter row locked in the caller's transaction (no gaps,
+  no duplicates; rollback frees it). Dates for business rules: `pharmacy_shared.clock.today()`
+  (Asia/Phnom_Penh); tests monkeypatch it.
+- **Purchasing (from S2):** PO draft → sent (status only) → partially_received → received;
+  edit in draft only; cancel only if nothing received. Receive only a sent PO (Idempotency-Key):
+  expiry < today → BATCH_EXPIRED, < 180 days → `short_expiry`; over-receipt needs `allow_over` +
+  `purchasing.over_receive`. A receipt is the supplier's bill (`PP1-GRN-…`, due after payment
+  terms); `goods.received` carries branch, supplier, lines (medicine, pack unit, qty_base, lot,
+  expiry, cost_per_base NUMERIC(14,4), controlled flag). Supplier payments go to the branch's
+  oldest open bills; above what is owed → SUPPLIER_OVERPAYMENT; cancel reverses allocations.
+  The PO PDF: `POST /api/documents/v1/render {"type":"purchase_order"}` from the document
+  service's copy of `purchase_order.*` events (waits up to 5 s, then DOCUMENT_NOT_READY).
+- **Batches and movements (inventory, from S2):** a batch = medicine + lot + expiry + supplier +
+  cost_per_base (same lot at another cost = another batch; FEFO treats them alike; unique index
+  with NULLS NOT DISTINCT). `stock` is per (branch, batch) with CHECK on_hand ≥ reserved ≥ 0.
+  Stock changes ONLY through `services/movements.apply_movement()` in the caller's transaction:
+  it locks the stock row, writes a signed movement (`qty_after`) and emits `stock.changed`.
+  `in`/`opening` movements are unique per source line (receipt line, stock-in line, opening line),
+  so a re-delivered `goods.received` books nothing twice. FEFO order everywhere: expiry_date,
+  received_at, id. Quick stock-in (no PO) and Initialize (validate → commit → branch locked; only
+  the owner unlocks, with a reason) use the same expiry rules.
+- **Cost visibility:** inventory cost (`cost_per_base`, `value`, `stock_value`) only with
+  `finance.cost_profit`; purchasing prices (`unit_cost`, `line_total`, `total`, `paid`, `balance`)
+  only with `purchasing.order` / `purchasing.pay` / `finance.cost_profit`. Routes build the full
+  model and drop those keys with `pharmacy_shared.visibility.drop_fields` (absent, not null).
+  Events between services always carry cost (reports need it).
+- **Expiry job:** inventory background task at 00:05 Asia/Phnom_Penh (and once at start-up):
+  active batches with expiry_date < today → `expired` (not sellable), `batch.expired` event,
+  User Log entry by the system. `pg_try_advisory_xact_lock` = one replica at a time. Tests call
+  `expire_batches(session, today)`; by hand: `python -m inventory_service.cli expire-batches
+  [--dry-run [--today YYYY-MM-DD]]`. `EXPIRY_JOB_ENABLED=false` turns it off.
 
 ## Definition of done
 API matches the spec, migration included, tests pass (`make test` and `make test-docker`),
@@ -133,7 +172,7 @@ API matches the spec, migration included, tests pass (`make test` and `make test
 - [x] S0 Setup – auth login + /verify, attach ForwardAuth, outbox relay, idempotency
 - [x] S1a Settings – users, roles + permissions, 2FA, User Log, branches, branch settings, feature switches
 - [x] S1b Settings – products, pack units, categories, brands, Excel import, labels
-- [ ] S2 Stock + buying – batches, stock, initialize, suppliers, PO, receiving, payments
+- [x] S2 Stock + buying – batches, stock, initialize, suppliers, PO, receiving, payments
 - [ ] S3 POS + sales – FEFO checkout, invoices, returns, customers, receipts
 - [ ] S4 Prescriptions – patients, doctors, Rx, dispensing, allergy warnings, labels
 - [ ] S5 Controlled + counts – register, PIN + witness, stock take, shrinkage

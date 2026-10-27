@@ -16,3 +16,8 @@ Owns: Batches, stock per branch, movements, transfers, shrinkage, opening stock,
 - `inventory_service/events/` – event publishers and consumers
 - `migrations/` – Alembic
 - `tests/`
+
+## What it does (S2)
+
+See CLAUDE.md → "Purchasing (from S2)", "Batches and movements", "Cost visibility" and
+"Expiry job". Business rules are listed at the top of each module in `*_service/services/`.

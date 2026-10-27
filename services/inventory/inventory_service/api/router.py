@@ -1,13 +1,8 @@
-"""All routers of the inventory service are included here.
-
-Mounted under /api/inventory/v1. Endpoints for this service are listed in
-docs/spec.md (Screen -> API map, Menu structure, Endpoint reference).
-"""
+"""All routers of the inventory service, mounted under /api/inventory/v1."""
 
 from fastapi import APIRouter
 
-router = APIRouter()
+from .inventory import router as inventory_router
 
-# Example for sprint work:
-# from .<feature> import router as <feature>_router
-# router.include_router(<feature>_router, prefix="/<feature>", tags=["<feature>"])
+router = APIRouter()
+router.include_router(inventory_router)
