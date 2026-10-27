@@ -1,13 +1,12 @@
-"""All routers of the catalog service are included here.
-
-Mounted under /api/catalog/v1. Endpoints for this service are listed in
-docs/spec.md (Screen -> API map, Menu structure, Endpoint reference).
-"""
+"""All routers of the catalog service, mounted under /api/catalog/v1."""
 
 from fastapi import APIRouter
 
-router = APIRouter()
+from .imports import router as imports_router
+from .lookups import router as lookups_router
+from .medicines import router as medicines_router
 
-# Example for sprint work:
-# from .<feature> import router as <feature>_router
-# router.include_router(<feature>_router, prefix="/<feature>", tags=["<feature>"])
+router = APIRouter()
+router.include_router(lookups_router)
+router.include_router(medicines_router)
+router.include_router(imports_router)

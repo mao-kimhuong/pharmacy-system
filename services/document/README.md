@@ -16,3 +16,14 @@ Owns: Receipts, A4 invoices, labels, PO and register PDFs.
 - `document_service/events/` – event publishers and consumers
 - `migrations/` – Alembic
 - `tests/`
+
+## What it does (S1b)
+
+- Keeps a copy of products (`products`, `product_pack_units`) from `medicine.*` events
+  (queue `document.events`); older `version`s are ignored.
+- `POST /render` with `type: "label"`: shelf 50×30 mm, barcode 40×25 mm or an A4 sheet
+  (3 × 8). Returns a PDF. Permission `labels.print`.
+- Rendering: WeasyPrint (Pango + HarfBuzz shape Khmer correctly) with Noto Sans Khmer from
+  `fonts-noto-core`; Code128 barcodes as SVG (python-barcode). Never ReportLab for Khmer.
+- Local tests need Pango: `brew install pango` (otherwise the PDF tests are skipped);
+  `make test-docker` always runs them.

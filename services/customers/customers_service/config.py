@@ -6,9 +6,9 @@ from pharmacy_shared.config import BaseServiceSettings
 class Settings(BaseServiceSettings):
     service_name: str = "customers"
     api_prefix: str = "/api/customers/v1"
-    database_url: str = (
-        "postgresql+asyncpg://customers_user:change-me-customers@localhost:5432/pharmacy_customers"
-    )
+    db_name: str = "pharmacy_customers"
+    db_user: str = "customers_user"
+    db_password: str = "change-me-customers"
 
 
 @lru_cache

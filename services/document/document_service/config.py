@@ -6,9 +6,14 @@ from pharmacy_shared.config import BaseServiceSettings
 class Settings(BaseServiceSettings):
     service_name: str = "document"
     api_prefix: str = "/api/documents/v1"
-    database_url: str = (
-        "postgresql+asyncpg://document_user:change-me-document@localhost:5432/pharmacy_document"
-    )
+    db_name: str = "pharmacy_document"
+    db_user: str = "document_user"
+    db_password: str = "change-me-document"
+
+    # RabbitMQ consumer (local copy of products from medicine.* events)
+    event_consumer_enabled: bool = True
+    # Most labels in one PDF
+    max_labels: int = 1000
 
 
 @lru_cache

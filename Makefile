@@ -1,6 +1,6 @@
 SERVICES := auth branch catalog inventory stockcount prescription controlled sales customers purchasing reports notification document ai
 
-.PHONY: help env up down logs ps owner smoke test test-db test-db-down lint migrate revision
+.PHONY: help env up down logs ps owner smoke test test-docker test-db test-db-down lint migrate revision
 
 help:
 	@echo "make env       copy .env.example to .env (first time)"
@@ -10,6 +10,7 @@ help:
 	@echo "make owner     create the first owner account"
 	@echo "make smoke     check login + protected routes through Traefik"
 	@echo "make test      lint + tests for all services (starts test databases)"
+	@echo "make test-docker   the same, inside a python:3.12 container (no local Python needed)"
 	@echo "make migrate s=auth             run alembic upgrade head in a service"
 	@echo "make revision s=auth m='add users'   create a migration"
 
@@ -42,6 +43,10 @@ test-db-down:
 
 test: test-db
 	./scripts/test-all.sh
+
+# Same suite in a container (with Pango + Khmer font, so label tests run too).
+test-docker: test-db
+	docker compose -f docker-compose.test.yml --profile runner run --rm --build tests
 
 lint:
 	ruff check .

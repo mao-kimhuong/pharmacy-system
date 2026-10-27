@@ -3,7 +3,12 @@ name: pharmacy
 x-service-env: &service-env
   ENVIRONMENT: ${ENVIRONMENT:-local}
   REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
-  RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+  # URLs are built in pharmacy_shared.config, so passwords may contain any character
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_USER: ${RABBITMQ_USER}
+  RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
   JWT_SECRET: ${JWT_SECRET}
 
 x-service-deps: &service-deps
@@ -86,7 +91,9 @@ services:
       <<: *service-env
       SERVICE_NAME: auth
       API_PREFIX: /api/auth/v1
-      DATABASE_URL: postgresql+asyncpg://auth_user:${AUTH_DB_PASSWORD}@postgres:5432/pharmacy_auth
+      DB_NAME: pharmacy_auth
+      DB_USER: auth_user
+      DB_PASSWORD: ${AUTH_DB_PASSWORD}
       TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:-}
     depends_on: *service-deps
     labels:
@@ -126,7 +133,9 @@ services:
       <<: *service-env
       SERVICE_NAME: branch
       API_PREFIX: /api/branch/v1
-      DATABASE_URL: postgresql+asyncpg://branch_user:${BRANCH_DB_PASSWORD}@postgres:5432/pharmacy_branch
+      DB_NAME: pharmacy_branch
+      DB_USER: branch_user
+      DB_PASSWORD: ${BRANCH_DB_PASSWORD}
     depends_on: *service-deps
     labels:
       - traefik.enable=true
@@ -154,7 +163,9 @@ services:
       <<: *service-env
       SERVICE_NAME: catalog
       API_PREFIX: /api/catalog/v1
-      DATABASE_URL: postgresql+asyncpg://catalog_user:${CATALOG_DB_PASSWORD}@postgres:5432/pharmacy_catalog
+      DB_NAME: pharmacy_catalog
+      DB_USER: catalog_user
+      DB_PASSWORD: ${CATALOG_DB_PASSWORD}
     depends_on: *service-deps
     labels:
       - traefik.enable=true
@@ -182,7 +193,9 @@ services:
       <<: *service-env
       SERVICE_NAME: inventory
       API_PREFIX: /api/inventory/v1
-      DATABASE_URL: postgresql+asyncpg://inventory_user:${INVENTORY_DB_PASSWORD}@postgres:5432/pharmacy_inventory
+      DB_NAME: pharmacy_inventory
+      DB_USER: inventory_user
+      DB_PASSWORD: ${INVENTORY_DB_PASSWORD}
     depends_on: *service-deps
     labels:
       - traefik.enable=true
@@ -210,7 +223,9 @@ services:
       <<: *service-env
       SERVICE_NAME: stockcount
       API_PREFIX: /api/stockcount/v1
-      DATABASE_URL: postgresql+asyncpg://stockcount_user:${STOCKCOUNT_DB_PASSWORD}@postgres:5432/pharmacy_stockcount
+      DB_NAME: pharmacy_stockcount
+      DB_USER: stockcount_user
+      DB_PASSWORD: ${STOCKCOUNT_DB_PASSWORD}
     depends_on: *service-deps
     labels:
       - traefik.enable=true
@@ -238,7 +253,9 @@ services:
       <<: *service-env
       SERVICE_NAME: prescription
       API_PREFIX: /api/prescription/v1
-      DATABASE_URL: postgresql+asyncpg://prescription_user:${PRESCRIPTION_DB_PASSWORD}@postgres:5432/pharmacy_prescription
+      DB_NAME: pharmacy_prescription
+      DB_USER: prescription_user
+      DB_PASSWORD: ${PRESCRIPTION_DB_PASSWORD}
     depends_on: *service-deps
     labels:
       - traefik.enable=true
@@ -266,7 +283,9 @@ services:
       <<: *service-env
       SERVICE_NAME: controlled
       API_PREFIX: /api/controlled/v1
-      DATABASE_URL: postgresql+asyncpg://controlled_user:${CONTROLLED_DB_PASSWORD}@postgres:5432/pharmacy_controlled
+      DB_NAME: pharmacy_controlled
+      DB_USER: controlled_user
+      DB_PASSWORD: ${CONTROLLED_DB_PASSWORD}
     depends_on: *service-deps
     labels:
       - traefik.enable=true
@@ -294,7 +313,9 @@ services:
       <<: *service-env
       SERVICE_NAME: sales
       API_PREFIX: /api/sales/v1
-      DATABASE_URL: postgresql+asyncpg://sales_user:${SALES_DB_PASSWORD}@postgres:5432/pharmacy_sales
+      DB_NAME: pharmacy_sales
+      DB_USER: sales_user
+      DB_PASSWORD: ${SALES_DB_PASSWORD}
     depends_on: *service-deps
     labels:
       - traefik.enable=true
@@ -322,7 +343,9 @@ services:
       <<: *service-env
       SERVICE_NAME: customers
       API_PREFIX: /api/customers/v1
-      DATABASE_URL: postgresql+asyncpg://customers_user:${CUSTOMERS_DB_PASSWORD}@postgres:5432/pharmacy_customers
+      DB_NAME: pharmacy_customers
+      DB_USER: customers_user
+      DB_PASSWORD: ${CUSTOMERS_DB_PASSWORD}
     depends_on: *service-deps
     labels:
       - traefik.enable=true
@@ -350,7 +373,9 @@ services:
       <<: *service-env
       SERVICE_NAME: purchasing
       API_PREFIX: /api/purchasing/v1
-      DATABASE_URL: postgresql+asyncpg://purchasing_user:${PURCHASING_DB_PASSWORD}@postgres:5432/pharmacy_purchasing
+      DB_NAME: pharmacy_purchasing
+      DB_USER: purchasing_user
+      DB_PASSWORD: ${PURCHASING_DB_PASSWORD}
     depends_on: *service-deps
     labels:
       - traefik.enable=true
@@ -378,7 +403,9 @@ services:
       <<: *service-env
       SERVICE_NAME: reports
       API_PREFIX: /api/reports/v1
-      DATABASE_URL: postgresql+asyncpg://reports_user:${REPORTS_DB_PASSWORD}@postgres:5432/pharmacy_reports
+      DB_NAME: pharmacy_reports
+      DB_USER: reports_user
+      DB_PASSWORD: ${REPORTS_DB_PASSWORD}
     depends_on: *service-deps
     labels:
       - traefik.enable=true
@@ -406,7 +433,9 @@ services:
       <<: *service-env
       SERVICE_NAME: notification
       API_PREFIX: /api/notifications/v1
-      DATABASE_URL: postgresql+asyncpg://notification_user:${NOTIFICATION_DB_PASSWORD}@postgres:5432/pharmacy_notification
+      DB_NAME: pharmacy_notification
+      DB_USER: notification_user
+      DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
     depends_on: *service-deps
     labels:
@@ -435,7 +464,9 @@ services:
       <<: *service-env
       SERVICE_NAME: document
       API_PREFIX: /api/documents/v1
-      DATABASE_URL: postgresql+asyncpg://document_user:${DOCUMENT_DB_PASSWORD}@postgres:5432/pharmacy_document
+      DB_NAME: pharmacy_document
+      DB_USER: document_user
+      DB_PASSWORD: ${DOCUMENT_DB_PASSWORD}
     depends_on: *service-deps
     labels:
       - traefik.enable=true
@@ -463,7 +494,9 @@ services:
       <<: *service-env
       SERVICE_NAME: ai
       API_PREFIX: /api/ai/v1
-      DATABASE_URL: postgresql+asyncpg://ai_user:${AI_DB_PASSWORD}@postgres:5432/pharmacy_ai
+      DB_NAME: pharmacy_ai
+      DB_USER: ai_user
+      DB_PASSWORD: ${AI_DB_PASSWORD}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
       DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL}
       DEEPSEEK_MODEL_FAST: ${DEEPSEEK_MODEL_FAST}

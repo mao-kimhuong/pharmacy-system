@@ -6,7 +6,9 @@ from pharmacy_shared.config import BaseServiceSettings
 class Settings(BaseServiceSettings):
     service_name: str = "branch"
     api_prefix: str = "/api/branch/v1"
-    database_url: str = "postgresql+asyncpg://branch_user:change-me-branch@localhost:5432/pharmacy_branch"
+    db_name: str = "pharmacy_branch"
+    db_user: str = "branch_user"
+    db_password: str = "change-me-branch"
 
 
 @lru_cache

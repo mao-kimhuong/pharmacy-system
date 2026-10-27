@@ -1,14 +1,18 @@
 #!/bin/bash
 # Creates one database and one user per service. Runs only on the first start
 # of an empty postgres volume. Each user owns only its own database.
+#
+# The password is passed as a psql variable and used as :'pw', so psql quotes
+# it as a literal: quotes, $, spaces and any other character are safe.
 set -euo pipefail
 
 create_db() {
   local svc="$1" pw="$2"
-  psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-SQL
-    CREATE USER ${svc}_user WITH PASSWORD '${pw}';
-    CREATE DATABASE pharmacy_${svc} OWNER ${svc}_user;
-    REVOKE ALL ON DATABASE pharmacy_${svc} FROM PUBLIC;
+  psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres \
+    -v svc_user="${svc}_user" -v svc_db="pharmacy_${svc}" -v pw="$pw" <<-'SQL'
+    CREATE USER :"svc_user" WITH PASSWORD :'pw';
+    CREATE DATABASE :"svc_db" OWNER :"svc_user";
+    REVOKE ALL ON DATABASE :"svc_db" FROM PUBLIC;
 SQL
 }
 

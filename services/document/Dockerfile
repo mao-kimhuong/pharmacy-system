@@ -5,6 +5,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
+# WeasyPrint renders through Pango + HarfBuzz (correct Khmer shaping).
+# fonts-noto-core has Noto Sans and Noto Sans Khmer used by the labels.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b libharfbuzz-subset0 fonts-noto-core \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY shared /shared

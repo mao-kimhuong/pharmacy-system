@@ -18,6 +18,7 @@ API docs per service: http://localhost/api/<prefix>/v1/docs (use "Authorize" wit
 make owner    # create the first owner account
 make smoke    # login, protected routes, logout – through Traefik
 make test     # starts test Postgres + Redis, then lint + all tests
+make test-docker  # the same inside a python:3.12 container (no local Python needed)
 ```
 
 Log in: `POST /api/auth/v1/login` with `{"phone": "...", "password": "..."}`, then send

@@ -6,7 +6,9 @@ from pharmacy_shared.config import BaseServiceSettings
 class Settings(BaseServiceSettings):
     service_name: str = "auth"
     api_prefix: str = "/api/auth/v1"
-    database_url: str = "postgresql+asyncpg://auth_user:change-me-auth@localhost:5432/pharmacy_auth"
+    db_name: str = "pharmacy_auth"
+    db_user: str = "auth_user"
+    db_password: str = "change-me-auth"
 
     jwt_secret: str = "change-me"
     jwt_algorithm: str = "HS256"

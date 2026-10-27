@@ -4,9 +4,23 @@ Alembic autogenerate can see it."""
 from pharmacy_shared.db import Base
 from pharmacy_shared.outbox import OutboxMixin
 
+from .catalog import SCHEDULES, STORAGE, Brand, Category, Medicine, PackUnit
+from .imports import ImportRow, ProductImport
+
 
 class OutboxEvent(OutboxMixin, Base):
     __tablename__ = "outbox"
 
 
-__all__ = ["Base", "OutboxEvent"]
+__all__ = [
+    "Base",
+    "Brand",
+    "Category",
+    "ImportRow",
+    "Medicine",
+    "OutboxEvent",
+    "PackUnit",
+    "ProductImport",
+    "SCHEDULES",
+    "STORAGE",
+]

@@ -6,7 +6,9 @@ from pharmacy_shared.config import BaseServiceSettings
 class Settings(BaseServiceSettings):
     service_name: str = "ai"
     api_prefix: str = "/api/ai/v1"
-    database_url: str = "postgresql+asyncpg://ai_user:change-me-ai@localhost:5432/pharmacy_ai"
+    db_name: str = "pharmacy_ai"
+    db_user: str = "ai_user"
+    db_password: str = "change-me-ai"
 
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com"

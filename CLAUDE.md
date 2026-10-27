@@ -55,8 +55,12 @@ Traefik v3.6. Python 3.12. Lint with ruff.
 ## Commands
 - `make env` then `make up` – start everything at http://localhost
 - `make test` – starts the test Postgres + Redis (docker-compose.test.yml), then ruff + pytest everywhere
+  (picks python3.13/3.12/python3 ≥ 3.12; recreates an older .venv)
+- `make test-docker` – the same suite in a python:3.12 container (infra/test/Dockerfile, with Pango +
+  Noto Khmer + psql), so label and init-script tests always run. Part of "done".
 - `make owner` – create the first owner account; `make smoke` – end-to-end check through Traefik
-  (asks for the 2FA code; optional S1 checks create and deactivate a test branch + cashier)
+  (asks for the 2FA code; optional S1 checks create and deactivate a test branch + cashier; optional
+  S1b checks import the sample products (they stay), search, print labels, cashier 403s)
 - `make revision s=<service> m="message"` then `make migrate s=<service>`
 
 ## How things work (from S0)
@@ -91,16 +95,44 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   database built with the service's own migrations, tables truncated per test.
 - **Migrations:** containers run `alembic upgrade head` on start. New tables: change models,
   then `make revision s=<service> m="..."` and review the generated file.
+- **DB / RabbitMQ connection (from S1b):** services get `DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD`
+  and `RABBITMQ_HOST/USER/PASSWORD`; `pharmacy_shared.config` builds the URLs with escaping, so
+  passwords may contain any character. `DATABASE_URL` / `RABBITMQ_URL` still override (tests).
+  Never build a URL from a password by string interpolation. In `.env`, quote such passwords
+  and write `$` as `$$`. The Postgres init script passes passwords as psql variables (`:'pw'`).
+- **Products (catalog, from S1b):** medicines + pack units; exactly one base pack unit
+  (qty_in_base 1, named like `base_unit`); quantities everywhere are in the base unit; barcodes
+  unique across all pack units; controlled ⇒ Rx-only (DB check too); no cost in catalog.
+  Search: `GET /api/catalog/v1/medicines/search?q=` (barcode → SKU → names, pg_trgm).
+- **Catalog events:** `medicine.created|updated|activated|deactivated` carry the whole product
+  (`medicine_id`, `version`, sku, names, generic, strength, form, category/brand refs, rx flag,
+  schedule, storage, is_active, `pack_units[]` with id, name, qty_in_base, barcode, sell_price as a
+  USD string, is_base, is_active). Pack unit changes send `medicine.updated`. Keep a local copy
+  keyed by `medicine_id` and ignore payloads whose `version` is not newer (see
+  `document_service/services/events.py`). Also `category.*` / `brand.*` ({id, name_en, name_km,
+  is_active}); a rename does not resend medicines. User Log entries for medicines are one per
+  change with flattened keys like `pack_units.box.sell_price` (feeds the Modification report).
+- **Excel import/export:** `catalog_service/services/spreadsheet.py` – files are checked by content
+  (real .xlsx, no macros, zip-bomb limits), read values only (openpyxl read_only + data_only,
+  defusedxml); every export cell goes through `pharmacy_shared.spreadsheet.safe_cell`. Import is
+  validate → `GET /imports/{id}` → commit (Idempotency-Key, one transaction, re-validated;
+  `create_missing` for new categories/brands, `skip_invalid` skips whole SKUs).
+- **Labels / PDFs (document, from S1b):** `POST /api/documents/v1/render` (`type: label`; layouts
+  `shelf_50x30`, `barcode_40x25`, `a4_sheet`), permission `labels.print`. HTML → PDF with
+  WeasyPrint (Pango/HarfBuzz shape Khmer); fonts Noto Sans + Noto Sans Khmer (`fonts-noto-core`
+  in the image); Code128 via python-barcode SVG; text HTML-escaped; the URL fetcher only allows
+  `data:`. Never ReportLab for Khmer. Locally `brew install pango` (else PDF tests skip).
+  Receipts, invoices, PO and register PDFs (later sprints) should reuse this renderer.
 
 ## Definition of done
-API matches the spec, migration included, tests pass (`make test`),
+API matches the spec, migration included, tests pass (`make test` and `make test-docker`),
 `docker compose up` works, permissions checked per role, audit log written.
 
 ## Progress (SDLC sprints, see docs/spec.md)
 - [x] Project skeleton
 - [x] S0 Setup – auth login + /verify, attach ForwardAuth, outbox relay, idempotency
 - [x] S1a Settings – users, roles + permissions, 2FA, User Log, branches, branch settings, feature switches
-- [ ] S1b Settings – products, pack units, categories, brands, Excel import, labels
+- [x] S1b Settings – products, pack units, categories, brands, Excel import, labels
 - [ ] S2 Stock + buying – batches, stock, initialize, suppliers, PO, receiving, payments
 - [ ] S3 POS + sales – FEFO checkout, invoices, returns, customers, receipts
 - [ ] S4 Prescriptions – patients, doctors, Rx, dispensing, allergy warnings, labels

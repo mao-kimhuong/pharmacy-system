@@ -16,6 +16,9 @@ dependencies = [
     "pydantic-settings>=2.3",
     "httpx>=0.27",
     "redis>=5.0",
+    # Labels: HTML → PDF through Pango/HarfBuzz (Khmer shaping), Code128 barcodes as SVG
+    "weasyprint>=70",
+    "python-barcode>=0.15",
 ]
 
 [tool.setuptools.packages.find]

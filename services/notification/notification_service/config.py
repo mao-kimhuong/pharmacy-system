@@ -6,9 +6,9 @@ from pharmacy_shared.config import BaseServiceSettings
 class Settings(BaseServiceSettings):
     service_name: str = "notification"
     api_prefix: str = "/api/notifications/v1"
-    database_url: str = (
-        "postgresql+asyncpg://notification_user:change-me-notification@localhost:5432/pharmacy_notification"
-    )
+    db_name: str = "pharmacy_notification"
+    db_user: str = "notification_user"
+    db_password: str = "change-me-notification"
 
     telegram_bot_token: str = ""
 
