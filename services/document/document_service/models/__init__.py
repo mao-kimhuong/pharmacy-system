@@ -2,10 +2,10 @@
 Alembic autogenerate can see it."""
 
 from pharmacy_shared.consumer import ProcessedMessageMixin
-from pharmacy_shared.db import Base
 from pharmacy_shared.outbox import OutboxMixin
 
-from .products import Product, ProductPackUnit, PurchaseOrderCopy
+from .base import Base
+from .products import InvoiceCopy, Product, ProductPackUnit, PurchaseOrderCopy
 
 
 class OutboxEvent(OutboxMixin, Base):
@@ -16,4 +16,12 @@ class ProcessedMessage(ProcessedMessageMixin, Base):
     __tablename__ = "processed_messages"
 
 
-__all__ = ["Base", "OutboxEvent", "ProcessedMessage", "Product", "ProductPackUnit", "PurchaseOrderCopy"]
+__all__ = [
+    "Base",
+    "InvoiceCopy",
+    "OutboxEvent",
+    "ProcessedMessage",
+    "Product",
+    "ProductPackUnit",
+    "PurchaseOrderCopy",
+]

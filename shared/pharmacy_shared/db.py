@@ -8,8 +8,15 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
-class Base(DeclarativeBase):
-    """Declarative base. Each service imports this and keeps its own tables."""
+def make_base() -> type[DeclarativeBase]:
+    """A new declarative base with its own MetaData. Each service has one
+    (`<service>_service/models/base.py`), so the models of several services can
+    be loaded in one process (the sales tests run inventory and customers too)."""
+
+    class Base(DeclarativeBase):
+        pass
+
+    return Base
 
 
 class IdMixin:

@@ -10,6 +10,7 @@ x-service-env: &service-env
   RABBITMQ_USER: ${RABBITMQ_USER}
   RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
   JWT_SECRET: ${JWT_SECRET}
+  SERVICE_TOKEN: ${SERVICE_TOKEN}
 
 x-service-deps: &service-deps
   postgres:

@@ -57,7 +57,9 @@ def _batch_row(stock: Stock, today: date) -> dict[str, Any]:
         "batch_id": b.id, "lot_no": b.lot_no, "expiry_date": b.expiry_date,
         "days_to_expiry": (b.expiry_date - today).days, "status": b.status, "received_at": b.received_at,
         "supplier_id": b.supplier_id, "qty_on_hand": stock.qty_on_hand, "qty_reserved": stock.qty_reserved,
-        "qty_available": stock.qty_on_hand - stock.qty_reserved if b.status == "active" else 0,
+        "qty_quarantined": stock.qty_quarantined,
+        "qty_available": (stock.qty_on_hand - stock.qty_reserved - stock.qty_quarantined
+                          if b.status == "active" and b.expiry_date >= today else 0),
         "cost_per_base": b.cost_per_base, "value": (b.cost_per_base * stock.qty_on_hand).quantize(CENT),
     }  # fmt: skip
 
@@ -127,7 +129,8 @@ async def stock(
             "name": product.display_name if product else "", "name_km": product.name_km if product else "",
             "base_unit": product.base_unit if product else "",
             "controlled_schedule": product.controlled_schedule if product else None,
-            "qty_on_hand": on_hand, "qty_reserved": sum(b["qty_reserved"] for b in batches), "qty_available": available,
+            "qty_on_hand": on_hand, "qty_reserved": sum(b["qty_reserved"] for b in batches),
+            "qty_quarantined": sum(b["qty_quarantined"] for b in batches), "qty_available": available,
             "on_hand_in_packs": in_packs(on_hand, product), "available_in_packs": in_packs(available, product),
             "stock_value": sum((b["value"] for b in batches), Decimal("0.00")), "batches": batches,
         })  # fmt: skip

@@ -5,7 +5,9 @@ from uuid import UUID
 from sqlalchemy import BigInteger, Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from pharmacy_shared.db import Base, IdMixin, TimestampMixin
+from pharmacy_shared.db import IdMixin, TimestampMixin
+
+from .base import Base
 
 
 class Role(StrEnum):

@@ -4,7 +4,7 @@ import asyncio
 import json
 import os
 from collections.abc import AsyncIterator
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -48,6 +48,7 @@ def database() -> None:
 @pytest.fixture(autouse=True)
 async def clean(monkeypatch) -> AsyncIterator[None]:
     monkeypatch.setattr(clock, "today", lambda: TODAY)
+    monkeypatch.setattr(clock, "now", lambda: datetime(2026, 10, 27, 3, 0, tzinfo=UTC))  # 10:00 in Phnom Penh
     async with db.engine.begin() as conn:
         await conn.execute(text(
             "TRUNCATE payment_allocations, supplier_payments, receipt_lines, receipts, po_lines, purchase_orders,"

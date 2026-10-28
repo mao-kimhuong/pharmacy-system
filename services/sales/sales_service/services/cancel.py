@@ -1,0 +1,75 @@
+"""Cancelling a sale (sales.cancel, reason required). Rules:
+
+- Only a completed invoice with nothing returned can be cancelled (else
+  INVOICE_STATE); use a return for part of it.
+- Without sales.cancel_any (owner, branch manager) only invoices of today
+  (Asia/Phnom_Penh) can be cancelled: a pharmacist cannot cancel yesterday's sale.
+- Credit is reversed first (if that fails, nothing has changed), then the stock
+  goes back into the same batches ("sale_cancel" movements). The invoice is
+  "cancelling" in between; if the stock step fails the recovery task finishes it.
+- invoice.cancelled event + User Log. Cashiers have no sales.cancel: 403.
+"""
+
+from uuid import UUID
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from pharmacy_shared import clock
+from pharmacy_shared.auth import CurrentUser
+from pharmacy_shared.errors import AppError, ErrorCode
+from pharmacy_shared.outbox import add_event
+
+from ..models import Invoice, OutboxEvent
+from .clients import Clients
+from .common import audit, clean
+from .queries import get_invoice
+from .snapshot import invoice_payload
+
+
+async def cancel_steps(
+    session: AsyncSession, inv: Invoice, actor: CurrentUser | None, clients: Clients
+) -> None:
+    """Reverse credit, then stock; idempotent (the recovery task repeats it)."""
+    if inv.credit_amount > 0 and inv.customer_id is not None:
+        await clients.customers.post("/credit/reverse", {
+            "invoice_id": str(inv.id), "customer_id": str(inv.customer_id), "branch_id": str(inv.branch_id),
+            "kind": "cancel", "document_no": inv.number or "", "reason": inv.cancel_reason or "",
+        }, actor=actor, branch_id=inv.branch_id)  # fmt: skip
+    if inv.reservation_id is not None:
+        await clients.inventory.post(f"/reservations/{inv.reservation_id}/reverse",
+                                     {"reason": f"{inv.number} cancelled: {inv.cancel_reason}"[:255]},
+                                     actor=actor, branch_id=inv.branch_id)  # fmt: skip
+    inv.status = "cancelled"
+    inv.version += 1
+    add_event(session, OutboxEvent, "invoice.cancelled", await invoice_payload(session, inv))
+    audit(session, actor, "invoice.cancelled", "invoice", inv.id, branch_id=inv.branch_id,
+          before={"status": "completed"}, after={"status": "cancelled", "number": inv.number,
+                                                 "reason": inv.cancel_reason, "total": str(inv.total)})  # fmt: skip
+    await session.commit()
+
+
+async def cancel_invoice(
+    session: AsyncSession, actor: CurrentUser, invoice_id: UUID, reason: str, clients: Clients
+) -> Invoice:
+    inv = await get_invoice(session, actor, invoice_id, lock=True)
+    if inv.status == "cancelled":
+        return inv
+    if inv.status not in ("completed", "cancelling"):
+        raise AppError(ErrorCode.INVOICE_STATE, f"A {inv.status} invoice cannot be cancelled", status_code=409,
+                       details={"status": inv.status})  # fmt: skip
+    if inv.returned_total > 0:
+        raise AppError(ErrorCode.INVOICE_STATE, "Part of this invoice was returned; return the rest instead",
+                       status_code=409, details={"status": inv.status})  # fmt: skip
+    sold_on = inv.completed_at.astimezone(clock.TIMEZONE).date() if inv.completed_at else None
+    if sold_on != clock.today() and not actor.has("sales.cancel_any"):
+        raise AppError(ErrorCode.FORBIDDEN, f"{inv.number} is from {sold_on}; only today's invoices can be "
+                       "cancelled without sales.cancel_any", status_code=403,
+                       details={"permission": "sales.cancel_any"})  # fmt: skip
+    if inv.status == "completed":
+        inv.status = "cancelling"
+        inv.cancel_reason = clean(reason)
+        inv.cancelled_by = actor.id
+        inv.cancelled_at = clock.now()
+        await session.commit()
+    await cancel_steps(session, inv, actor, clients)
+    return inv

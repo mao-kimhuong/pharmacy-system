@@ -21,7 +21,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from pharmacy_shared.db import Base, IdMixin
+from pharmacy_shared.db import IdMixin
+
+from .base import Base
 
 BATCH_STATUSES = ("active", "expired", "blocked", "recalled", "quarantine")
 # transfer_in / transfer_out (S6), out / return (S3), shrinkage (S5) come later.
@@ -74,12 +76,18 @@ class Stock(IdMixin, Base):
         UniqueConstraint("branch_id", "batch_id", name="uq_stock_branch_batch"),
         CheckConstraint("qty_on_hand >= 0", name="ck_stock_on_hand"),
         CheckConstraint("qty_reserved >= 0 AND qty_reserved <= qty_on_hand", name="ck_stock_reserved"),
+        CheckConstraint(
+            "qty_quarantined >= 0 AND qty_reserved + qty_quarantined <= qty_on_hand",
+            name="ck_stock_quarantined",
+        ),
     )
 
     branch_id: Mapped[UUID] = mapped_column(Uuid, index=True)
     batch_id: Mapped[UUID] = mapped_column(ForeignKey("batches.id"), index=True)
     qty_on_hand: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     qty_reserved: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # Returned goods waiting for a pharmacist: counted on hand, never sold.
+    qty_quarantined: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -94,15 +102,15 @@ class Movement(IdMixin, Base):
     __table_args__ = (
         CheckConstraint("qty_base <> 0", name="ck_movements_qty"),
         CheckConstraint(
-            "type IN ('in', 'opening', 'adjust_in', 'adjust_out', 'expire_writeoff', 'transfer_in', "
-            "'transfer_out')",
+            "type IN ('in', 'opening', 'out', 'sale_cancel', 'return', 'adjust_in', 'adjust_out', "
+            "'expire_writeoff', 'transfer_in', 'transfer_out')",
             name="ck_movements_type",
         ),
-        # A receipt line, stock-in line or opening line is booked once, even if its
-        # event is delivered again.
+        # A receipt line, stock-in line, opening line, sold or returned line is booked
+        # once, even if its event or call arrives again.
         Index(
             "uq_movements_source", "type", "ref_type", "ref_id", unique=True,
-            postgresql_where=text("type IN ('in', 'opening')"),
+            postgresql_where=text("type IN ('in', 'opening', 'out', 'sale_cancel', 'return')"),
         ),
         Index("ix_movements_branch_time", "branch_id", "created_at"),
     )  # fmt: skip
@@ -194,3 +202,66 @@ class InitializeLock(Base):
     unlocked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     unlocked_by: Mapped[UUID | None] = mapped_column(Uuid)
     unlock_reason: Mapped[str | None] = mapped_column(String(255))
+
+
+class Reservation(IdMixin, Base):
+    """Stock held for a sale while the sale saga runs (one per invoice):
+    reserved → confirmed ("out" movements) or released; confirmed → reversed
+    (the sale was cancelled: "sale_cancel" movements back to the same batches)."""
+
+    __tablename__ = "reservations"
+    __table_args__ = (
+        UniqueConstraint("ref_type", "ref_id", name="uq_reservations_ref"),
+        CheckConstraint(
+            "status IN ('reserved', 'confirmed', 'released', 'reversed')", name="ck_reservations_status"
+        ),
+    )
+
+    ref_type: Mapped[str] = mapped_column(String(20))  # invoice
+    ref_id: Mapped[str] = mapped_column(String(80))
+    branch_id: Mapped[UUID] = mapped_column(Uuid, index=True)
+    status: Mapped[str] = mapped_column(String(10), default="reserved")
+    created_by: Mapped[UUID | None] = mapped_column(Uuid)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    lines: Mapped[list["ReservationLine"]] = relationship(
+        back_populates="reservation",
+        lazy="selectin",
+        order_by="(ReservationLine.line_no, ReservationLine.seq)",
+    )
+
+
+class ReservationLine(IdMixin, Base):
+    """One batch used for one invoice line (a line split over 2 batches = 2 rows)."""
+
+    __tablename__ = "reservation_lines"
+    __table_args__ = (CheckConstraint("qty_base > 0", name="ck_reservation_lines_qty"),)
+
+    reservation_id: Mapped[UUID] = mapped_column(ForeignKey("reservations.id"), index=True)
+    line_no: Mapped[int] = mapped_column(Integer)
+    seq: Mapped[int] = mapped_column(Integer)  # order within the line (FEFO)
+    medicine_id: Mapped[UUID] = mapped_column(Uuid)
+    batch_id: Mapped[UUID] = mapped_column(ForeignKey("batches.id"))
+    qty_base: Mapped[int] = mapped_column(Integer)
+    overridden: Mapped[bool] = mapped_column(default=False)
+
+    reservation: Mapped[Reservation] = relationship(back_populates="lines")
+    batch: Mapped[Batch] = relationship(lazy="joined", innerjoin=True)
+
+
+class QuarantineEntry(IdMixin, Base):
+    """Quarantine log: returned goods put aside (+) and released by a pharmacist (-)."""
+
+    __tablename__ = "quarantine_entries"
+
+    branch_id: Mapped[UUID] = mapped_column(Uuid, index=True)
+    batch_id: Mapped[UUID] = mapped_column(ForeignKey("batches.id"))
+    qty_base: Mapped[int] = mapped_column(Integer)
+    ref_type: Mapped[str] = mapped_column(String(20))
+    ref_id: Mapped[str] = mapped_column(String(80))
+    reason: Mapped[str] = mapped_column(String(255), default="", server_default="")
+    created_by: Mapped[UUID | None] = mapped_column(Uuid)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

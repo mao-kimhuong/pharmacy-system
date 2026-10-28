@@ -20,6 +20,8 @@ from .redis import RedisProvider
 
 log = logging.getLogger(__name__)
 
+INTERNAL_PREFIX = "/internal/v1"
+
 
 def create_service_app(
     settings: BaseServiceSettings,
@@ -32,14 +34,19 @@ def create_service_app(
     rate_limit_exempt: tuple[str, ...] = (),
     on_startup: Sequence[Callable[[], Awaitable[None]]] = (),
     background: Sequence[Callable[[asyncio.Event], Awaitable[None]]] = (),
+    internal_router: APIRouter | None = None,
 ) -> FastAPI:
     """Builds a service app with the same health/whoami routes, error format,
     middlewares (per-user rate limit, Idempotency-Key) and outbox relay.
 
     on_startup: coroutines run once at start (e.g. sync permission catalog).
     background: long-running tasks, e.g. an EventConsumer.run; they get a stop event.
+    internal_router: service-to-service endpoints, mounted at /internal/v1 (outside
+    /api, so Traefik never routes them; guarded by pharmacy_shared.internal).
     """
     setup_logging()
+    if settings.is_production:
+        settings.check_service_token()
     prefix = settings.api_prefix
     redis = redis or RedisProvider(settings.redis_url)
 
@@ -101,6 +108,8 @@ def create_service_app(
         reads_per_minute=settings.rate_limit_reads_per_minute,
         writes_per_minute=settings.rate_limit_writes_per_minute,
         exempt_paths=(f"{prefix}/health", f"{prefix}/docs", f"{prefix}/openapi.json", *rate_limit_exempt),
+        # The calling service already rate-limits the real user.
+        exempt_prefixes=(f"{INTERNAL_PREFIX}/",),
     )
 
     @app.get(f"{prefix}/health", tags=["system"])
@@ -120,6 +129,8 @@ def create_service_app(
         }
 
     app.include_router(router, prefix=prefix)
+    if internal_router is not None:
+        app.include_router(internal_router, prefix=INTERNAL_PREFIX, include_in_schema=False)
     _add_bearer_auth_to_docs(app, title)
     return app
 

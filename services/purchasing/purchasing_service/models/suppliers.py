@@ -4,7 +4,9 @@ from uuid import UUID
 from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Index, Integer, String, Uuid, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from pharmacy_shared.db import Base, IdMixin, TimestampMixin
+from pharmacy_shared.db import IdMixin, TimestampMixin
+
+from .base import Base
 
 
 class SupplierGroup(IdMixin, TimestampMixin, Base):

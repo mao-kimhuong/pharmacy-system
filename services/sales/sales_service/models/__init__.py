@@ -1,12 +1,90 @@
 """SQLAlchemy models of the sales service. Import every model here so
 Alembic autogenerate can see it."""
 
-from pharmacy_shared.db import Base
+from decimal import Decimal
+from uuid import UUID
+
+from sqlalchemy import Boolean, Numeric, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from pharmacy_shared.consumer import ProcessedMessageMixin
+from pharmacy_shared.copies import BranchCopyMixin, PackUnitCopyMixin, ProductCopyMixin
+from pharmacy_shared.numbering import DocSequenceMixin
 from pharmacy_shared.outbox import OutboxMixin
+
+from .base import Base
+from .sales import (
+    INVOICE_STATUSES,
+    PAY_METHODS,
+    ExchangeRate,
+    Invoice,
+    InvoiceLine,
+    InvoiceLineBatch,
+    InvoicePayment,
+    SaleReturn,
+    SaleReturnLine,
+)
 
 
 class OutboxEvent(OutboxMixin, Base):
     __tablename__ = "outbox"
 
 
-__all__ = ["Base", "OutboxEvent"]
+class ProcessedMessage(ProcessedMessageMixin, Base):
+    __tablename__ = "processed_messages"
+
+
+class DocSequence(DocSequenceMixin, Base):
+    __tablename__ = "doc_sequences"
+
+
+class KnownBranch(BranchCopyMixin, Base):
+    """Local copy of branches (branch.* events)."""
+
+    __tablename__ = "known_branches"
+
+
+class BranchSettingsCopy(Base):
+    """Local copy of branch settings (branch.settings_updated): receipt texts and
+    whether opened packs may be returned."""
+
+    __tablename__ = "branch_settings"
+
+    branch_id: Mapped[UUID] = mapped_column(primary_key=True)
+    receipt_header: Mapped[str] = mapped_column(Text, default="")
+    receipt_footer: Mapped[str] = mapped_column(Text, default="")
+    allow_opened_pack_returns: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class KnownCustomer(Base):
+    """Local copy of customers (customer.* events)."""
+
+    __tablename__ = "known_customers"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    phone: Mapped[str] = mapped_column(String(20))
+    name: Mapped[str] = mapped_column(String(160))
+    name_km: Mapped[str] = mapped_column(String(160), default="")
+    credit_limit: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class Product(ProductCopyMixin, Base):
+    """Local copy of catalog medicines (medicine.* events), with sell prices."""
+
+    __tablename__ = "products"
+
+    pack_units: Mapped[list["ProductPackUnit"]] = relationship(back_populates="product", lazy="selectin")
+
+
+class ProductPackUnit(PackUnitCopyMixin, Base):
+    __tablename__ = "product_pack_units"
+
+    product: Mapped[Product] = relationship(back_populates="pack_units", lazy="joined")
+
+
+__all__ = [
+    "Base", "BranchSettingsCopy", "DocSequence", "ExchangeRate", "INVOICE_STATUSES", "Invoice", "InvoiceLine",
+    "InvoiceLineBatch", "InvoicePayment", "KnownBranch", "KnownCustomer", "OutboxEvent", "PAY_METHODS",
+    "ProcessedMessage", "Product", "ProductPackUnit", "SaleReturn", "SaleReturnLine",
+]  # fmt: skip

@@ -23,12 +23,14 @@ from ..schemas.inventory import (
     OpeningOut,
     OpeningPage,
     OpeningRequest,
+    QuarantineRelease,
+    QuarantineReleaseOut,
     ReasonRequest,
     StockInOut,
     StockInRequest,
     StockPage,
 )
-from ..services import opening, stock_in, views
+from ..services import opening, reservations, stock_in, views
 from ..services.common import COST_FIELDS, can_see_cost
 
 router = APIRouter()
@@ -193,3 +195,13 @@ async def unlock(
 ) -> InitializeLock:  # fmt: skip
     """Owner only; logged with the reason."""
     return await opening.unlock(session, user, branch_id, body.reason)
+
+
+@router.post("/quarantine/release", response_model=QuarantineReleaseOut, tags=["stock"])
+async def release_quarantine(
+    body: QuarantineRelease,
+    user: CurrentUser = Depends(requires("inventory.adjust")),
+    session: AsyncSession = Depends(db.session),
+) -> dict:
+    """A pharmacist puts returned (quarantined) goods back on sale; reason required, logged."""
+    return await reservations.release_quarantine(session, user, body.model_dump())

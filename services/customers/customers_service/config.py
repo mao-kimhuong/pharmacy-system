@@ -10,6 +10,9 @@ class Settings(BaseServiceSettings):
     db_user: str = "customers_user"
     db_password: str = "change-me-customers"
 
+    # RabbitMQ consumer (local copy of branches)
+    event_consumer_enabled: bool = True
+
 
 @lru_cache
 def get_settings() -> Settings:

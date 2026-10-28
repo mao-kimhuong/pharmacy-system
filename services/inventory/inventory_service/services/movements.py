@@ -3,7 +3,7 @@
 - Every change of qty_on_hand is a movement row (signed, base units) written
   by `apply_movement` in the caller's transaction, after locking the stock row:
   two changes of the same branch + batch wait for each other.
-- On hand never goes below zero (OUT_OF_STOCK) and never below what is reserved.
+- On hand never goes below zero (OUT_OF_STOCK) nor below what is reserved + quarantined.
 - A batch is identified by medicine + lot + expiry + supplier + cost per base
   unit: the same lot at another cost is another batch.
 - Each movement emits stock.changed (branch, batch, medicine, delta, reason,
@@ -85,10 +85,12 @@ async def apply_movement(
         raise AppError(ErrorCode.VALIDATION_ERROR, "A movement needs a quantity", status_code=422)
     stock = await lock_stock(session, branch_id, batch.id)
     after = stock.qty_on_hand + qty_base
-    if after < stock.qty_reserved:
+    held = stock.qty_reserved + stock.qty_quarantined  # reserved for sales or quarantined: not movable
+    if after < held:
+        free = stock.qty_on_hand - held
         raise AppError(
-            ErrorCode.OUT_OF_STOCK, f"Only {stock.qty_on_hand - stock.qty_reserved} available in lot {batch.lot_no}",
-            status_code=409, details={"batch_id": str(batch.id), "available": stock.qty_on_hand - stock.qty_reserved},
+            ErrorCode.OUT_OF_STOCK, f"Only {free} available in lot {batch.lot_no}",
+            status_code=409, details={"batch_id": str(batch.id), "available": free},
         )  # fmt: skip
     stock.qty_on_hand = after
     movement = Movement(

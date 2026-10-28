@@ -1,9 +1,9 @@
 """SQLAlchemy models of the catalog service. Import every model here so
 Alembic autogenerate can see it."""
 
-from pharmacy_shared.db import Base
 from pharmacy_shared.outbox import OutboxMixin
 
+from .base import Base
 from .catalog import SCHEDULES, STORAGE, Brand, Category, Medicine, PackUnit
 from .imports import ImportRow, ProductImport
 

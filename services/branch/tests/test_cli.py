@@ -9,5 +9,5 @@ async def test_republish_resends_every_branch(client) -> None:
     before = len(await outbox())
     assert await republish() == 2
     new = (await outbox())[before:]
-    assert [t for t, _ in new] == ["branch.updated", "branch.updated"]
+    assert [t for t, _ in new] == ["branch.updated", "branch.settings_updated"] * 2
     assert new[0][1]["branch_id"] == b["id"] and new[0][1]["name_km"] == "សាខា"

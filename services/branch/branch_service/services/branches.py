@@ -163,7 +163,7 @@ async def update_settings(
     before = settings.safe_fields()
     if "expiry_alert_days" in data:
         settings.expiry_alert_days = _clean_alert_days(data["expiry_alert_days"])
-    for field in ("receipt_header", "receipt_footer", "price_override_enabled"):
+    for field in ("receipt_header", "receipt_footer", "price_override_enabled", "allow_opened_pack_returns"):
         if field in data:
             setattr(settings, field, data[field])
     after = settings.safe_fields()

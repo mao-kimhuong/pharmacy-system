@@ -5,7 +5,9 @@ from uuid import UUID
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
-from pharmacy_shared.db import Base, IdMixin, TimestampMixin
+from pharmacy_shared.db import IdMixin, TimestampMixin
+
+from .base import Base
 
 IMPORT_STATUSES = ("validated", "has_errors", "committed")
 

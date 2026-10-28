@@ -2,6 +2,7 @@
 
 - medicine.*        → local copy of products and pack units, used to print labels.
 - purchase_order.*  → local copy of purchase orders, used to print the PO PDF.
+- invoice.*         → local copy of invoices, used to print receipts and A4 invoices.
   Each event carries the whole product with a `version`; an event older than
   the stored copy (delivered out of order) is ignored.
 """
@@ -15,9 +16,9 @@ from pharmacy_shared import copies
 from pharmacy_shared.copies import MEDICINE_EVENTS
 
 from ..models import Product, ProductPackUnit
-from . import purchase_orders
+from . import purchase_orders, receipts
 
-ROUTING_KEYS = ("medicine.*", "purchase_order.*")
+ROUTING_KEYS = ("medicine.*", "purchase_order.*", "invoice.*")
 
 
 async def handle_event(
@@ -27,6 +28,8 @@ async def handle_event(
         await upsert_product(session, payload)
     elif event_type in purchase_orders.PO_EVENTS:
         await purchase_orders.upsert_po(session, payload)
+    elif event_type in receipts.INVOICE_EVENTS:
+        await receipts.upsert_invoice(session, payload)
 
 
 async def upsert_product(session: AsyncSession, payload: dict[str, Any]) -> bool:

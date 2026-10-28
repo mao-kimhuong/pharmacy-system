@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import DateTime, ForeignKey, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from pharmacy_shared.db import Base
+from .base import Base
 
 
 class RefreshToken(Base):

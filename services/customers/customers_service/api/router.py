@@ -1,13 +1,8 @@
-"""All routers of the customers service are included here.
-
-Mounted under /api/customers/v1. Endpoints for this service are listed in
-docs/spec.md (Screen -> API map, Menu structure, Endpoint reference).
-"""
+"""All routers of the customers service, mounted under /api/customers/v1."""
 
 from fastapi import APIRouter
 
-router = APIRouter()
+from .customers import router as customers_router
 
-# Example for sprint work:
-# from .<feature> import router as <feature>_router
-# router.include_router(<feature>_router, prefix="/<feature>", tags=["<feature>"])
+router = APIRouter()
+router.include_router(customers_router)

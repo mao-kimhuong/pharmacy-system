@@ -5,10 +5,10 @@ from sqlalchemy.orm import Mapped, relationship
 
 from pharmacy_shared.consumer import ProcessedMessageMixin
 from pharmacy_shared.copies import BranchCopyMixin, PackUnitCopyMixin, ProductCopyMixin
-from pharmacy_shared.db import Base
 from pharmacy_shared.numbering import DocSequenceMixin
 from pharmacy_shared.outbox import OutboxMixin
 
+from .base import Base
 from .orders import PO_STATUSES, POLine, PurchaseOrder, Receipt, ReceiptLine
 from .payments import PAYMENT_METHODS, PaymentAllocation, SupplierPayment
 from .suppliers import Supplier, SupplierGroup

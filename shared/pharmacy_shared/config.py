@@ -47,6 +47,11 @@ class BaseServiceSettings(BaseSettings):
 
     redis_url: str = "redis://localhost:6379/0"
 
+    # Calls between services (/internal/v1/...) carry this in X-Service-Token.
+    # Production refuses to start when it is missing, a default or < 32 characters.
+    # TODO S9: one token per calling service (see CLAUDE.md).
+    service_token: str = ""
+
     # Per-user rate limits (docs/spec.md, Security & reliability → Rate limits)
     rate_limit_reads_per_minute: int = 600
     rate_limit_writes_per_minute: int = 120
@@ -78,3 +83,11 @@ class BaseServiceSettings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment == "production"
+
+    def check_service_token(self) -> None:
+        token = self.service_token
+        if not token or token.startswith("change-me") or len(token) < 32:
+            raise RuntimeError(
+                "SERVICE_TOKEN must be a random string of at least 32 characters in production "
+                "(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+            )

@@ -5,8 +5,9 @@ from uuid import UUID
 from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Numeric, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from pharmacy_shared.db import Base, IdMixin, TimestampMixin
+from pharmacy_shared.db import IdMixin, TimestampMixin
 
+from .base import Base
 from .suppliers import Supplier
 
 PAYMENT_METHODS = ("cash", "bank", "ABA", "KHQR")

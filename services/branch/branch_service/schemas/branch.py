@@ -11,6 +11,7 @@ class BranchSettingsOut(BaseModel):
     receipt_header: str
     receipt_footer: str
     price_override_enabled: bool
+    allow_opened_pack_returns: bool
 
 
 class BranchOut(BaseModel):
@@ -57,6 +58,7 @@ class BranchSettingsUpdate(BaseModel):
     receipt_header: str | None = Field(default=None, max_length=500)
     receipt_footer: str | None = Field(default=None, max_length=500)
     price_override_enabled: bool | None = None
+    allow_opened_pack_returns: bool | None = None
 
 
 class ReasonRequest(BaseModel):

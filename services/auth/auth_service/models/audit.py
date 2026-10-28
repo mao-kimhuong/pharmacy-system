@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import JSON, BigInteger, DateTime, Identity, Index, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from pharmacy_shared.db import Base
+from .base import Base
 
 
 class AuditLog(Base):

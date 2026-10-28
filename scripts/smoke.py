@@ -20,7 +20,15 @@ line (a past expiry refused, a short expiry flagged, the same Idempotency-Key no
 doubling stock), stock shown FEFO, paying the supplier to 0, a cashier seeing stock
 without cost fields, the User Log. The test branch, cashier and supplier are deactivated.
 
-Without prompts: SMOKE_PHONE, SMOKE_PASSWORD, SMOKE_S1=y, SMOKE_S1B=y, SMOKE_S2=y.
+S3 checks (optional, needs the S1b sample products): in a new test branch, stock-in,
+the KHR rate, a cashier selling 2 items for mixed USD/KHR cash (change, FEFO split,
+80mm receipt), the same Idempotency-Key not selling twice, two tills selling the
+last unit at once, Rx-only / controlled refused, a credit sale over the limit
+refused (nothing left reserved), a credit sale + customer payment, a cashier's 403
+on cancel, cancel back to the same batches, a partial return, /internal not
+reachable through Traefik, the User Log.
+
+Without prompts: SMOKE_PHONE, SMOKE_PASSWORD, SMOKE_S1=y, SMOKE_S1B=y, SMOKE_S2=y, SMOKE_S3=y.
 
 Uses only the Python standard library.
 """
@@ -36,7 +44,9 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
+from decimal import Decimal
 from pathlib import Path
 
 BASE = os.environ.get("BASE_URL", "http://localhost").rstrip("/")
@@ -498,6 +508,188 @@ def s2_checks(token: str) -> None:
     remove_test_cashier(token, bid, cashier)
 
 
+def s3_checks(token: str) -> None:
+    cat, inv, sales, cust = "/api/catalog/v1", "/api/inventory/v1", "/api/sales/v1", "/api/customers/v1"
+    products = {}
+    for sku in ("PARA500", "CETI10", "ORS", "AMOX500", "DIAZ5"):
+        _, found = call("GET", f"{cat}/medicines/search?q={sku}", token=token)
+        m = next((x for x in found.get("items", []) if x["sku"] == sku), None)
+        if m is None:
+            check(False, f"sample product {sku} exists (run the S1b step first)")
+            return
+        products[sku] = (m, {p["name"]: p for p in m["pack_units"]})
+    made = make_test_cashier(token)
+    if made is None:
+        return
+    bid, cashier, phone, password = made
+    today = date.today()
+
+    def key() -> dict:
+        return {"Idempotency-Key": str(uuid.uuid4())}
+
+    def stock_in_line(sku: str, pack: str, lot: str, days: int, qty: int) -> dict:
+        m, packs = products[sku]
+        return {"medicine_id": m["id"], "pack_unit_id": packs[pack]["id"], "lot_no": lot,
+                "expiry_date": (today + timedelta(days=days)).isoformat(), "qty": qty, "unit_cost": "0.10"}  # fmt: skip
+
+    body = {"branch_id": bid, "reason": "Smoke test S3", "lines": [
+        stock_in_line("PARA500", "strip", "S3EARLY", 300, 1), stock_in_line("PARA500", "box", "S3LATE", 600, 1),
+        stock_in_line("CETI10", "box", "S3C", 500, 2), stock_in_line("ORS", "sachet", "S3LAST", 500, 1)]}  # fmt: skip
+
+    def stock_in():
+        status, out = call("POST", f"{inv}/stock-in", body, token=token, headers=key())
+        return (status, out) if out.get("code") not in ("UNKNOWN_BRANCH", "UNKNOWN_MEDICINE") else None
+
+    status, out = wait_for(stock_in, tries=30) or (0, {"code": "UNKNOWN_BRANCH"})
+    if not check(status == 201, f"stock-in for the test branch -> 201 (got {status} {out.get('code', '')}"
+                 f"{'; run make resync' if out.get('code') else ''})"):  # fmt: skip
+        return remove_test_cashier(token, bid, cashier)
+    status, _ = call("PUT", f"{sales}/exchange-rates/{bid}", {"khr_per_usd": 4100}, token=token)
+    check(status == 200, f"owner sets the KHR rate 4,100 -> 200 (got {status})")
+
+    _, ctok = call("POST", "/api/auth/v1/login", {"phone": phone, "password": password})
+    ctoken = ctok.get("access_token", "")
+
+    def line(sku: str, pack: str, qty: int) -> dict:
+        m, packs = products[sku]
+        return {"medicine_id": m["id"], "pack_unit_id": packs[pack]["id"], "qty": qty}
+
+    def sell(lines, payments, tok=None, headers=None, **extra):
+        return call("POST", f"{sales}/invoices", {"branch_id": bid, "lines": lines, "payments": payments, **extra},
+                    token=tok or ctoken, headers=headers or key())  # fmt: skip
+
+    strip = products["PARA500"][1]["strip"]["qty_in_base"]  # tablets per strip (12 in the sample)
+    box = products["PARA500"][1]["box"]["qty_in_base"]
+    para_strip = Decimal(products["PARA500"][1]["strip"]["sell_price"])
+    ceti_strip = Decimal(products["CETI10"][1]["strip"]["sell_price"])
+    # 1. mixed USD / KHR cash, 2 items; PARA500 2 strips = 1 strip from S3EARLY + 1 from S3LATE
+    sale_key = key()
+    payments = [{"method": "cash", "currency": "USD", "amount": "2.00"},
+                {"method": "cash", "currency": "KHR", "amount": "10000"}]  # fmt: skip
+
+    def first_sale():
+        status, out = sell(
+            [line("PARA500", "strip", 2), line("CETI10", "strip", 1)], payments, headers=sale_key
+        )
+        return (status, out) if out.get("code") not in ("UNKNOWN_BRANCH", "UNKNOWN_MEDICINE") else None
+
+    status, sale = wait_for(first_sale, tries=30) or (0, {"code": "UNKNOWN_BRANCH"})
+    if not check(status == 201, f"cashier sells 2 items for USD + KHR -> 201 (got {status} {sale.get('code', '')}"
+                 f" {sale.get('message', '')})"):  # fmt: skip
+        return remove_test_cashier(token, bid, cashier)
+    total, paid = Decimal(sale["total"]), Decimal(sale["paid"])
+    change = Decimal(sale["change_usd"])
+    given = Decimal(sale["change_given_usd"]) + Decimal(sale["change_given_khr"]) / 4100
+    check(paid == Decimal("2.00") + (Decimal(10000) / 4100).quantize(Decimal("0.01")) and change == paid - total
+          and sale["change_given_khr"] % 100 == 0 and abs(given - change) < Decimal("0.0125"),
+          f"change is right: total {total}, paid {paid}, change {sale['change_given_usd']} USD + "
+          f"{sale['change_given_khr']} riel")  # fmt: skip
+    lots = [(b["lot_no"], b["qty_base"]) for b in sale["lines"][0]["batches"]]
+    check(
+        lots == [("S3EARLY", strip), ("S3LATE", strip)],
+        f"earliest-expiring batch first, split across batches ({lots})",
+    )
+    receipt_body = json.dumps({"type": "receipt_80mm", "invoice_id": sale["id"]}).encode()
+    status, pdf, ctype = call_raw("POST", "/api/documents/v1/render", receipt_body, ctoken,
+                                  {"Content-Type": "application/json"})  # fmt: skip
+    if check(status == 200 and pdf.startswith(b"%PDF"), f"80mm receipt PDF ({status})"):
+        out = Path(tempfile.gettempdir()) / "pharmacy-smoke-receipt.pdf"
+        out.write_bytes(pdf)
+        print(f"        open {out}")
+
+    # 2. the same Idempotency-Key does not sell twice
+    status, again = sell(
+        [line("PARA500", "strip", 2), line("CETI10", "strip", 1)], payments, headers=sale_key
+    )
+    _, stock = call("GET", f"{inv}/stock?branch_id={bid}&q=PARA500", token=token)
+    on_hand = sum(i["qty_on_hand"] for i in stock.get("items", []))
+    check(again.get("id") == sale["id"] and on_hand == strip + box - 2 * strip,
+          f"same Idempotency-Key: same invoice, sold once (PARA500 left {on_hand})")  # fmt: skip
+
+    # 3. two tills, the last ORS sachet, at the same moment
+    ors = [line("ORS", "sachet", 1)]
+    cash = [{"method": "cash", "currency": "USD", "amount": "1.00"}]
+    with ThreadPoolExecutor(2) as pool:
+        results = list(pool.map(lambda t: sell(ors, cash, tok=t), [ctoken, token]))
+    codes = sorted(str(st) if st == 201 else r.get("code", str(st)) for st, r in results)
+    _, stock = call("GET", f"{inv}/stock?branch_id={bid}&q=ORS", token=token)
+    left = sum(i["qty_on_hand"] for i in stock.get("items", []))
+    check(codes == ["201", "OUT_OF_STOCK"] and left == 0, f"last unit sold once, the other till gets OUT_OF_STOCK "
+          f"({codes}, left {left})")  # fmt: skip
+
+    # 4. Rx-only and controlled refused
+    status, r = sell([line("AMOX500", "strip", 1)], cash)
+    check(
+        status == 422 and r.get("code") == "RX_REQUIRED", f"Rx-only refused -> RX_REQUIRED ({r.get('code')})"
+    )
+    status, r = sell([line("DIAZ5", "strip", 1)], cash)
+    check(status == 422 and r.get("code") == "CONTROLLED_NOT_AVAILABLE",
+          f"controlled refused -> CONTROLLED_NOT_AVAILABLE ({r.get('code')})")  # fmt: skip
+
+    # 5. credit: over the limit refused with nothing reserved; within it fine; a payment lowers it
+    status, customer = call("POST", f"{cust}/customers", {"phone": f"097{random.randint(1000000, 9999999)}",
+                            "name": "Smoke customer", "credit_limit": "2.00"}, token=token)  # fmt: skip
+    if check(status == 201, f"customer with a 2.00 USD credit limit -> 201 (got {status})"):
+        credit = [{"method": "credit", "currency": "USD", "amount": str(2 * ceti_strip)}]
+
+        def over_limit():
+            st, r = sell([line("CETI10", "strip", 2)], credit, customer_id=customer["id"])
+            return (st, r) if r.get("code") != "CUSTOMER_REQUIRED" else None
+
+        status, r = wait_for(over_limit, tries=30) or (0, {})
+        _, stock = call("GET", f"{inv}/stock?branch_id={bid}&q=CETI10", token=token)
+        reserved = sum(i["qty_reserved"] for i in stock.get("items", []))
+        check(status == 422 and r.get("code") == "CREDIT_LIMIT_EXCEEDED" and reserved == 0,
+              f"credit over the limit refused, nothing reserved ({r.get('code')}, reserved {reserved})")  # fmt: skip
+        status, on_credit = sell([line("CETI10", "strip", 1)], [{"method": "credit", "amount": str(ceti_strip)}],
+                                 customer_id=customer["id"])  # fmt: skip
+        check(
+            status == 201, f"credit sale within the limit -> 201 (got {status} {on_credit.get('code', '')})"
+        )
+        status, payment = call("POST", f"{cust}/customer-payments", {"customer_id": customer["id"], "branch_id": bid,
+                               "method": "ABA", "amount": "1.00"}, token=ctoken, headers=key())  # fmt: skip
+        _, c = call("GET", f"{cust}/customers/{customer['id']}", token=token)
+        allocated = [a["invoice_no"] for a in payment.get("allocations", [])]
+        check(status == 201 and Decimal(c.get("balance") or "0") == ceti_strip - 1 and allocated == [on_credit.get("number")],
+              f"customer payment lowers the balance to {c.get('balance')}, oldest invoice first ({allocated})")  # fmt: skip
+
+    # 6. cancel: cashier 403; owner → stock back to the same batches
+    status, _ = call("POST", f"{sales}/invoices/{sale['id']}/cancel", {"reason": "smoke"}, token=ctoken)
+    check(status == 403, f"cashier cancelling -> 403 (got {status})")
+    status, cancelled = call(
+        "POST", f"{sales}/invoices/{sale['id']}/cancel", {"reason": "smoke test"}, token=token
+    )
+    _, stock = call("GET", f"{inv}/stock?branch_id={bid}&q=PARA500", token=token)
+    lots = {b["lot_no"]: b["qty_on_hand"] for i in stock.get("items", []) for b in i["batches"]}
+    check(status == 200 and lots == {"S3EARLY": strip, "S3LATE": box},
+          f"cancel puts the stock back into the same batches ({lots})")  # fmt: skip
+
+    # 7. partial return
+    status, two = sell([line("PARA500", "strip", 2)], [{"method": "cash", "currency": "USD", "amount": str(2 * para_strip)}],
+                       tok=token)  # fmt: skip
+    status, ret = call("POST", f"{sales}/invoices/{two.get('id')}/returns", {
+        "lines": [{"invoice_line_id": two["lines"][0]["id"], "qty": 1}], "refund_method": "cash",
+        "reason": "smoke test"}, token=token, headers=key())  # fmt: skip
+    check(status == 201 and ret.get("number", "").endswith("-RT-" + str(today.year) + "-000001"),
+          f"partial return -> 201 ({ret.get('number')} refund {ret.get('refund_usd')})")  # fmt: skip
+
+    # 8. /internal is not reachable through Traefik
+    status, _ = call("POST", "/internal/v1/reservations", {}, token=token)
+    check(status == 404, f"/internal/v1 not routed by Traefik -> 404 (got {status})")
+
+    for action in ("exchange_rate.changed", "invoice.created", "invoice.cancelled", "invoice.returned",
+                   "credit.charged"):  # fmt: skip
+
+        def logged(action=action):
+            _, log = call("GET", f"/api/auth/v1/audit-logs?action={action}&size=1", token=token)
+            return log.get("total")
+
+        check(bool(wait_for(logged)), f"User Log shows {action}")
+    if customer.get("id"):
+        call("POST", f"{cust}/customers/{customer['id']}/deactivate", {"reason": "smoke test"}, token=token)
+    remove_test_cashier(token, bid, cashier)
+
+
 def main() -> int:
     print(f"Smoke test against {BASE}\n")
     tokens = s0_checks()
@@ -523,6 +715,13 @@ def main() -> int:
     if run_s2.strip().lower() in ("y", "yes", "1"):
         print()
         s2_checks(tokens["access_token"])
+    run_s3 = os.environ.get("SMOKE_S3") or input(
+        "\nAlso run the S3 checks? It creates a test branch, stock, sales, a customer, a cancel and a return\n"
+        "(all in the deactivated test branch). [y/N] "
+    )
+    if run_s3.strip().lower() in ("y", "yes", "1"):
+        print()
+        s3_checks(tokens["access_token"])
 
     status, _ = call(
         "POST",

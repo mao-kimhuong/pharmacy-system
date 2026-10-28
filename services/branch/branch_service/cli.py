@@ -2,8 +2,8 @@
 
     python -m branch_service.cli republish
 
-republish: writes a branch.updated event for every branch to the outbox. Use it
-when a service starts listening after branches already exist.
+republish: writes a branch.updated and a branch.settings_updated event for every
+branch to the outbox. Use it when a service starts listening after branches exist.
 """
 
 import argparse
@@ -24,6 +24,9 @@ async def republish() -> int:
         count = 0
         for branch in (await session.execute(select(Branch).order_by(Branch.code))).scalars():
             add_event(session, OutboxEvent, "branch.updated", _event_payload(branch))
+            if branch.settings is not None:
+                add_event(session, OutboxEvent, "branch.settings_updated",
+                          {"branch_id": str(branch.id), **branch.settings.safe_fields()})  # fmt: skip
             count += 1
         await session.commit()
     await db.dispose()

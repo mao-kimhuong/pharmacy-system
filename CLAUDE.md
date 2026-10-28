@@ -61,9 +61,11 @@ Traefik v3.6. Python 3.12. Lint with ruff.
 - `make owner` – create the first owner account; `make smoke` – end-to-end check through Traefik
   (asks for the 2FA code; optional S1 checks create and deactivate a test branch + cashier; optional
   S1b checks import the sample products (they stay), search, print labels, cashier 403s; optional
-  S2 checks: supplier, PO + PDF, receive 2 lots per line, FEFO stock, pay to 0, cashier sees no cost)
+  S2 checks: supplier, PO + PDF, receive 2 lots per line, FEFO stock, pay to 0, cashier sees no cost;
+  optional S3 checks: USD/KHR sale + receipt, FEFO split, last-unit race, credit, cancel, return)
 - `make revision s=<service> m="message"` then `make migrate s=<service>`
-- `make resync` – re-send branches and products as events (needed once when a service starts
+- `python -m sales_service.cli recover` – finish sales/returns left half-way (also runs every minute)
+- `make resync` – re-send branches, branch settings and products as events (needed once when a service starts
   listening after the data exists: RabbitMQ drops events for queues that did not exist yet)
 
 ## How things work (from S0)
@@ -162,6 +164,55 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   User Log entry by the system. `pg_try_advisory_xact_lock` = one replica at a time. Tests call
   `expire_batches(session, today)`; by hand: `python -m inventory_service.cli expire-batches
   [--dry-run [--today YYYY-MM-DD]]`. `EXPIRY_JOB_ENABLED=false` turns it off.
+- **Models (from S3):** each service has its own declarative base, `<service>_service/models/base.py`
+  (`Base = make_base()` from `pharmacy_shared.db`), so several services' models load in one
+  process. New model files: `from .base import Base`.
+- **Internal calls (from S3):** service-to-service endpoints live under `/internal/v1/...`
+  (`create_service_app(..., internal_router=...)`); Traefik routes only `/api/...`, so they are
+  reachable only on the Docker network (smoke checks the 404). Server side:
+  `caller: InternalCaller = Depends(internal_caller)` – checks `X-Service-Token` against
+  `SERVICE_TOKEN` (constant time, 401 otherwise) and gives the acting user/branch for the User
+  Log. Client side: `pharmacy_shared.internal.InternalClient(url, "sales", token).post(path, body,
+  actor=user, branch_id=..., idempotency_key=...)` – 2 s connect / 8 s read timeout, retries only
+  connection errors, the other service's AppError comes back as the same AppError, unreachable →
+  TEMPORARILY_UNAVAILABLE (503). Internal endpoints are idempotent by business ref (invoice id,
+  return id), not by the middleware. Not rate-limited (the caller limits the real user).
+  Production refuses to start if SERVICE_TOKEN is missing, a default or < 32 characters.
+- **FEFO reservations (inventory, from S3):** `POST /internal/v1/reservations` (one per invoice,
+  idempotent): per line, active batches with expiry ≥ today (Phnom Penh), FEFO (expiry, received,
+  id), split over batches, minus reserved and quarantined; stock rows `FOR UPDATE`, medicines in a
+  fixed order (no deadlocks, no two tills on the last unit); OUT_OF_STOCK lists every short line.
+  A pharmacist's batch override takes that batch (BATCH_EXPIRED / BATCH_BLOCKED / OUT_OF_STOCK).
+  `/confirm` → `out` movements; `/release` and `/release-by-ref` → nothing sold; `/reverse` →
+  `sale_cancel` movements into the same batches; `/returns` → `return` movements, optionally into
+  `qty_quarantined` (on hand, never sold) until a pharmacist releases it (`POST
+  /quarantine/release`, reason, User Log). `in/opening/out/sale_cancel/return` are unique per
+  source ref.
+- **Sale saga (sales, from S3):** `services/sale_saga.py`. 1 validate (active product, price from
+  the local copy, pack units → base; controlled → CONTROLLED_NOT_AVAILABLE, Rx-only →
+  RX_REQUIRED until S4/S5; payments settle), save `pending` (no number) → 2 reserve (undo:
+  release by invoice) → 3 charge credit (undo: credit/reverse) → 4 confirm (undo: reverse) → 5 number
+  `PP1-INV-2026-000123` (only completed sales get one: no gaps), batches per line, `invoice.created`,
+  User Log. Failure: compensations in reverse (each registered before its step, idempotent,
+  "nothing to undo" tolerated) → `failed` with code/reason; a compensation that cannot run →
+  `needs_attention`, finished by the recovery task (every minute, advisory lock), which also
+  finishes `cancelling` invoices and `needs_attention` returns. Same Idempotency-Key → same invoice
+  (key stored on the invoice). Cancel (`sales.cancel`, reason): credit first, then stock; without
+  `sales.cancel_any` only today's invoices; not after a return. Returns (`sales.return`): ≤ sold −
+  returned, back to the last-used batch first or quarantine, opened packs only if the branch allows,
+  credit sales refunded as a credit note; `PP1-RT-…`. Customers: append-only ledger (balance =
+  sum), debts per credit invoice, payments oldest first, credit limits need `customers.credit_limit`.
+- **KHR / USD (from S3):** prices and totals USD NUMERIC(14,2); per-branch rate (whole riel per
+  USD, history with previous rate, who, when; `sales.exchange_rate`); each invoice stores its rate
+  and the KHR total (rounded to 100 riel). Payments mix methods and currencies; riel in whole
+  hundreds, converted at the invoice rate (half up, to the cent). Card/ABA/KHQR/credit may not
+  overpay: change only from cash, given as USD, KHR or USD_KHR (default: dollars in USD, cents in
+  riel), riel rounded to 100 half up; `change_rounding_khr` (exact − handed over) makes the drawer
+  reconcile. Rules and examples: `sales_service/services/money.py` + `tests/test_money.py`.
+- **Receipts (document, from S3):** `POST /api/documents/v1/render {"type": "receipt_80mm" |
+  "invoice_a4", "invoice_id"}` (pos.sell or sales.view, own branches) from the copy of `invoice.*`
+  events (waits up to 5 s → DOCUMENT_NOT_READY). 80 mm page cut to the content's length (laid out,
+  measured, rendered again). Branch header/footer come from `branch.settings_updated` via sales.
 
 ## Definition of done
 API matches the spec, migration included, tests pass (`make test` and `make test-docker`),
@@ -173,11 +224,12 @@ API matches the spec, migration included, tests pass (`make test` and `make test
 - [x] S1a Settings – users, roles + permissions, 2FA, User Log, branches, branch settings, feature switches
 - [x] S1b Settings – products, pack units, categories, brands, Excel import, labels
 - [x] S2 Stock + buying – batches, stock, initialize, suppliers, PO, receiving, payments
-- [ ] S3 POS + sales – FEFO checkout, invoices, returns, customers, receipts
+- [x] S3 POS + sales – FEFO checkout, invoices, returns, customers, receipts
 - [ ] S4 Prescriptions – patients, doctors, Rx, dispensing, allergy warnings, labels
 - [ ] S5 Controlled + counts – register, PIN + witness, stock take, shrinkage
 - [ ] S6 Branches – transfer requests, transfers, purchase requests, re-order
 - [ ] S7 Sales extras – sale order, suspend, templates, promotions, hampers, commission
 - [ ] S8 Reports – dashboard, all reports, Telegram 20:00
-- [ ] S9 Hardening – performance, security, offline POS, UAT fixes
+- [ ] S9 Hardening – performance, security, offline POS, UAT fixes; per-service tokens for
+  internal calls (today one shared SERVICE_TOKEN: a service could call any other's /internal)
 - [ ] S10 AI – DeepSeek phase A

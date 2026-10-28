@@ -16,7 +16,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from pharmacy_shared.db import Base, IdMixin, TimestampMixin
+from pharmacy_shared.db import IdMixin, TimestampMixin
+
+from .base import Base
 
 SCHEDULES = ("I", "II", "III", "IV")
 STORAGE = ("room", "cold")

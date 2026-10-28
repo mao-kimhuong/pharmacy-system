@@ -7,20 +7,17 @@ purchase_order.* events. Rules:
 - Draft and cancelled POs are printed with a watermark.
 """
 
-import asyncio
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pharmacy_shared.auth import CurrentUser
-from pharmacy_shared.errors import AppError, ErrorCode
 
 from ..models import PurchaseOrderCopy
 from .pdf import FONTS, e, html_to_pdf
+from .stored import upsert_versioned, wait_for
 
 PO_EVENTS = frozenset({
     "purchase_order.created", "purchase_order.updated", "purchase_order.sent",
@@ -29,53 +26,16 @@ PO_EVENTS = frozenset({
 
 
 async def upsert_po(session: AsyncSession, payload: dict[str, Any]) -> bool:
-    po_id = UUID(str(payload["purchase_order_id"]))
-    version = int(payload["version"])
-    stored = (
-        await session.execute(
-            select(PurchaseOrderCopy.version).where(PurchaseOrderCopy.id == po_id).with_for_update()
-        )
-    ).scalar_one_or_none()
-    if stored is not None and stored >= version:
-        return False
-    values = {
-        "id": po_id, "version": version, "branch_id": UUID(str(payload["branch"]["id"])),
-        "number": str(payload["number"]), "status": str(payload["status"]), "data": payload,
-    }  # fmt: skip
-    await session.execute(
-        insert(PurchaseOrderCopy)
-        .values(**values)
-        .on_conflict_do_update(
-            index_elements=[PurchaseOrderCopy.id], set_={k: v for k, v in values.items() if k != "id"}
-        )
-    )
-    return True
+    return await upsert_versioned(session, PurchaseOrderCopy, {
+        "id": UUID(str(payload["purchase_order_id"])), "version": int(payload["version"]),
+        "branch_id": UUID(str(payload["branch"]["id"])), "number": str(payload["number"]),
+        "status": str(payload["status"]), "data": payload})  # fmt: skip
 
 
 async def wait_for_po(
     session: AsyncSession, actor: CurrentUser, po_id: UUID, wait_seconds: float
 ) -> dict[str, Any]:
-    deadline = asyncio.get_running_loop().time() + wait_seconds
-    while True:
-        row = (
-            await session.execute(
-                select(PurchaseOrderCopy.branch_id, PurchaseOrderCopy.data).where(
-                    PurchaseOrderCopy.id == po_id
-                )
-            )
-        ).first()
-        await session.rollback()  # end the read, so the next look sees newly committed copies
-        if row is not None:
-            if not actor.can_access_branch(row.branch_id):
-                raise AppError(ErrorCode.NOT_FOUND, "Purchase order not found", status_code=404)
-            return row.data
-        if asyncio.get_running_loop().time() >= deadline:
-            raise AppError(
-                ErrorCode.DOCUMENT_NOT_READY,
-                "This purchase order has not reached the document service yet; try again in a moment",
-                status_code=409,
-            )
-        await asyncio.sleep(0.25)
+    return await wait_for(session, PurchaseOrderCopy, po_id, actor, wait_seconds, "purchase order")
 
 
 def _money(value: str | Decimal) -> str:

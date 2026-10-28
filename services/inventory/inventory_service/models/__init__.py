@@ -8,9 +8,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from pharmacy_shared.consumer import ProcessedMessageMixin
 from pharmacy_shared.copies import BranchCopyMixin, PackUnitCopyMixin, ProductCopyMixin
-from pharmacy_shared.db import Base
 from pharmacy_shared.outbox import OutboxMixin
 
+from .base import Base
 from .stock import (
     BATCH_STATUSES,
     MOVEMENT_TYPES,
@@ -19,6 +19,9 @@ from .stock import (
     Movement,
     OpeningBalance,
     OpeningLine,
+    QuarantineEntry,
+    Reservation,
+    ReservationLine,
     Stock,
     StockIn,
 )
@@ -78,6 +81,9 @@ __all__ = [
     "ProcessedMessage",
     "Product",
     "ProductPackUnit",
+    "QuarantineEntry",
+    "Reservation",
+    "ReservationLine",
     "Stock",
     "StockIn",
 ]

@@ -6,7 +6,8 @@ from sqlalchemy import JSON, DateTime, Integer, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from pharmacy_shared.copies import PackUnitCopyMixin, ProductCopyMixin
-from pharmacy_shared.db import Base
+
+from .base import Base
 
 
 class Product(ProductCopyMixin, Base):
@@ -34,6 +35,23 @@ class PurchaseOrderCopy(Base):
     version: Mapped[int] = mapped_column(Integer)
     branch_id: Mapped[UUID] = mapped_column(Uuid, index=True)
     number: Mapped[str] = mapped_column(String(32))
+    status: Mapped[str] = mapped_column(String(20))
+    data: Mapped[dict[str, Any]] = mapped_column(JSON)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class InvoiceCopy(Base):
+    """Local copy of an invoice (invoice.* events from sales), used to print the
+    receipt and the A4 invoice. `data` is the event payload; older versions ignored."""
+
+    __tablename__ = "invoices"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    version: Mapped[int] = mapped_column(Integer)
+    branch_id: Mapped[UUID] = mapped_column(Uuid, index=True)
+    number: Mapped[str | None] = mapped_column(String(32))
     status: Mapped[str] = mapped_column(String(20))
     data: Mapped[dict[str, Any]] = mapped_column(JSON)
     updated_at: Mapped[datetime] = mapped_column(

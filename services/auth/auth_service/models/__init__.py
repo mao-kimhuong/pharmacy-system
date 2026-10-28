@@ -2,10 +2,10 @@
 Alembic autogenerate can see it."""
 
 from pharmacy_shared.consumer import ProcessedMessageMixin
-from pharmacy_shared.db import Base
 from pharmacy_shared.outbox import OutboxMixin
 
 from .audit import AuditLog
+from .base import Base
 from .known_branch import KnownBranch
 from .refresh_token import RefreshToken
 from .role import Permission, RolePermission, RoleRecord

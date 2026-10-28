@@ -30,7 +30,8 @@ class BatchRow(BaseModel):
     supplier_id: UUID | None
     qty_on_hand: int
     qty_reserved: int
-    qty_available: int
+    qty_quarantined: int
+    qty_available: int = Field(description="Sellable now: active, not expired, not reserved or quarantined")
     cost_per_base: Decimal | None = Field(default=None, description=CostNote)
     value: Decimal | None = Field(default=None, description=CostNote)
 
@@ -45,6 +46,7 @@ class StockItem(BaseModel):
     controlled_schedule: str | None
     qty_on_hand: int
     qty_reserved: int
+    qty_quarantined: int
     qty_available: int
     on_hand_in_packs: list[PackQty]
     available_in_packs: list[PackQty]
@@ -216,3 +218,98 @@ class LockOut(BaseModel):
     locked_at: datetime | None
     unlocked_at: datetime | None
     unlock_reason: str | None
+
+
+class QuarantineRelease(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    branch_id: UUID
+    batch_id: UUID
+    qty_base: int = Field(ge=1, le=10_000_000)
+    reason: str = Field(min_length=1, max_length=255, examples=["Checked: sealed and undamaged"])
+
+
+class QuarantineReleaseOut(BaseModel):
+    branch_id: UUID
+    batch_id: UUID
+    qty_on_hand: int
+    qty_quarantined: int
+    released: int
+
+
+# ---------------------------------------------------------------- internal (sale saga)
+
+
+class ReserveLine(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    line_no: int = Field(ge=1)
+    medicine_id: UUID
+    qty_base: int = Field(ge=1, le=10_000_000)
+    batch_id: UUID | None = Field(default=None, description="Pharmacist's batch override")
+
+
+class ReserveRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ref_type: Literal["invoice"] = "invoice"
+    ref_id: str = Field(min_length=1, max_length=80)
+    branch_id: UUID
+    lines: list[ReserveLine] = Field(min_length=1, max_length=200)
+
+
+class ReservedBatch(BaseModel):
+    line_no: int
+    medicine_id: UUID
+    batch_id: UUID
+    lot_no: str
+    expiry_date: date
+    qty_base: int
+    cost_per_base: Decimal
+    overridden: bool
+
+
+class ReservationOut(BaseModel):
+    id: UUID
+    ref_type: str
+    ref_id: str
+    branch_id: UUID
+    status: str
+    lines: list[ReservedBatch]
+
+
+class ReverseRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(default="", max_length=255)
+
+
+class ReleaseByRef(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ref_type: Literal["invoice"] = "invoice"
+    ref_id: str = Field(min_length=1, max_length=80)
+
+
+class ReturnItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ref_id: str = Field(min_length=1, max_length=80, description="Unique per returned line and batch")
+    batch_id: UUID
+    qty_base: int = Field(ge=1, le=10_000_000)
+
+
+class ReturnRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    branch_id: UUID
+    to: Literal["stock", "quarantine"]
+    reason: str = Field(default="", max_length=255)
+    items: list[ReturnItem] = Field(min_length=1, max_length=400)
+
+
+class ReturnBooked(BaseModel):
+    ref_id: str
+    batch_id: UUID
+    qty_base: int
+    booked: bool

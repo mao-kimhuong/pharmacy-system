@@ -1,0 +1,202 @@
+"""Receipts (80 mm roll) and A4 invoices, printed from the copy of invoice.*
+events. Rules:
+
+- Needs pos.sell or sales.view and access to the invoice's branch (others: 404).
+- Right after the sale its event may still be on its way: wait up to 5 s, then
+  DOCUMENT_NOT_READY (409).
+- Shows the branch name (Khmer and English) with the receipt header and footer
+  from the branch settings, lines, the total in USD and in KHR at the rate the
+  sale used, the payments, and the change given in USD + KHR.
+- A cancelled invoice is printed with a CANCELLED mark; returns are listed.
+- The 80 mm receipt is as long as its content: laid out once on a long page,
+  measured, then printed on a page cut to that length.
+- (Rx lines will show the batch lot in S4.)
+"""
+
+from datetime import datetime
+from decimal import Decimal
+from typing import Any
+from uuid import UUID
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
+
+from pharmacy_shared import clock
+from pharmacy_shared.auth import CurrentUser
+
+from ..models import InvoiceCopy
+from .pdf import FONTS, e, html_to_pdf
+from .stored import upsert_versioned, wait_for
+
+INVOICE_EVENTS = frozenset({"invoice.created", "invoice.cancelled", "invoice.returned"})
+METHODS = {"cash": "Cash", "card": "Card", "ABA": "ABA", "KHQR": "KHQR", "credit": "On credit"}
+PX_TO_MM = 25.4 / 96
+
+
+async def upsert_invoice(session: AsyncSession, payload: dict[str, Any]) -> bool:
+    return await upsert_versioned(session, InvoiceCopy, {
+        "id": UUID(str(payload["invoice_id"])), "version": int(payload["version"]),
+        "branch_id": UUID(str(payload["branch"]["id"])), "number": payload.get("number"),
+        "status": str(payload["status"]), "data": payload})  # fmt: skip
+
+
+def _usd(value: str | Decimal) -> str:
+    return f"{Decimal(str(value)):,.2f}"
+
+
+def _riel(value: int | None) -> str:
+    return f"{value:,}" if value is not None else "–"
+
+
+def _when(inv: dict[str, Any]) -> str:
+    if not inv.get("completed_at"):
+        return ""
+    return datetime.fromisoformat(inv["completed_at"]).astimezone(clock.TIMEZONE).strftime("%Y-%m-%d %H:%M")
+
+
+def _multiline(text: str | None) -> str:
+    return "<br>".join(e(x) for x in (text or "").splitlines())
+
+
+def _payments(inv: dict[str, Any]) -> list[tuple[str, str]]:
+    rows = []
+    for p in inv["payments"]:
+        amount = (
+            f"{_riel(int(Decimal(p['amount'])))} ៛" if p["currency"] == "KHR" else f"${_usd(p['amount'])}"
+        )
+        rows.append((METHODS.get(p["method"], p["method"]), amount))
+    return rows
+
+
+def _change(inv: dict[str, Any]) -> str:
+    parts = []
+    if Decimal(inv["change_given_usd"]) > 0:
+        parts.append(f"${_usd(inv['change_given_usd'])}")
+    if inv["change_given_khr"]:
+        parts.append(f"{_riel(inv['change_given_khr'])} ៛")
+    return " + ".join(parts) or "0"
+
+
+def _receipt_item(x: dict[str, Any]) -> str:
+    km = f"<div class='km' lang='km'>{e(x['name_km'])}</div>" if x["name_km"] else ""
+    return (
+        f"<div class='item'><div class='name'>{e(x['name'])}</div>{km}"
+        f"<div class='row'><span>{x['qty']} {e(x['pack_unit'])} × {_usd(x['unit_price'])}</span>"
+        f"<span>{_usd(x['line_total'])}</span></div></div>"
+    )
+
+
+def receipt_html(inv: dict[str, Any], page_height_mm: float = 2000) -> str:
+    b = inv["branch"]
+    lines = "".join(_receipt_item(x) for x in inv["lines"])
+    pays = "".join(
+        f"<div class='row'><span>{e(m)}</span><span>{e(a)}</span></div>" for m, a in _payments(inv)
+    )
+    customer = inv.get("customer")
+    cust = f"<div>Customer: {e(customer['name'])} {e(customer['phone'])}</div>" if customer else ""
+    credit = (f"<div class='row'><span>On credit</span><span>${_usd(inv['credit_amount'])}</span></div>"
+              if Decimal(inv["credit_amount"]) > 0 else "")  # fmt: skip
+    rate = f"<div class='small'>1 USD = {_riel(inv['khr_per_usd'])} ៛</div>" if inv.get("khr_per_usd") else ""
+    cancelled = "<div class='stamp'>CANCELLED · បានលុបចោល</div>" if inv["status"] == "cancelled" else ""
+    returns = "".join(f"<div class='row small'><span>Returned {e(r['number'])}</span>"
+                      f"<span>-${_usd(r['refund_usd'])}</span></div>" for r in inv.get("returns") or [])  # fmt: skip
+    css = f"""
+      @page {{ size: 80mm {page_height_mm:.1f}mm; margin: 3mm 3.5mm }}
+      * {{ box-sizing: border-box; margin: 0 }}
+      body {{ font-family: {FONTS}; font-size: 8.5pt; color: #000; line-height: 1.3 }}
+      .c {{ text-align: center }} h1 {{ font-size: 11pt }} .km {{ font-size: 8.5pt }}
+      .small {{ font-size: 7.5pt }} hr {{ border: 0; border-top: 0.3mm dashed #000; margin: 1.5mm 0 }}
+      .row {{ display: flex; justify-content: space-between; gap: 2mm }}
+      .item {{ margin-bottom: 1mm }} .name {{ font-weight: 700 }}
+      .total {{ font-size: 11pt; font-weight: 700 }}
+      .stamp {{ border: 0.5mm solid #000; text-align: center; font-weight: 700; margin: 1mm 0; padding: 0.5mm }}
+    """
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><style>{css}</style></head><body>
+      <div id="receipt">
+      <div class="c"><h1>{e(b["name_en"])}</h1><div class="km" lang="km">{e(b["name_km"])}</div>
+        <div class="small">{_multiline(b.get("receipt_header"))}</div></div>
+      <hr>
+      <div class="row"><span>Receipt · បង្កាន់ដៃ</span><b>{e(inv.get("number"))}</b></div>
+      <div class="small">{e(_when(inv))}</div>{cust}{cancelled}
+      <hr>{lines}<hr>
+      <div class="row total"><span>Total</span><span>${_usd(inv["total"])}</span></div>
+      <div class="row"><span>សរុប (KHR)</span><span>{_riel(inv.get("total_khr"))} ៛</span></div>{rate}
+      <hr>{pays}{credit}
+      <div class="row"><span>Change · ប្រាក់អាប់</span><b>{e(_change(inv))}</b></div>{returns}
+      <hr><div class="c small">{_multiline(b.get("receipt_footer"))}</div>
+      </div></body></html>"""
+
+
+def _render_receipt(inv: dict[str, Any]) -> bytes:
+    from weasyprint import HTML
+    from weasyprint.urls import URLFetcher
+
+    fetcher = URLFetcher(allowed_protocols={"data"})
+    page = HTML(string=receipt_html(inv), url_fetcher=fetcher).render().pages[0]
+    bottom = max(
+        (b.position_y + b.margin_height() for b in page._page_box.descendants()
+         if getattr(b, "element_tag", None) == "div" and hasattr(b, "margin_height")),
+        default=200,
+    )  # fmt: skip
+    height = bottom * PX_TO_MM + 3 + 6  # bottom page margin + a little to tear off
+    return HTML(string=receipt_html(inv, height), url_fetcher=fetcher).write_pdf()
+
+
+def invoice_a4_html(inv: dict[str, Any]) -> str:
+    b, customer = inv["branch"], inv.get("customer")
+    rows = "".join(
+        f"<tr><td>{x['line_no']}</td><td><b>{e(x['name'])}</b><div class='km' lang='km'>{e(x['name_km'])}</div>"
+        f"<div class='sub'>{e(x['sku'])}</div></td><td>{e(x['pack_unit'])}</td><td class='r'>{x['qty']}</td>"
+        f"<td class='r'>{_usd(x['unit_price'])}</td><td class='r'>{_usd(x['line_total'])}</td></tr>"
+        for x in inv["lines"]
+    )
+    pays = "".join(f"<div>{e(m)}: {e(a)}</div>" for m, a in _payments(inv))
+    watermark = "<div class='watermark'>CANCELLED</div>" if inv["status"] == "cancelled" else ""
+    css = f"""
+      @page {{ size: A4; margin: 14mm 12mm }}
+      * {{ box-sizing: border-box }} body {{ font-family: {FONTS}; font-size: 9.5pt; color: #111 }}
+      h1 {{ font-size: 15pt; margin: 0 }} .km {{ font-size: 9pt }} .sub {{ font-size: 7.5pt; color: #555 }}
+      .head {{ display: flex; justify-content: space-between; border-bottom: 0.4mm solid #000; padding-bottom: 3mm }}
+      .right {{ text-align: right }} .number {{ font-size: 12pt; font-weight: 700 }}
+      table {{ width: 100%; border-collapse: collapse; margin-top: 4mm }}
+      th {{ text-align: left; font-size: 8pt; border-bottom: 0.3mm solid #000; padding: 1.5mm 1mm }}
+      td {{ border-bottom: 0.2mm solid #ccc; padding: 1.5mm 1mm; vertical-align: top }} .r {{ text-align: right }}
+      .totals {{ margin-left: auto; width: 75mm; margin-top: 3mm }}
+      .totals div {{ display: flex; justify-content: space-between }} .big {{ font-size: 12pt; font-weight: 700 }}
+      .watermark {{ position: fixed; top: 110mm; left: 0; right: 0; text-align: center; font-size: 72pt;
+                    color: rgba(0,0,0,0.08); transform: rotate(-25deg); font-weight: 700 }}
+    """
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><style>{css}</style></head><body>
+      {watermark}
+      <div class="head"><div><h1>{e(b["name_en"])}</h1><div class="km" lang="km">{e(b["name_km"])}</div>
+        <div class="sub">{_multiline(b.get("receipt_header"))}</div></div>
+        <div class="right"><div class="sub">INVOICE · វិក្កយបត្រ</div><div class="number">{
+        e(inv.get("number"))
+    }</div>
+        <div>{e(_when(inv))}</div></div></div>
+      {f"<p>Customer: <b>{e(customer['name'])}</b> {e(customer['phone'])}</p>" if customer else ""}
+      <table><thead><tr><th>#</th><th>Item</th><th>Pack</th><th class="r">Qty</th><th class="r">Price (USD)</th>
+        <th class="r">Amount (USD)</th></tr></thead><tbody>{rows}</tbody></table>
+      <div class="totals">
+        <div class="big"><span>Total USD</span><span>{_usd(inv["total"])}</span></div>
+        <div><span>Total KHR</span><span>{_riel(inv.get("total_khr"))} ៛</span></div>
+        {
+        f"<div class='sub'><span>Rate</span><span>1 USD = {_riel(inv['khr_per_usd'])} ៛</span></div>"
+        if inv.get("khr_per_usd")
+        else ""
+    }
+        <div><span>Change</span><span>{e(_change(inv))}</span></div>
+      </div>
+      <div style="margin-top:4mm">{pays}</div>
+      <p class="sub" style="margin-top:8mm">{_multiline(b.get("receipt_footer"))}</p>
+    </body></html>"""
+
+
+async def render(
+    session: AsyncSession, actor: CurrentUser, invoice_id: UUID, kind: str, wait_seconds: float
+) -> tuple[str, bytes]:
+    inv = await wait_for(session, InvoiceCopy, invoice_id, actor, wait_seconds, "invoice")
+    name = inv.get("number") or str(invoice_id)
+    if kind == "receipt_80mm":
+        return name, await run_in_threadpool(_render_receipt, inv)
+    return name, await html_to_pdf(invoice_a4_html(inv))

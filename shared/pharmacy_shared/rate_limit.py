@@ -34,6 +34,7 @@ class RateLimitMiddleware:
         reads_per_minute: int,
         writes_per_minute: int,
         exempt_paths: Iterable[str] = (),
+        exempt_prefixes: Iterable[str] = (),
         clock: Callable[[], float] = time.time,
     ) -> None:
         self.app = app
@@ -41,10 +42,15 @@ class RateLimitMiddleware:
         self.service = service
         self.limits = {"read": reads_per_minute, "write": writes_per_minute}
         self.exempt = frozenset(exempt_paths)
+        self.exempt_prefixes = tuple(exempt_prefixes)
         self.clock = clock
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http" or scope["path"] in self.exempt:
+        if (
+            scope["type"] != "http"
+            or scope["path"] in self.exempt
+            or (self.exempt_prefixes and scope["path"].startswith(self.exempt_prefixes))
+        ):
             await self.app(scope, receive, send)
             return
 

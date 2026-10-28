@@ -16,8 +16,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from pharmacy_shared.db import Base, IdMixin, TimestampMixin
+from pharmacy_shared.db import IdMixin, TimestampMixin
 
+from .base import Base
 from .suppliers import Supplier
 
 PO_STATUSES = ("draft", "sent", "partially_received", "received", "cancelled")

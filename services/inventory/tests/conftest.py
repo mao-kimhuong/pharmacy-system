@@ -4,7 +4,7 @@ import asyncio
 import json
 import os
 from collections.abc import AsyncIterator
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -16,6 +16,8 @@ os.environ["REDIS_URL"] = TEST_REDIS_URL
 os.environ["OUTBOX_RELAY_ENABLED"] = "false"
 os.environ["EVENT_CONSUMER_ENABLED"] = "false"
 os.environ["EXPIRY_JOB_ENABLED"] = "false"
+SERVICE_TOKEN = "test-service-token-0123456789abcdef"
+os.environ["SERVICE_TOKEN"] = SERVICE_TOKEN
 
 import httpx  # noqa: E402
 import pytest  # noqa: E402
@@ -50,9 +52,10 @@ def database() -> None:
 @pytest.fixture(autouse=True)
 async def clean(monkeypatch) -> AsyncIterator[None]:
     monkeypatch.setattr(clock, "today", lambda: TODAY)
+    monkeypatch.setattr(clock, "now", lambda: datetime(2026, 10, 27, 3, 0, tzinfo=UTC))  # 10:00 in Phnom Penh
     async with db.engine.begin() as conn:
         await conn.execute(text(
-            "TRUNCATE movements, stock, batches, stock_ins, opening_lines, opening_balances, initialize_locks,"
+            "TRUNCATE reservation_lines, reservations, quarantine_entries, movements, stock, batches, stock_ins, opening_lines, opening_balances, initialize_locks,"
             " product_pack_units, products, known_branches, known_suppliers, processed_messages, outbox CASCADE"
         ))  # fmt: skip
     redis = Redis.from_url(TEST_REDIS_URL)
@@ -92,6 +95,11 @@ def user(role: str, permissions: str, branches: tuple[UUID, ...] = (PP1,)) -> di
 OWNER = user("owner", "*", ())
 MANAGER = user("branch_manager", "inventory.view,inventory.stock_in,inventory.adjust,inventory.initialize")
 CASHIER = user("cashier", "pos.sell,products.view,inventory.view,inventory.stock_in,purchasing.receive")
+
+
+INTERNAL = {"X-Service-Token": SERVICE_TOKEN, "X-Service-Name": "sales", "X-Acting-User-Id": str(uuid4()),
+            "X-Acting-Role": "cashier"}  # fmt: skip
+PHARMACIST = {**user("pharmacist", "inventory.view,inventory.adjust"), "X-Is-Pharmacist": "true"}
 
 
 def idem() -> dict[str, str]:

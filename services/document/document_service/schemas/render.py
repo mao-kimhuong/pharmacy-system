@@ -33,4 +33,13 @@ class PurchaseOrderRender(BaseModel):
     purchase_order_id: UUID
 
 
-RenderRequest = Annotated[LabelRender | PurchaseOrderRender, Field(discriminator="type")]
+class InvoiceRender(BaseModel):
+    """80 mm receipt or A4 invoice. Permission pos.sell or sales.view, own branches."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["receipt_80mm", "invoice_a4"]
+    invoice_id: UUID
+
+
+RenderRequest = Annotated[LabelRender | PurchaseOrderRender | InvoiceRender, Field(discriminator="type")]

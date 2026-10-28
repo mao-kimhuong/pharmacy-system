@@ -29,6 +29,8 @@ CATALOG: tuple[PermissionDef, ...] = (
     P("pos.dispense_controlled", "Sales", "Dispense controlled medicines"),
     P("sales.view", "Sales", "See invoices (List Sale)"),
     P("sales.cancel", "Sales", "Cancel invoices"),
+    P("sales.cancel_any", "Sales", "Cancel invoices from earlier days"),
+    P("sales.exchange_rate", "Sales", "Set the KHR exchange rate"),
     P("sales.return", "Sales", "Sale returns"),
     P("sales.suspend", "Sales", "Suspend and resume sales"),
     P("sales.order", "Sales", "Sale orders"),
@@ -63,6 +65,7 @@ CATALOG: tuple[PermissionDef, ...] = (
     P("purchasing.pay", "Purchase", "Pay suppliers"),
     # Contacts
     P("contacts.customers", "Contacts", "Customers"),
+    P("customers.credit_limit", "Contacts", "Set customer credit limits"),
     P("contacts.customer_groups", "Contacts", "Customer groups"),
     P("contacts.suppliers", "Contacts", "Suppliers and supplier groups"),
     # Commission

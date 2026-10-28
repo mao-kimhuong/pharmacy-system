@@ -5,7 +5,9 @@ from uuid import UUID
 from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from pharmacy_shared.db import Base, IdMixin, TimestampMixin
+from pharmacy_shared.db import IdMixin, TimestampMixin
+
+from .base import Base
 
 DEFAULT_EXPIRY_ALERT_DAYS = [180, 90, 30]
 
@@ -53,6 +55,8 @@ class BranchSettings(Base):
     receipt_footer: Mapped[str] = mapped_column(Text, default="", server_default="")
     # Allow this branch its own sell prices (overrides the catalog price)
     price_override_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # Sale returns of opened packs (half a strip...) are refused unless this is on.
+    allow_opened_pack_returns: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -65,6 +69,7 @@ class BranchSettings(Base):
             "receipt_header": self.receipt_header,
             "receipt_footer": self.receipt_footer,
             "price_override_enabled": self.price_override_enabled,
+            "allow_opened_pack_returns": self.allow_opened_pack_returns,
         }
 
 
