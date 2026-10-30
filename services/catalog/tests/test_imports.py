@@ -290,3 +290,11 @@ async def test_manager_can_import(client) -> None:
     imp = await uploaded(client, product_rows(), headers=MANAGER)
     r = await commit(client, imp["id"], headers=MANAGER)
     assert r.status_code == 200
+
+
+async def test_import_reads_ingredients_and_drug_classes(client) -> None:
+    imp = await uploaded(client, product_rows(drug_classes="penicillins; beta-lactams"))
+    await commit(client, imp["id"])
+    m = (await client.get(f"{PREFIX}/medicines", headers=OWNER)).json()["items"][0]
+    assert m["drug_classes"] == ["penicillins", "beta-lactams"]
+    assert m["active_ingredients"] == ["Amoxicillin"]

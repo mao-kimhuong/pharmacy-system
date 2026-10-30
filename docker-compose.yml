@@ -84,6 +84,26 @@ services:
     networks: [internal]
     restart: unless-stopped
 
+  # File store (S3 API) for Rx photos and PDFs. Internal network only: no host
+  # port, no Traefik route. Files reach browsers only through the prescription
+  # service, which checks the user and writes the audit entry on every download.
+  # The admin key comes from S3_ACCESS_KEY / S3_SECRET_KEY in .env.
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.51
+    command: ["server", "-dir=/data", "-s3", "-s3.port=8333", "-master.volumeSizeLimitMB=1024"]
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+    volumes:
+      - seaweedfs:/data
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 8333"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    networks: [internal]
+    restart: unless-stopped
+
   auth:
     build:
       context: .
@@ -257,7 +277,14 @@ services:
       DB_NAME: pharmacy_prescription
       DB_USER: prescription_user
       DB_PASSWORD: ${PRESCRIPTION_DB_PASSWORD}
-    depends_on: *service-deps
+      S3_ENDPOINT: http://seaweedfs:8333
+      S3_BUCKET: rx-files
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+    depends_on:
+      <<: *service-deps
+      seaweedfs:
+        condition: service_healthy
     labels:
       - traefik.enable=true
       - traefik.http.services.prescription.loadbalancer.server.port=8000
@@ -529,3 +556,4 @@ networks:
 volumes:
   pgdata:
   letsencrypt:
+  seaweedfs:

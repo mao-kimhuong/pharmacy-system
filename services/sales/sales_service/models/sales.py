@@ -3,6 +3,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     CheckConstraint,
     Date,
@@ -62,6 +63,7 @@ class Invoice(IdMixin, TimestampMixin, Base):
     number: Mapped[str | None] = mapped_column(String(32), unique=True)
     branch_id: Mapped[UUID] = mapped_column(Uuid, index=True)
     customer_id: Mapped[UUID | None] = mapped_column(Uuid, index=True)
+    patient_id: Mapped[UUID | None] = mapped_column(Uuid, index=True)  # set when lines are dispensed on an Rx
     status: Mapped[str] = mapped_column(String(16), default="pending")
     created_by: Mapped[UUID] = mapped_column(Uuid, index=True)
     idempotency_key: Mapped[str] = mapped_column(String(128))
@@ -127,6 +129,23 @@ class InvoiceLine(IdMixin, Base):
     batch_override_id: Mapped[UUID | None] = mapped_column(Uuid)
     override_reason: Mapped[str | None] = mapped_column(String(255))
     returned_qty_base: Mapped[int] = mapped_column(Integer, default=0)
+    # dispensed on a prescription (S4): the Rx, patient and directions as checked at sale time
+    rx_item_id: Mapped[UUID | None] = mapped_column(Uuid, index=True)
+    prescription_id: Mapped[UUID | None] = mapped_column(Uuid)
+    prescription_number: Mapped[str | None] = mapped_column(String(32))
+    patient_id: Mapped[UUID | None] = mapped_column(Uuid)
+    patient_name_en: Mapped[str | None] = mapped_column(String(160))
+    patient_name_km: Mapped[str | None] = mapped_column(String(160))
+    doctor_name: Mapped[str | None] = mapped_column(String(160))
+    dosage: Mapped[str | None] = mapped_column(String(160))
+    frequency: Mapped[str | None] = mapped_column(String(160))
+    duration_days: Mapped[int | None] = mapped_column(Integer)
+    # safety warnings shown (en + km) and who accepted them, when
+    warnings: Mapped[list | None] = mapped_column(JSON)
+    allergy_override_reason: Mapped[str | None] = mapped_column(String(255))
+    allergy_override_by: Mapped[UUID | None] = mapped_column(Uuid)
+    warnings_acknowledged_by: Mapped[UUID | None] = mapped_column(Uuid)
+    warnings_acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     invoice: Mapped[Invoice] = relationship(back_populates="lines")
     batches: Mapped[list["InvoiceLineBatch"]] = relationship(lazy="selectin", order_by="InvoiceLineBatch.seq")

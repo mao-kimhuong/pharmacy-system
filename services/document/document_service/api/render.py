@@ -4,8 +4,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pharmacy_shared.auth import CurrentUser, current_user
 
 from ..db import db
-from ..schemas.render import LabelRender, PurchaseOrderRender, RenderRequest
-from ..services import labels, purchase_orders, receipts
+from ..schemas.render import (
+    DispensingLabelRender,
+    LabelRender,
+    PurchaseOrderRender,
+    RenderRequest,
+    RxSummaryRender,
+)
+from ..services import dispensing, labels, purchase_orders, receipts
 
 router = APIRouter(tags=["render"])
 
@@ -28,6 +34,11 @@ async def render(
     - `type: purchase_order` (purchasing.order, own branches): the A4 PO.
     - `type: receipt_80mm` / `invoice_a4` (pos.sell or sales.view, own branches):
       branch header/footer, USD + KHR totals, payments, change.
+    - `type: dispensing_label` (pos.dispense_rx or prescriptions.view, own branches):
+      patient, medicine, directions, Rx, lot, pharmacist; Khmer or English; size
+      from the branch setting (70×40 mm by default).
+    - `type: rx_summary` (prescriptions.view): the patient's allergies and
+      prescriptions with what is left; written to the User Log.
     PO and invoice: right after they are saved, waits up to 5 s for them, then
     DOCUMENT_NOT_READY (409).
     """
@@ -43,6 +54,19 @@ async def render(
             session, user, body.purchase_order_id, settings.document_wait_seconds
         )
         filename = f"{number}.pdf"
+    elif isinstance(body, DispensingLabelRender):
+        if not user.has_any("pos.dispense_rx", "prescriptions.view"):
+            user.require("prescriptions.view")
+        number, pdf = await dispensing.render_label(
+            session, user, body.invoice_id, body.line_no, body.size, body.lang, settings.document_wait_seconds
+        )
+        filename = f"{number}-label.pdf"
+    elif isinstance(body, RxSummaryRender):
+        user.require("prescriptions.view")
+        name, pdf = await dispensing.render_summary(
+            session, user, body.patient_id, settings.document_wait_seconds
+        )
+        filename = f"{name}.pdf"
     else:
         if not user.has_any("pos.sell", "sales.view"):
             user.require("sales.view")

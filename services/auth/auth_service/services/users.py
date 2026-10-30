@@ -17,6 +17,7 @@ from uuid import UUID
 
 from redis.asyncio import Redis
 from sqlalchemy import func, or_, select, update
+from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pharmacy_shared.auth import CurrentUser
@@ -39,6 +40,15 @@ class UserFilter:
     role: str | None = None
     branch_id: UUID | None = None
     is_active: bool | None = None
+
+
+def user_event_payload(user: User) -> dict:
+    """What other services keep about staff (pharmacist names on labels). No secrets."""
+    loaded = "branches" not in sa_inspect(user).unloaded  # a new owner has none: do not lazy-load
+    return {
+        "user_id": str(user.id), "name": user.name, "role": user.role, "is_pharmacist": user.is_pharmacist,
+        "is_active": user.is_active, "branch_ids": [str(b) for b in user.branch_ids] if loaded else [],
+    }  # fmt: skip
 
 
 def _not_found() -> AppError:
@@ -225,7 +235,7 @@ async def create_user(
     )
     session.add(user)
     await session.flush()
-    add_event(session, OutboxEvent, "user.created", {"user_id": str(user.id), "role": role})
+    add_event(session, OutboxEvent, "user.created", user_event_payload(user))
     write_audit(
         session,
         action="user.created",
@@ -288,7 +298,7 @@ async def update_user(
         return user
     if {"role", "branch_ids", "is_pharmacist"} & {k for k in after if after[k] != before[k]}:
         await _end_sessions(session, redis, user.id)
-    add_event(session, OutboxEvent, "user.updated", {"user_id": str(user.id)})
+    add_event(session, OutboxEvent, "user.updated", user_event_payload(user))
     write_audit(
         session,
         action="user.updated",
@@ -324,7 +334,7 @@ async def set_active(
     if not active:
         await _end_sessions(session, redis, user.id)
     action = "user.activated" if active else "user.deactivated"
-    add_event(session, OutboxEvent, action, {"user_id": str(user.id)})
+    add_event(session, OutboxEvent, action, user_event_payload(user))
     write_audit(
         session,
         action=action,

@@ -11,6 +11,7 @@
   a copy) and one User Log entry with only the fields that changed.
 """
 
+import re
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
@@ -31,6 +32,23 @@ from .common import SERVICE, clean, clean_sku, commit, escape_like, not_found
 
 CENT = Decimal("0.01")
 _TEXT_FIELDS = ("brand_name", "generic_name", "strength", "dosage_form", "name_km", "manufacturer")
+MAX_TERMS = 10
+
+
+def terms(values: list[str] | None) -> list[str]:
+    """Ingredients / drug classes: trimmed, NFC, no duplicates (ignoring case)."""
+    out, seen = [], set()
+    for value in values or []:
+        term = clean(value)[:80]
+        if term and term.casefold() not in seen:
+            seen.add(term.casefold())
+            out.append(term)
+    return out[:MAX_TERMS]
+
+
+def ingredients_from_generic(generic_name: str) -> list[str]:
+    """ "Amoxicillin + Clavulanic acid" → ["Amoxicillin", "Clavulanic acid"]."""
+    return terms(re.split(r"\s*\+\s*", generic_name or ""))
 
 
 def price(value: Decimal | str | float) -> Decimal:
@@ -64,6 +82,8 @@ def event_payload(m: Medicine) -> dict[str, Any]:
         "controlled_schedule": m.controlled_schedule,
         "storage": m.storage,
         "reorder_level": m.reorder_level,
+        "active_ingredients": list(m.active_ingredients or []),
+        "drug_classes": list(m.drug_classes or []),
         "is_active": m.is_active,
         "pack_units": [
             {
@@ -286,6 +306,9 @@ async def create_medicine(session: AsyncSession, actor: CurrentUser, data: dict[
         controlled_schedule=data.get("controlled_schedule"),
         storage=data.get("storage") or "room",
         reorder_level=data.get("reorder_level") or 0,
+        active_ingredients=terms(data.get("active_ingredients"))
+        or ingredients_from_generic(data["generic_name"]),
+        drug_classes=terms(data.get("drug_classes")),
         is_rx_only=False,
         version=0,
         created_by=actor.id,
@@ -346,6 +369,10 @@ async def update_medicine(
         m.storage = data["storage"]
     if data.get("reorder_level") is not None:
         m.reorder_level = data["reorder_level"]
+    if data.get("active_ingredients") is not None:
+        m.active_ingredients = terms(data["active_ingredients"]) or ingredients_from_generic(m.generic_name)
+    if data.get("drug_classes") is not None:
+        m.drug_classes = terms(data["drug_classes"])
     apply_rx_rule(m, data.get("is_rx_only"))
     record_change(session, actor, m, "medicine.updated", before)
     await commit(session)

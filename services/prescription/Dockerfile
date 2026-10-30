@@ -8,7 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 COPY shared /shared
-RUN pip install /shared
+RUN pip install "/shared[storage,uploads]"
 
 COPY services/prescription /app
 RUN pip install /app

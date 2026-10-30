@@ -8,6 +8,7 @@ cd "$(dirname "$0")/.."
 
 export TEST_PG_ADMIN_URL="${TEST_PG_ADMIN_URL:-postgresql://postgres:postgres@localhost:55432/postgres}"
 export TEST_REDIS_URL="${TEST_REDIS_URL:-redis://localhost:56379/15}"
+export TEST_S3_ENDPOINT="${TEST_S3_ENDPOINT:-http://localhost:58333}"
 VENV="${VENV:-.venv}"
 
 is_312_or_newer() {
@@ -40,7 +41,7 @@ fi
 source "$VENV/bin/activate"
 pip install -q --upgrade pip
 pip install -q -r requirements-dev.txt
-pip install -q -e shared
+pip install -q -e "shared[storage,uploads]"
 
 ruff check .
 

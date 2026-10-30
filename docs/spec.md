@@ -47,7 +47,7 @@ Requests enter only through Traefik; each service writes to its own database and
 | catalog | medicines, generics, strengths, forms, categories, units & pack sizes, Rx/controlled flags | /api/catalog/v1 | medicine.created, medicine.updated |
 | inventory | batches, stock per branch per batch, movements, transfers, expiry alerts | /api/inventory/v1 | stock.reserved, stock.released, batch.expiring, batch.blocked |
 | stockcount | counts, count lines, approvals | /api/stockcount/v1 | count.approved |
-| prescription | patients, doctors, prescriptions, dispense records | /api/prescription/v1 | rx.dispensed, rx.cancelled |
+| prescription | patients, doctors, prescriptions, dispense records | /api/prescription/v1 | patient.\*, doctor.\*, prescription.created / activated / dispensed / cancelled / expired |
 | controlled | controlled-drug register, sign-offs, discrepancies | /api/controlled/v1 | register.discrepancy |
 | sales | invoices, POS, returns, payments at sale | /api/sales/v1 | invoice.created, invoice.cancelled |
 | customers | customers, credit, payments, statements | /api/customers/v1 | payment.recorded |
@@ -265,7 +265,7 @@ Receive takes `{"lines": [{"batch_id": "…", "qty_received": 29, "reason": "1 s
 
 **GET /api/inventory/v1/batches?branch\_id=&expiring\_within=90&status=active** — near-expiry list, sorted by expiry.
 
-**POST /api/prescription/v1/prescriptions** — patient, doctor, `rx_no`, `issued_on`, `valid_until`, optional photo, and `items[]` (medicine, dose, frequency, duration, qty, refills).
+**POST /api/prescription/v1/prescriptions** — patient, doctor, `rx_no`, `issued_on`, `valid_until`, and `items[]` (`medicine_id`, `qty_base` = one fill, `dosage`, `frequency`, `duration_days`, `repeats_allowed`). The photo is uploaded after: **POST /prescriptions/{id}/attachments** (JPEG/PNG/PDF ≤ 10 MB) and read back only through **GET /prescriptions/{id}/attachments/{att_id}** (checked and logged on every request).
 
 **GET /api/prescription/v1/prescriptions/{id}/remaining** — what can still be dispensed per item; the POS calls this before adding Rx lines.
 
@@ -286,7 +286,7 @@ Receive takes `{"lines": [{"batch_id": "…", "qty_received": 29, "reason": "1 s
 | BATCH\_BLOCKED | 409 | Batch is blocked, recalled or in quarantine |
 | RX\_REQUIRED | 422 | Rx-only medicine added without a prescription item |
 | RX\_EXPIRED | 422 | Prescription is past `valid_until` |
-| RX\_QTY\_EXCEEDED | 422 | Quantity is more than what is left on the Rx |
+| RX\_QUANTITY\_EXCEEDED | 422 | Quantity is more than what is left on the Rx |
 | PHARMACIST\_REQUIRED | 403 | Rx or controlled dispense by a non-pharmacist |
 | PIN\_REQUIRED / PIN\_INVALID | 401 | Controlled dispense without a valid PIN re-entry |
 | WITNESS\_REQUIRED | 422 | Controlled destroy or adjust without a second staff member |

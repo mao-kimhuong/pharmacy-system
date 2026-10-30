@@ -24,6 +24,8 @@ def _row(m: Medicine, pack) -> list:
         "controlled_schedule": m.controlled_schedule or "",
         "storage": m.storage,
         "reorder_level": m.reorder_level,
+        "active_ingredients": "; ".join(m.active_ingredients or []),
+        "drug_classes": "; ".join(m.drug_classes or []),
         "pack_unit": pack.name,
         "qty_in_base": pack.qty_in_base,
         "barcode": pack.barcode or "",

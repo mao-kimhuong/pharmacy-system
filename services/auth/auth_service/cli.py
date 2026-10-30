@@ -20,6 +20,7 @@ from .db import db
 from .models import OutboxEvent, Role, User
 from .services.passwords import MIN_PASSWORD_LENGTH, hash_password
 from .services.phone import normalize_phone
+from .services.users import user_event_payload
 
 
 class CliError(Exception):
@@ -51,8 +52,19 @@ async def create_owner(name: str, phone: str, password: str, is_pharmacist: bool
         )
         session.add(user)
         await session.flush()
-        add_event(session, OutboxEvent, "user.created", {"user_id": str(user.id), "role": user.role})
+        add_event(session, OutboxEvent, "user.created", user_event_payload(user))
     return user
+
+
+async def republish() -> int:
+    """Write a user.updated event for every user (name, role, pharmacist, active,
+    branches; no secrets): for services that start listening after users exist."""
+    async with db.sessionmaker() as session:
+        users = list((await session.execute(select(User).order_by(User.name))).scalars())
+        for user in users:
+            add_event(session, OutboxEvent, "user.updated", user_event_payload(user))
+        await session.commit()
+    return len(users)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -62,7 +74,11 @@ def main(argv: list[str] | None = None) -> int:
     owner.add_argument("--name")
     owner.add_argument("--phone")
     owner.add_argument("--pharmacist", action="store_true", help="the owner is also a licensed pharmacist")
+    sub.add_parser("republish", help="re-send every user as a user.updated event")
     args = parser.parse_args(argv)
+
+    if args.command == "republish":
+        print(f"Queued {asyncio.run(_run(republish()))} user events")
 
     if args.command == "create-owner":
         name = args.name or input("Owner name: ")

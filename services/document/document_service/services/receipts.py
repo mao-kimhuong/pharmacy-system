@@ -10,7 +10,7 @@ events. Rules:
 - A cancelled invoice is printed with a CANCELLED mark; returns are listed.
 - The 80 mm receipt is as long as its content: laid out once on a long page,
   measured, then printed on a page cut to that length.
-- (Rx lines will show the batch lot in S4.)
+- Rx lines show the prescription number and the lot(s) with expiry.
 """
 
 from datetime import datetime
@@ -79,6 +79,9 @@ def _change(inv: dict[str, Any]) -> str:
 
 def _receipt_item(x: dict[str, Any]) -> str:
     km = f"<div class='km' lang='km'>{e(x['name_km'])}</div>" if x["name_km"] else ""
+    if x.get("rx"):
+        lots = ", ".join(f"{b['lot_no']} exp {b['expiry_date']}" for b in x.get("batches") or [])
+        km += f"<div class='small'>Rx {e(x['rx']['prescription_number'])} · Lot {e(lots)}</div>"
     return (
         f"<div class='item'><div class='name'>{e(x['name'])}</div>{km}"
         f"<div class='row'><span>{x['qty']} {e(x['pack_unit'])} × {_usd(x['unit_price'])}</span>"

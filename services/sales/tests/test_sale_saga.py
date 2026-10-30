@@ -116,7 +116,7 @@ async def test_credit_needs_a_customer(client) -> None:
 async def test_rx_only_and_controlled_items_are_refused_with_clear_codes(client) -> None:
     amox = await add_product("AMOX500", rx=True)
     diaz = await add_product("DIAZ5", controlled="IV")
-    for product, code, word in ((amox, "RX_REQUIRED", "S4"), (diaz, "CONTROLLED_NOT_AVAILABLE", "S5")):
+    for product, code, word in ((amox, "RX_REQUIRED", "prescription"), (diaz, "CONTROLLED_NOT_AVAILABLE", "S5")):
         await receive(product, [("A", "2028-01-31", 100)])
         r = await sell(client, [line(product, "strip", 1)], [pay("0.90")])
         assert r.status_code == 422 and r.json()["code"] == code and word in r.json()["message"]

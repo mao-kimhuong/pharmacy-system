@@ -39,6 +39,8 @@ COLUMNS: tuple[Column, ...] = (
     Column("controlled_schedule", True, False, "Blank, I, II, III or IV. Controlled = always Rx-only"),
     Column("storage", True, False, "room or cold. Blank = room"),
     Column("reorder_level", True, False, "Re-order when stock (in base units) falls to this. Blank = 0"),
+    Column("active_ingredients", True, False, "Separated by ; Blank = from generic_name (split on +)"),
+    Column("drug_classes", True, False, "Separated by ; e.g. penicillins; beta-lactams (for allergy checks)"),
     Column("pack_unit", False, True, "tablet / strip / box ... One row per pack unit"),
     Column("qty_in_base", False, True, "How many base units it holds. 1 only on the base_unit row"),
     Column("barcode", False, False, "Unique across all products; blank = none"),
@@ -62,9 +64,9 @@ def read_rows(data: bytes) -> list[tuple[int, dict[str, str]]]:
 
 TEMPLATE_EXAMPLE = [
     ["PARA500", "Panadol", "Paracetamol", "500mg", "tablet", "ប៉ារ៉ាសេតាម៉ុល", "Pain & fever", "Panadol",
-     "GSK", "tablet", "no", "", "room", 200, "tablet", 1, "", "0.10"],
-    ["PARA500", "", "", "", "", "", "", "", "", "", "", "", "", "", "strip", 10, "", "0.90"],
-    ["PARA500", "", "", "", "", "", "", "", "", "", "", "", "", "", "box", 120, "", "10.00"],
+     "GSK", "tablet", "no", "", "room", 200, "Paracetamol", "analgesics", "tablet", 1, "", "0.10"],
+    ["PARA500", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "strip", 10, "", "0.90"],
+    ["PARA500", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "box", 120, "", "10.00"],
 ]  # fmt: skip
 
 

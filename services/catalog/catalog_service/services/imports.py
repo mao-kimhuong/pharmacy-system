@@ -242,6 +242,9 @@ def _plan_product(sku: str, rows: list[RowResult], existing: Medicine | None) ->
     reorder = parse("reorder_level", _int, 0)
     if reorder is not UNSET:
         plan.fields["reorder_level"] = reorder
+    for key in ("active_ingredients", "drug_classes"):
+        if key in merged:
+            plan.fields[key] = medicines.terms(merged[key][0].split(";"))
     rx = parse("rx_only", _bool)
     plan.rx = None if rx is UNSET else rx
     plan.schedule = parse("controlled_schedule", _schedule)
@@ -600,6 +603,10 @@ async def _apply(
         if key == "base_unit" and not is_new and value != m.base_unit:
             m.base_pack.name = value
         setattr(m, key, value)
+    if not m.active_ingredients:
+        m.active_ingredients = medicines.ingredients_from_generic(m.generic_name)
+    if m.drug_classes is None:
+        m.drug_classes = []
     if plan.category:
         m.category = categories[plan.category.casefold()]
     if plan.brand:

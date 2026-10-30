@@ -27,6 +27,23 @@ services:
       timeout: 3s
       retries: 20
 
+  # S3-compatible file store for the storage tests (same image as docker-compose.yml)
+  seaweedfs-test:
+    image: chrislusf/seaweedfs:4.51
+    command: ["server", "-dir=/data", "-s3", "-s3.port=8333", "-master.volumeSizeLimitMB=64"]
+    environment:
+      AWS_ACCESS_KEY_ID: testkey123
+      AWS_SECRET_ACCESS_KEY: test-secret-0123456789abcdef
+    ports:
+      - "127.0.0.1:58333:8333"
+    tmpfs:
+      - /data
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 8333"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
   # `make test-docker`: runs scripts/test-all.sh in a container against the
   # two services above. Not started by `make test-db` (profile "runner").
   tests:
@@ -37,6 +54,7 @@ services:
     environment:
       TEST_PG_ADMIN_URL: postgresql://postgres:postgres@postgres-test:5432/postgres
       TEST_REDIS_URL: redis://redis-test:6379/15
+      TEST_S3_ENDPOINT: http://seaweedfs-test:8333
     volumes:
       - .:/repo
       - test-venv:/venv
@@ -44,6 +62,8 @@ services:
       postgres-test:
         condition: service_healthy
       redis-test:
+        condition: service_healthy
+      seaweedfs-test:
         condition: service_healthy
 
 volumes:

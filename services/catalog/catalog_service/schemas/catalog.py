@@ -9,6 +9,7 @@ Price = Annotated[Decimal, Field(ge=0, max_digits=14, decimal_places=2, examples
 Barcode = Annotated[str, Field(pattern=r"^[0-9A-Za-z._\-/+]{3,48}$", examples=["8850123456789"])]
 Schedule = Literal["I", "II", "III", "IV"]
 Storage = Literal["room", "cold"]
+Term = Annotated[str, Field(min_length=1, max_length=80)]
 
 
 # ---------------------------------------------------------------- categories, brands
@@ -109,6 +110,8 @@ class MedicineOut(BaseModel):
     controlled_schedule: Schedule | None
     storage: Storage
     reorder_level: int
+    active_ingredients: list[str]
+    drug_classes: list[str]
     is_active: bool
     version: int
     pack_units: list[PackUnitOut]
@@ -155,6 +158,10 @@ class MedicineCreate(BaseModel):
     controlled_schedule: Schedule | None = None
     storage: Storage = "room"
     reorder_level: int = Field(default=0, ge=0, le=10_000_000)
+    active_ingredients: list[Term] | None = Field(
+        default=None, max_length=10, description="Left out: from generic_name (split on +)"
+    )
+    drug_classes: list[Term] = Field(default_factory=list, max_length=10, examples=[["penicillins"]])
     pack_units: list[PackUnitCreate] = Field(default_factory=list, max_length=10)
 
 
@@ -175,3 +182,5 @@ class MedicineUpdate(BaseModel):
     controlled_schedule: Schedule | None = None
     storage: Storage | None = None
     reorder_level: int | None = Field(default=None, ge=0, le=10_000_000)
+    active_ingredients: list[Term] | None = Field(default=None, max_length=10)
+    drug_classes: list[Term] | None = Field(default=None, max_length=10)

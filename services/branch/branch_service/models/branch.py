@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, Text, Uuid, func
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from pharmacy_shared.db import IdMixin, TimestampMixin
@@ -57,6 +57,10 @@ class BranchSettings(Base):
     price_override_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     # Sale returns of opened packs (half a strip...) are refused unless this is on.
     allow_opened_pack_returns: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # Prescriptions: valid this many days after the Rx date unless the Rx says otherwise.
+    rx_valid_days: Mapped[int] = mapped_column(Integer, default=30, server_default="30")
+    # Dispensing label printer: 70x40 (default), 50x30, 100x50 mm or a4_sheet.
+    dispensing_label_size: Mapped[str] = mapped_column(String(10), default="70x40", server_default="70x40")
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -70,6 +74,8 @@ class BranchSettings(Base):
             "receipt_footer": self.receipt_footer,
             "price_override_enabled": self.price_override_enabled,
             "allow_opened_pack_returns": self.allow_opened_pack_returns,
+            "rx_valid_days": self.rx_valid_days,
+            "dispensing_label_size": self.dispensing_label_size,
         }
 
 

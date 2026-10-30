@@ -24,7 +24,7 @@ OUT = Path(__file__).resolve().parents[1] / "docs" / "samples"
 COLUMNS = [
     "sku", "brand_name", "generic_name", "strength", "dosage_form", "name_km", "category", "brand",
     "manufacturer", "base_unit", "rx_only", "controlled_schedule", "storage", "reorder_level",
-    "pack_unit", "qty_in_base", "barcode", "sell_price_usd",
+    "active_ingredients", "drug_classes", "pack_unit", "qty_in_base", "barcode", "sell_price_usd",
 ]  # fmt: skip
 
 # sku, brand, generic, strength, form, Khmer, category, brand, maker, base, rx, schedule, storage,
@@ -93,6 +93,14 @@ PRODUCTS = [
 ]  # fmt: skip
 
 
+# Drug classes for allergy checks (active ingredients default to generic_name split on "+").
+CLASSES = {
+    "AMOX500": "penicillins; beta-lactams", "AUGM625": "penicillins; beta-lactams",
+    "AMOXSYR250": "penicillins; beta-lactams", "AZI250": "macrolides", "CIPRO500": "fluoroquinolones",
+    "IBU400": "NSAIDs", "DIAZ5": "benzodiazepines", "PARA500": "analgesics", "EFFER500": "analgesics",
+}  # fmt: skip
+
+
 def ean13(company: int, item: int) -> str:
     body = f"884{company:05d}{item:04d}"
     total = sum(int(d) * (3 if i % 2 else 1) for i, d in enumerate(body))
@@ -105,7 +113,7 @@ def rows() -> list[list]:
     for n, (sku, brand_name, generic, strength, form, km, category, brand, maker, base, rx, schedule,
             storage, reorder, packs) in enumerate(PRODUCTS):  # fmt: skip
         product = [sku, brand_name, generic, strength, form, km, category, brand, maker, base, rx, schedule,
-                   storage, reorder]  # fmt: skip
+                   storage, reorder, "", CLASSES.get(sku, "")]  # fmt: skip
         for i, (pack, qty, price) in enumerate(packs):
             item += 1
             # First half: product columns on every row; second half: only on the first row.
@@ -136,9 +144,10 @@ def main() -> None:
     write(OUT / "products-sample.xlsx", good)
     # One typical mistake: Amoxicillin's strip row gets Paracetamol's strip barcode.
     broken = [list(r) for r in good]
-    amox_strip = next(r for r in broken if r[0] == "AMOX500" and r[14] == "strip")
-    para_strip = next(r for r in broken if r[0] == "PARA500" and r[14] == "strip")
-    amox_strip[16] = para_strip[16]
+    pack, barcode = COLUMNS.index("pack_unit"), COLUMNS.index("barcode")
+    amox_strip = next(r for r in broken if r[0] == "AMOX500" and r[pack] == "strip")
+    para_strip = next(r for r in broken if r[0] == "PARA500" and r[pack] == "strip")
+    amox_strip[barcode] = para_strip[barcode]
     write(OUT / "products-sample-broken.xlsx", broken)
     print(f"wrote {len(PRODUCTS)} products ({len(good)} rows) to {OUT}")
 

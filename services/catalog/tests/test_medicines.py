@@ -240,3 +240,18 @@ async def test_medicine_with_category_and_brand(client) -> None:
     assert m["category"]["name_en"] == "Pain & fever" and m["brand"]["name_en"] == "GSK"
     filtered = await client.get(f"{PREFIX}/medicines?category_id={cat['id']}", headers=OWNER)
     assert filtered.json()["total"] == 1
+
+
+async def test_active_ingredients_default_from_generic_and_drug_classes_travel_in_events(client) -> None:
+    m = await create_medicine(client, sku="AUGM625", generic_name="Amoxicillin + Clavulanic acid",
+                              drug_classes=["penicillins", " Penicillins ", "beta-lactams"], pack_units=[])  # fmt: skip
+    assert m["active_ingredients"] == ["Amoxicillin", "Clavulanic acid"]
+    assert m["drug_classes"] == ["penicillins", "beta-lactams"]  # duplicates ignoring case dropped
+    event = [p for t, p in await outbox() if t == "medicine.created"][-1]
+    assert event["active_ingredients"] == ["Amoxicillin", "Clavulanic acid"]
+    assert event["drug_classes"] == ["penicillins", "beta-lactams"]
+    r = await client.patch(
+        f"{PREFIX}/medicines/{m['id']}", json={"drug_classes": ["penicillins"]}, headers=OWNER
+    )
+    assert r.json()["drug_classes"] == ["penicillins"]
+    assert (await audits())[-1]["after"] == {"drug_classes": "penicillins"}

@@ -16,6 +16,9 @@ dependencies = [
     "pydantic-settings>=2.3",
     "httpx>=0.27",
     "redis>=5.0",
+    "aioboto3>=13",  # Rx files (pharmacy_shared.storage)
+    "Pillow>=10",  # EXIF removal (pharmacy_shared.uploads)
+    "python-multipart>=0.0.9",
 ]
 
 [tool.setuptools.packages.find]

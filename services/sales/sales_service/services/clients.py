@@ -12,6 +12,7 @@ from ..config import get_settings
 class Clients:
     inventory: InternalClient
     customers: InternalClient
+    prescription: InternalClient
 
 
 def get_clients() -> Clients:
@@ -19,4 +20,5 @@ def get_clients() -> Clients:
     return Clients(
         inventory=InternalClient(s.inventory_url, s.service_name, s.service_token),
         customers=InternalClient(s.customers_url, s.service_name, s.service_token),
+        prescription=InternalClient(s.prescription_url, s.service_name, s.service_token),
     )

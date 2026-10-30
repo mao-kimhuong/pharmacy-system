@@ -28,7 +28,15 @@ refused (nothing left reserved), a credit sale + customer payment, a cashier's 4
 on cancel, cancel back to the same batches, a partial return, /internal not
 reachable through Traefik, the User Log.
 
-Without prompts: SMOKE_PHONE, SMOKE_PASSWORD, SMOKE_S1=y, SMOKE_S1B=y, SMOKE_S2=y, SMOKE_S3=y.
+S4 checks (optional, needs the S1b sample products): in a new test branch, a
+pharmacist creates a patient (allergic to amoxicillin) and a doctor, writes an Rx
+for AMOX500, uploads a test Rx image and opens it again through the service (safe
+headers; a cashier gets 403), a cashier cannot dispense, the allergy warning
+blocks the sale until the pharmacist overrides it with a reason, part of the Rx is
+sold and the rest is shown as remaining, selling more than the Rx allows is
+refused, the dispensing label and the Rx summary print, the User Log.
+
+Without prompts: SMOKE_PHONE, SMOKE_PASSWORD, SMOKE_S1=y, SMOKE_S1B=y, SMOKE_S2=y, SMOKE_S3=y, SMOKE_S4=y.
 
 Uses only the Python standard library.
 """
@@ -37,6 +45,7 @@ import getpass
 import json
 import os
 import random
+import struct
 import sys
 import tempfile
 import time
@@ -44,6 +53,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+import zlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 from decimal import Decimal
@@ -690,6 +700,190 @@ def s3_checks(token: str) -> None:
     remove_test_cashier(token, bid, cashier)
 
 
+def tiny_png() -> bytes:
+    """A 2×2 white PNG, made with the standard library."""
+
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+
+    rows = b"".join(b"\x00" + b"\xff\xff\xff" * 2 for _ in range(2))
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 2, 2, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b""))  # fmt: skip
+
+
+def s4_checks(token: str) -> None:
+    cat, inv, sales, rxp = "/api/catalog/v1", "/api/inventory/v1", "/api/sales/v1", "/api/prescription/v1"
+    _, found = call("GET", f"{cat}/medicines/search?q=AMOX500", token=token)
+    amox = next((x for x in found.get("items", []) if x["sku"] == "AMOX500"), None)
+    if amox is None:
+        check(False, "sample product AMOX500 exists (run the S1b step first)")
+        return
+    packs = {p["name"]: p for p in amox["pack_units"]}
+    strip = packs["strip"]["qty_in_base"]
+    made = make_test_cashier(token)
+    if made is None:
+        return
+    bid, cashier, cphone, cpassword = made
+    today = date.today()
+
+    def key() -> dict:
+        return {"Idempotency-Key": str(uuid.uuid4())}
+
+    phone, password = f"09{random.randint(1000000, 9999999)}", f"smoke-{random.randint(100000, 999999)}"
+    status, pharmacist = call("POST", "/api/auth/v1/users", {"name": "Smoke pharmacist", "phone": phone,
+                              "password": password, "role": "pharmacist", "is_pharmacist": True,
+                              "branch_ids": [bid]}, token=token)  # fmt: skip
+    if not check(status == 201, f"test pharmacist created -> 201 (got {status} {pharmacist.get('code', '')})"):
+        return remove_test_cashier(token, bid, cashier)
+    ptoken = call("POST", "/api/auth/v1/login", {"phone": phone, "password": password})[1].get("access_token", "")
+    ctoken = call("POST", "/api/auth/v1/login", {"phone": cphone, "password": cpassword})[1].get("access_token", "")
+    patient, doctor = {}, {}
+    try:
+        stock = {"branch_id": bid, "reason": "Smoke test S4", "lines": [{
+            "medicine_id": amox["id"], "pack_unit_id": packs["strip"]["id"], "lot_no": "S4LOT",
+            "expiry_date": (today + timedelta(days=400)).isoformat(), "qty": 5, "unit_cost": "0.50"}]}  # fmt: skip
+
+        def stock_in():
+            st, out = call("POST", f"{inv}/stock-in", stock, token=token, headers=key())
+            return (st, out) if out.get("code") not in ("UNKNOWN_BRANCH", "UNKNOWN_MEDICINE") else None
+
+        status, _ = wait_for(stock_in, tries=30) or (0, {})
+        check(status == 201, f"stock-in 5 strips of AMOX500 -> 201 (got {status})")
+        call("PUT", f"{sales}/exchange-rates/{bid}", {"khr_per_usd": 4100}, token=token)
+
+        # patient (allergic to amoxicillin) and doctor
+        def new_patient():
+            st, out = call("POST", f"{rxp}/patients", {"branch_id": bid, "name_en": "Smoke Patient",
+                           "name_km": "អ្នកជំងឺ តេស្ត", "sex": "female", "phone": f"097{random.randint(1000000, 9999999)}",
+                           "allergies": [{"kind": "ingredient", "value": "Amoxicillin", "note": "smoke test"}]},
+                           token=ptoken)  # fmt: skip
+            return (st, out) if out.get("code") != "UNKNOWN_BRANCH" else None
+
+        status, patient = wait_for(new_patient, tries=30) or (0, {})
+        if not check(status == 201, f"pharmacist creates a patient with an allergy -> 201 (got {status} "
+                     f"{patient.get('code', '')}{'; run make resync' if patient.get('code') else ''})"):  # fmt: skip
+            return
+        status, doctor = call("POST", f"{rxp}/doctors", {"name": "Dr Smoke", "licence_no": f"SMOKE-{uuid.uuid4().hex[:8]}",
+                              "clinic": "Smoke clinic"}, token=ptoken)  # fmt: skip
+        check(status == 201, f"doctor -> 201 (got {status})")
+        status, _ = call("GET", f"{rxp}/patients", token=ctoken)
+        check(status == 403, f"cashier cannot list patients -> 403 (got {status})")
+
+        # prescription: 2 strips, no repeats
+        def new_rx():
+            st, out = call("POST", f"{rxp}/prescriptions", {"branch_id": bid, "patient_id": patient["id"],
+                           "doctor_id": doctor["id"], "issued_on": today.isoformat(), "rx_no": "SMOKE-1",
+                           "items": [{"medicine_id": amox["id"], "qty_base": 2 * strip, "dosage": "1 capsule",
+                                      "frequency": "3 times a day", "duration_days": 7}]}, token=ptoken)  # fmt: skip
+            return (st, out) if out.get("code") != "UNKNOWN_MEDICINE" else None
+
+        status, rx = wait_for(new_rx, tries=30) or (0, {"code": "UNKNOWN_MEDICINE"})
+        if not check(status == 201, f"Rx for {2 * strip} AMOX500 -> 201 (got {status} {rx.get('code', '')}"
+                     f"{'; run make resync' if rx.get('code') else ''})"):  # fmt: skip
+            return
+        status, rx = call("POST", f"{rxp}/prescriptions/{rx['id']}/activate", token=ptoken)
+        check(status == 200 and rx.get("status") == "active", f"Rx {rx.get('number')} activated, valid until "
+              f"{rx.get('valid_until')}")  # fmt: skip
+        item = rx["items"][0]["id"]
+
+        # Rx image: upload, read back through the service
+        boundary = uuid.uuid4().hex
+        body = (f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="rx-photo.png"\r\n'
+                "Content-Type: image/png\r\n\r\n").encode() + tiny_png() + f"\r\n--{boundary}--\r\n".encode()  # fmt: skip
+        status, raw, _ = call_raw("POST", f"{rxp}/prescriptions/{rx['id']}/attachments", body, ptoken,
+                                  {"Content-Type": f"multipart/form-data; boundary={boundary}"})  # fmt: skip
+        att = json.loads(raw) if status == 201 else {}
+        check(status == 201 and att.get("content_type") == "image/png", f"Rx image uploaded -> 201 (got {status})")
+        url = f"{BASE}{rxp}/prescriptions/{rx['id']}/attachments/{att.get('id')}"
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {ptoken}"})
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                h, data = resp.headers, resp.read()
+            check(data.startswith(b"\x89PNG") and h.get("Content-Type") == "image/png"
+                  and h.get("X-Content-Type-Options") == "nosniff" and h.get("Cache-Control") == "no-store"
+                  and (h.get("Content-Disposition") or "").startswith("inline"),
+                  "Rx image streamed by the service (image/png, nosniff, no-store, inline)")  # fmt: skip
+        except urllib.error.HTTPError as err:
+            check(False, f"Rx image download -> {err.code}")
+        status, _, _ = call_raw("GET", f"{rxp}/prescriptions/{rx['id']}/attachments/{att.get('id')}", None, ctoken)
+        check(status == 403, f"cashier opening the Rx image -> 403 (got {status})")
+        status, _, _ = call_raw("GET", "/rx-files/", None, token)
+        check(status == 404, f"no route to the file store through Traefik -> 404 (got {status})")
+
+        # selling against the Rx
+        def sell(qty, tok, **extra):
+            return call("POST", f"{sales}/invoices", {"branch_id": bid, "lines": [{
+                "medicine_id": amox["id"], "pack_unit_id": packs["strip"]["id"], "qty": qty, "rx_item_id": item,
+                **extra}], "payments": [{"method": "cash", "currency": "USD", "amount": "20.00"}]},
+                token=tok, headers=key())  # fmt: skip
+
+        status, r = sell(1, ctoken)
+        check(status == 403 and r.get("code") == "PHARMACIST_REQUIRED",
+              f"cashier dispensing an Rx -> 403 PHARMACIST_REQUIRED ({r.get('code')})")  # fmt: skip
+
+        def first_try():
+            st, out = sell(1, ptoken)
+            return (st, out) if out.get("code") not in ("UNKNOWN_BRANCH", "UNKNOWN_MEDICINE") else None
+
+        status, r = wait_for(first_try, tries=30) or (0, {})
+        if status == 201:
+            check(False, "allergy warning: AMOX500 has no active ingredients in the prescription service "
+                  "(run make resync once after upgrading to S4)")  # fmt: skip
+            sale = r
+        else:
+            check(status == 409 and r.get("code") == "ALLERGY_WARNING",
+                  f"allergy blocks the sale -> 409 ALLERGY_WARNING ({r.get('code')}: {r.get('message', '')[:60]})")  # fmt: skip
+            status, sale = sell(1, ptoken, allergy_override_reason="Smoke test: doctor confirmed")
+            line = sale.get("lines", [{}])[0]
+            check(status == 201 and line.get("allergy_override_reason") == "Smoke test: doctor confirmed"
+                  and line.get("prescription_number") == rx["number"],
+                  f"pharmacist overrides with a reason -> 201 ({sale.get('number')})")  # fmt: skip
+
+        def remaining():
+            _, out = call("GET", f"{rxp}/prescriptions/{rx['id']}/remaining", token=ptoken)
+            left = out.get("items", [{}])[0].get("remaining_base")
+            return out if left == strip and out.get("status") == "partly_dispensed" else None
+
+        left = wait_for(remaining, tries=30)
+        check(bool(left), f"after selling 1 strip the Rx shows {strip} remaining, partly dispensed")
+        status, r = sell(2, ptoken, allergy_override_reason="Smoke test")
+        check(status == 422 and r.get("code") == "RX_QUANTITY_EXCEEDED",
+              f"selling more than the Rx allows -> 422 RX_QUANTITY_EXCEEDED ({r.get('code')})")  # fmt: skip
+
+        # dispensing label + Rx summary
+        label = json.dumps({"type": "dispensing_label", "invoice_id": sale.get("id"), "lang": "km"}).encode()
+        status, pdf, _ = call_raw("POST", "/api/documents/v1/render", label, ptoken,
+                                  {"Content-Type": "application/json"})  # fmt: skip
+        if check(status == 200 and pdf.startswith(b"%PDF"), f"dispensing label PDF, 70×40 mm ({status})"):
+            out = Path(tempfile.gettempdir()) / "pharmacy-smoke-dispensing-label.pdf"
+            out.write_bytes(pdf)
+            print(f"        open {out}")
+        summary_body = json.dumps({"type": "rx_summary", "patient_id": patient["id"]}).encode()
+        status, pdf, _ = call_raw("POST", "/api/documents/v1/render", summary_body, ptoken,
+                                  {"Content-Type": "application/json"})  # fmt: skip
+        if check(status == 200 and pdf.startswith(b"%PDF"), f"Rx summary PDF ({status})"):
+            out = Path(tempfile.gettempdir()) / "pharmacy-smoke-rx-summary.pdf"
+            out.write_bytes(pdf)
+            print(f"        open {out}")
+        call("GET", f"{rxp}/patients/{patient['id']}", token=ptoken)
+
+        for action in ("patient.created", "patient.viewed", "prescription.created", "rx_attachment.viewed",
+                       "dispensing.allergy_override"):  # fmt: skip
+
+            def logged(action=action):
+                _, log = call("GET", f"/api/auth/v1/audit-logs?action={action}&size=1", token=token)
+                return log.get("total")
+
+            check(bool(wait_for(logged)), f"User Log shows {action}")
+    finally:
+        if patient.get("id"):
+            call("POST", f"{rxp}/patients/{patient['id']}/deactivate", {"reason": "smoke test"}, token=token)
+        if doctor.get("id"):
+            call("POST", f"{rxp}/doctors/{doctor['id']}/deactivate", {"reason": "smoke test"}, token=token)
+        call("POST", f"/api/auth/v1/users/{pharmacist['id']}/deactivate", {"reason": "smoke test"}, token=token)
+        remove_test_cashier(token, bid, cashier)
+
+
 def main() -> int:
     print(f"Smoke test against {BASE}\n")
     tokens = s0_checks()
@@ -722,6 +916,13 @@ def main() -> int:
     if run_s3.strip().lower() in ("y", "yes", "1"):
         print()
         s3_checks(tokens["access_token"])
+    run_s4 = os.environ.get("SMOKE_S4") or input(
+        "\nAlso run the S4 checks? It creates a test branch, pharmacist, patient, doctor, an Rx with an image\n"
+        "and a sale on it (all deactivated afterwards). [y/N] "
+    )
+    if run_s4.strip().lower() in ("y", "yes", "1"):
+        print()
+        s4_checks(tokens["access_token"])
 
     status, _ = call(
         "POST",

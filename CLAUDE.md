@@ -32,11 +32,9 @@ Traefik v3.6. Python 3.12. Lint with ruff.
 | document | `/api/documents/v1` | Receipts, A4 invoices, labels, PO and register PDFs |
 | ai | `/api/ai/v1` | DeepSeek features: import cleanup, ask your data, summaries, substitutes, Rx parsing |
 
-## Open decisions
-- File storage (Rx photos, PDFs): MinIO's free images were removed from Docker Hub
-  in Sept 2026. Pick an S3-compatible store before S4 (SeaweedFS, Garage,
-  Chainguard MinIO image, or cloud S3) and access it only through an S3 client
-  (boto3/aioboto3), so the choice can change later.
+## Decided
+- File storage (Rx photos, later PDFs): SeaweedFS 4.51 (S3 API), decided in S4. Reached only
+  through `pharmacy_shared.storage.Storage` (aioboto3), so cloud S3 is a settings change.
 
 ## Rules (never break these)
 - A service reads and writes only its own database. Other data: API call or events.
@@ -65,7 +63,7 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   optional S3 checks: USD/KHR sale + receipt, FEFO split, last-unit race, credit, cancel, return)
 - `make revision s=<service> m="message"` then `make migrate s=<service>`
 - `python -m sales_service.cli recover` – finish sales/returns left half-way (also runs every minute)
-- `make resync` – re-send branches, branch settings and products as events (needed once when a service starts
+- `make resync` – re-send staff, branches, branch settings, products and customers as events (needed once when a service starts
   listening after the data exists: RabbitMQ drops events for queues that did not exist yet)
 
 ## How things work (from S0)
@@ -214,6 +212,40 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   events (waits up to 5 s → DOCUMENT_NOT_READY). 80 mm page cut to the content's length (laid out,
   measured, rendered again). Branch header/footer come from `branch.settings_updated` via sales.
 
+- **Files (from S4):** `pharmacy_shared.storage.Storage` (S3 API, SeaweedFS in compose: internal network
+  only, no host port, no Traefik route, private bucket `rx-files`, keys `S3_ACCESS_KEY` / `S3_SECRET_KEY`,
+  production refuses defaults). Never a presigned or public link: the owning service streams the file
+  after checking user, branch and permission and writes a User Log entry each time; headers: stored
+  Content-Type, `Content-Disposition: inline` with a safe name, `X-Content-Type-Options: nosniff`,
+  `Cache-Control: no-store`. Uploads go through `pharmacy_shared.uploads.check_upload` (JPEG/PNG/PDF by
+  content, ≤ 10 MB, images re-encoded without EXIF, PDFs with JavaScript/launch/embedded files refused →
+  FILE_REJECTED); random keys, original name only in the DB. Store down → TEMPORARILY_UNAVAILABLE.
+- **Ingredients (catalog, from S4):** medicines carry `active_ingredients` (default: generic name split on
+  "+") and `drug_classes` (e.g. penicillins), in medicine.* events and the Excel import (";"-separated).
+- **Prescriptions (from S4):** patients (home branch + linked branches; another branch finds one only by
+  exact phone via `POST /patients/link`, logged; every record view logged), allergies (ingredient or class,
+  removed with a reason), doctors (licence unique), Rx `PP1-RX-…`: draft → active → partly / fully
+  dispensed, expired (00:10 job + checked by date at dispense), cancelled (reason, not while held).
+  `qty_base` is one fill; allowed in total = qty × (1 + repeats_allowed); one sale ≤ one fill.
+  `rx_valid_days` (30) and `dispensing_label_size` (70x40 | 50x30 | 100x50 | a4_sheet) are branch settings.
+  Prescription keeps copies of products (with ingredients/classes), branches, settings, customers.
+- **Dispensing (sales, from S4):** an Rx-only line needs `rx_item_id`, `is_pharmacist` and
+  `pos.dispense_rx` (else RX_REQUIRED / PHARMACIST_REQUIRED). Saga step 1b `POST
+  /internal/v1/rx/check-and-hold` (prescription; idempotent per invoice; rows locked): RX_EXPIRED,
+  PRESCRIPTION_STATE, RX_QUANTITY_EXCEEDED, ALLERGY_WARNING (409; pass `allergy_override_reason`:
+  pharmacist + `prescriptions.override_warning`), DUPLICATE_THERAPY_WARNING (409; pass
+  `acknowledge_warnings`); messages in English and Khmer; the quantity is held; compensation
+  `/rx/release`. The line stores Rx, patient, directions, warnings, override by / acknowledged by + at;
+  User Log `dispensing.allergy_override` / `dispensing.warning_acknowledged`. Prescription follows
+  invoice.created / cancelled / returned (absolute per line: sold − returned, 0 if cancelled; only newer
+  invoice versions), so a return or cancel gives the quantity back. A retry after a warning needs a new
+  Idempotency-Key (the failed sale is replayed for the old one).
+- **Rx documents (document, from S4):** `POST /render {"type":"dispensing_label","invoice_id","line_no"?,
+  "lang":"km"|"en","size"?}` (pos.dispense_rx or prescriptions.view; size from the invoice snapshot's
+  branch setting) and `{"type":"rx_summary","patient_id"}` (prescriptions.view, logged), from copies of
+  invoice.*, patient.*, prescription.* and user.* (pharmacist names; `python -m auth_service.cli
+  republish` / `make resync` sends existing users). Receipts show the Rx number and lots on Rx lines.
+
 ## Definition of done
 API matches the spec, migration included, tests pass (`make test` and `make test-docker`),
 `docker compose up` works, permissions checked per role, audit log written.
@@ -225,11 +257,12 @@ API matches the spec, migration included, tests pass (`make test` and `make test
 - [x] S1b Settings – products, pack units, categories, brands, Excel import, labels
 - [x] S2 Stock + buying – batches, stock, initialize, suppliers, PO, receiving, payments
 - [x] S3 POS + sales – FEFO checkout, invoices, returns, customers, receipts
-- [ ] S4 Prescriptions – patients, doctors, Rx, dispensing, allergy warnings, labels
+- [x] S4 Prescriptions – patients, doctors, Rx, dispensing, allergy warnings, labels
 - [ ] S5 Controlled + counts – register, PIN + witness, stock take, shrinkage
 - [ ] S6 Branches – transfer requests, transfers, purchase requests, re-order
 - [ ] S7 Sales extras – sale order, suspend, templates, promotions, hampers, commission
 - [ ] S8 Reports – dashboard, all reports, Telegram 20:00
 - [ ] S9 Hardening – performance, security, offline POS, UAT fixes; per-service tokens for
-  internal calls (today one shared SERVICE_TOKEN: a service could call any other's /internal)
+  internal calls (today one shared SERVICE_TOKEN: a service could call any other's /internal);
+  SeaweedFS: lock down its IAM gRPC port and use a non-admin S3 identity per service
 - [ ] S10 AI – DeepSeek phase A

@@ -54,6 +54,7 @@ class BranchSettingsCopy(Base):
     receipt_header: Mapped[str] = mapped_column(Text, default="")
     receipt_footer: Mapped[str] = mapped_column(Text, default="")
     allow_opened_pack_returns: Mapped[bool] = mapped_column(Boolean, default=False)
+    dispensing_label_size: Mapped[str] = mapped_column(String(10), default="70x40", server_default="70x40")
 
 
 class KnownCustomer(Base):

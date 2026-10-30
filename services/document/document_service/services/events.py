@@ -2,7 +2,10 @@
 
 - medicine.*        → local copy of products and pack units, used to print labels.
 - purchase_order.*  → local copy of purchase orders, used to print the PO PDF.
-- invoice.*         → local copy of invoices, used to print receipts and A4 invoices.
+- invoice.*         → local copy of invoices, used to print receipts, A4 invoices
+  and dispensing labels.
+- patient.* / prescription.* → copies for the Rx summary; user.* → staff names
+  (the pharmacist on the dispensing label).
   Each event carries the whole product with a `version`; an event older than
   the stored copy (delivered out of order) is ignored.
 """
@@ -16,9 +19,9 @@ from pharmacy_shared import copies
 from pharmacy_shared.copies import MEDICINE_EVENTS
 
 from ..models import Product, ProductPackUnit
-from . import purchase_orders, receipts
+from . import dispensing, purchase_orders, receipts
 
-ROUTING_KEYS = ("medicine.*", "purchase_order.*", "invoice.*")
+ROUTING_KEYS = ("medicine.*", "purchase_order.*", "invoice.*", "patient.*", "prescription.*", "user.*")
 
 
 async def handle_event(
@@ -30,6 +33,12 @@ async def handle_event(
         await purchase_orders.upsert_po(session, payload)
     elif event_type in receipts.INVOICE_EVENTS:
         await receipts.upsert_invoice(session, payload)
+    elif event_type in dispensing.PATIENT_EVENTS:
+        await dispensing.upsert_patient(session, payload)
+    elif event_type in dispensing.RX_EVENTS:
+        await dispensing.upsert_prescription(session, payload)
+    elif event_type in dispensing.USER_EVENTS:
+        await dispensing.upsert_staff(session, payload)
 
 
 async def upsert_product(session: AsyncSession, payload: dict[str, Any]) -> bool:

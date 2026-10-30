@@ -19,6 +19,8 @@ dependencies = [
 
 [project.optional-dependencies]
 xlsx = ["openpyxl>=3.1", "defusedxml>=0.7"]  # pharmacy_shared.xlsx
+storage = ["aioboto3>=13"]  # pharmacy_shared.storage
+uploads = ["Pillow>=10"]  # pharmacy_shared.uploads
 
 [tool.setuptools.packages.find]
 include = ["pharmacy_shared*"]

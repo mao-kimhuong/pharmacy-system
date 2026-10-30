@@ -1,4 +1,4 @@
-"""Sales tests run the sale saga against the REAL inventory and customers apps
+"""Sales tests run the sale saga against the REAL inventory, customers and prescription apps
 (over ASGI, each with its own test database), so FEFO, row locks, credit limits
 and compensations are the production code paths. Real Postgres + Redis."""
 
@@ -20,22 +20,26 @@ os.environ.update(
     SERVICE_TOKEN=SERVICE_TOKEN,
 )  # fmt: skip
 
-# The other two services get their own databases: set before their apps are built.
+# The other services get their own databases: set before their apps are built.
 import customers_service.config as customers_config  # noqa: E402
 import inventory_service.config as inventory_config  # noqa: E402
+import prescription_service.config as prescription_config  # noqa: E402
 
 inventory_config.get_settings().database_url = test_database_url("test_sales_inventory")
 customers_config.get_settings().database_url = test_database_url("test_sales_customers")
+prescription_config.get_settings().database_url = test_database_url("test_sales_prescription")
+prescription_config.get_settings().storage_bucket_check = False
 
 import httpx  # noqa: E402
 import pytest  # noqa: E402
 from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
 from redis.asyncio import Redis  # noqa: E402
-from sqlalchemy import text  # noqa: E402
+from sqlalchemy import select, text  # noqa: E402
 
 import customers_service.main as customers_main  # noqa: E402
 import inventory_service.main as inventory_main  # noqa: E402
+import prescription_service.main as prescription_main  # noqa: E402
 from customers_service.db import db as customers_db  # noqa: E402
 from customers_service.models import ProcessedMessage as CustomersProcessed  # noqa: E402
 from customers_service.services.events import handle_event as customers_handle  # noqa: E402
@@ -45,9 +49,12 @@ from inventory_service.services.events import handle_event as inventory_handle  
 from pharmacy_shared import clock  # noqa: E402
 from pharmacy_shared.consumer import process_message  # noqa: E402
 from pharmacy_shared.internal import InternalClient  # noqa: E402
+from prescription_service.db import db as prescription_db  # noqa: E402
+from prescription_service.models import ProcessedMessage as PrescriptionProcessed  # noqa: E402
+from prescription_service.services.events import handle_event as prescription_handle  # noqa: E402
 from sales_service.db import db  # noqa: E402
 from sales_service.main import app  # noqa: E402
-from sales_service.models import ProcessedMessage  # noqa: E402
+from sales_service.models import OutboxEvent, ProcessedMessage  # noqa: E402
 from sales_service.services.clients import Clients, get_clients  # noqa: E402
 from sales_service.services.events import handle_event  # noqa: E402
 
@@ -71,6 +78,7 @@ def databases() -> None:
     _migrate("sales", test_database_url("test_sales"))
     _migrate("inventory", inventory_config.get_settings().database_url)
     _migrate("customers", customers_config.get_settings().database_url)
+    _migrate("prescription", prescription_config.get_settings().database_url)
 
 
 def real_clients(**override) -> Clients:
@@ -80,7 +88,8 @@ def real_clients(**override) -> Clients:
         )
 
     return Clients(inventory=override.get("inventory") or client(inventory_main.app),
-                   customers=override.get("customers") or client(customers_main.app))  # fmt: skip
+                   customers=override.get("customers") or client(customers_main.app),
+                   prescription=override.get("prescription") or client(prescription_main.app))  # fmt: skip
 
 
 @pytest.fixture(autouse=True)
@@ -100,6 +109,11 @@ async def clean(monkeypatch) -> AsyncIterator[None]:
         await conn.execute(text(
             "TRUNCATE customer_allocations, customer_payments, customer_debts, ledger_entries, customers,"
             " customer_groups, doc_sequences, known_branches, processed_messages, outbox CASCADE"))  # fmt: skip
+    async with prescription_db.engine.begin() as conn:
+        await conn.execute(text(
+            "TRUNCATE rx_holds, rx_attachments, rx_items, prescriptions, patient_branches, patient_allergies,"
+            " patients, doctors, doc_sequences, branch_settings, known_customers, products, known_branches,"
+            " processed_messages, outbox CASCADE"))  # fmt: skip
     redis = Redis.from_url(TEST_REDIS_URL)
     await redis.flushdb()
     await redis.aclose()
@@ -111,9 +125,9 @@ async def clean(monkeypatch) -> AsyncIterator[None]:
     app.dependency_overrides[get_clients] = lambda: real_clients()
     yield
     app.dependency_overrides.clear()
-    for d in (db, inventory_db, customers_db):
+    for d in (db, inventory_db, customers_db, prescription_db):
         await d.dispose()
-    for a in (app, inventory_main.app, customers_main.app):
+    for a in (app, inventory_main.app, customers_main.app, prescription_main.app):
         await a.state.redis.close()
 
 
@@ -143,6 +157,22 @@ async def everywhere(event_type: str, payload: dict) -> None:
     await sales_event(event_type, payload)
     await inventory_event(event_type, payload)
     await process_message(customers_db, CustomersProcessed, customers_handle, uuid4(), event_type, payload)
+    await prescription_event(event_type, payload)
+
+
+async def prescription_event(event_type: str, payload: dict, message_id: UUID | None = None) -> None:
+    await process_message(prescription_db, PrescriptionProcessed, prescription_handle, message_id or uuid4(),
+                          event_type, payload)  # fmt: skip
+
+
+async def relay_invoices() -> None:
+    """invoice.* events from the sales outbox to the prescription service, with the
+    outbox id as message id (like the relay: a second run delivers nothing new)."""
+    async with db.sessionmaker() as s:
+        rows = (await s.execute(select(OutboxEvent).where(OutboxEvent.event_type.like("invoice.%"))
+                                .order_by(OutboxEvent.seq))).scalars().all()  # fmt: skip
+    for row in rows:
+        await prescription_event(row.event_type, row.payload, row.id)
 
 
 def user(role: str, permissions: str, branches: tuple[UUID, ...] = (PP1,), pharmacist: bool = False) -> dict:
@@ -162,7 +192,8 @@ def idem() -> dict[str, str]:
 
 
 async def add_product(sku: str = "PARA500", *, rx: bool = False, controlled: str | None = None,
-                      prices=("0.10", "0.90", "8.00")) -> dict:  # fmt: skip
+                      prices=("0.10", "0.90", "8.00"), ingredients: tuple[str, ...] = (),
+                      classes: tuple[str, ...] = ()) -> dict:  # fmt: skip
     """tablet / strip (10) / box (100) with sell prices; known to sales and inventory."""
     medicine_id = uuid4()
     units = [("tablet", 1, prices[0]), ("strip", 10, prices[1]), ("box", 100, prices[2])]
@@ -171,7 +202,7 @@ async def add_product(sku: str = "PARA500", *, rx: bool = False, controlled: str
         "medicine_id": str(medicine_id), "version": 1, "sku": sku, "brand_name": sku.title(),
         "generic_name": "Generic", "strength": "500mg", "dosage_form": "tablet", "name_km": "ថ្នាំ",
         "base_unit": "tablet", "is_rx_only": rx or bool(controlled), "controlled_schedule": controlled,
-        "is_active": True,
+        "is_active": True, "active_ingredients": list(ingredients), "drug_classes": list(classes),
         "pack_units": [{"id": str(ids[n]), "name": n, "qty_in_base": q, "barcode": None, "sell_price": p,
                         "is_base": q == 1, "is_active": True} for n, q, p in units],
     })  # fmt: skip

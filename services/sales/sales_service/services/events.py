@@ -1,7 +1,7 @@
 """Events the sales service listens to (queue `sales.events`).
 
 - branch.*                → local copy of branches (codes for invoice numbers)
-- branch.settings_updated → receipt header / footer, opened-pack returns
+- branch.settings_updated → receipt header / footer, opened-pack returns, dispensing label size
 - medicine.*              → products, pack units and sell prices (older versions ignored)
 - customer.*              → customers (credit sales, names on invoices)
 """
@@ -37,7 +37,8 @@ async def handle_event(
         await _upsert(session, BranchSettingsCopy, "branch_id", {
             "branch_id": UUID(payload["branch_id"]), "receipt_header": payload.get("receipt_header") or "",
             "receipt_footer": payload.get("receipt_footer") or "",
-            "allow_opened_pack_returns": bool(payload.get("allow_opened_pack_returns", False))})  # fmt: skip
+            "allow_opened_pack_returns": bool(payload.get("allow_opened_pack_returns", False)),
+            "dispensing_label_size": payload.get("dispensing_label_size") or "70x40"})  # fmt: skip
     elif event_type in copies.MEDICINE_EVENTS:
         await copies.upsert_product(session, Product, ProductPackUnit, payload)
     elif event_type in CUSTOMER_EVENTS:

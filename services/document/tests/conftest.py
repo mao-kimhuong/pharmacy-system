@@ -54,7 +54,8 @@ async def clean() -> AsyncIterator[None]:
     async with db.engine.begin() as conn:
         await conn.execute(
             text(
-                "TRUNCATE product_pack_units, products, purchase_orders, invoices, processed_messages, outbox CASCADE"
+                "TRUNCATE product_pack_units, products, purchase_orders, invoices, patients, prescriptions, known_staff,"
+                " processed_messages, outbox CASCADE"
             )
         )
     redis = Redis.from_url(TEST_REDIS_URL)

@@ -152,3 +152,17 @@ async def test_bad_alert_days(client, days) -> None:
 
 async def test_not_logged_in_is_401(client) -> None:
     assert (await client.get(f"{PREFIX}/branches")).status_code == 401
+
+
+async def test_prescription_settings_have_defaults_and_travel_in_events(client) -> None:
+    branch = await create(client)
+    s = (await client.get(f"{PREFIX}/branches/{branch['id']}/settings", headers=OWNER)).json()
+    assert (s["rx_valid_days"], s["dispensing_label_size"]) == (30, "70x40")
+    r = await client.put(f"{PREFIX}/branches/{branch['id']}/settings", headers=OWNER,
+                         json={"rx_valid_days": 14, "dispensing_label_size": "100x50"})  # fmt: skip
+    assert r.json()["rx_valid_days"] == 14
+    payload = [p for t, p in await outbox() if t == "branch.settings_updated"][-1]
+    assert (payload["rx_valid_days"], payload["dispensing_label_size"]) == (14, "100x50")
+    bad = await client.put(f"{PREFIX}/branches/{branch['id']}/settings", headers=OWNER,
+                           json={"dispensing_label_size": "10x10"})  # fmt: skip
+    assert bad.status_code == 422

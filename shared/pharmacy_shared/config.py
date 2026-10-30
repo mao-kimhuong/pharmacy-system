@@ -52,6 +52,12 @@ class BaseServiceSettings(BaseSettings):
     # TODO S9: one token per calling service (see CLAUDE.md).
     service_token: str = ""
 
+    # File storage, S3 API (pharmacy_shared.storage). SeaweedFS locally, cloud S3 later.
+    s3_endpoint: str = "http://seaweedfs:8333"
+    s3_bucket: str = "rx-files"
+    s3_access_key: str = ""
+    s3_secret_key: str = ""
+
     # Per-user rate limits (docs/spec.md, Security & reliability → Rate limits)
     rate_limit_reads_per_minute: int = 600
     rate_limit_writes_per_minute: int = 120
@@ -83,6 +89,17 @@ class BaseServiceSettings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment == "production"
+
+    def check_storage_keys(self) -> None:
+        """Services that store files call this in production."""
+        if (
+            not self.s3_access_key
+            or len(self.s3_secret_key) < 20
+            or self.s3_secret_key.startswith("change-me")
+        ):
+            raise RuntimeError(
+                "S3_ACCESS_KEY / S3_SECRET_KEY must be set (secret at least 20 random characters)"
+            )
 
     def check_service_token(self) -> None:
         token = self.service_token

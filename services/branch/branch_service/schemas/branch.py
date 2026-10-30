@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -12,6 +13,8 @@ class BranchSettingsOut(BaseModel):
     receipt_footer: str
     price_override_enabled: bool
     allow_opened_pack_returns: bool
+    rx_valid_days: int
+    dispensing_label_size: str
 
 
 class BranchOut(BaseModel):
@@ -59,6 +62,8 @@ class BranchSettingsUpdate(BaseModel):
     receipt_footer: str | None = Field(default=None, max_length=500)
     price_override_enabled: bool | None = None
     allow_opened_pack_returns: bool | None = None
+    rx_valid_days: int | None = Field(default=None, ge=1, le=365)
+    dispensing_label_size: Literal["70x40", "50x30", "100x50", "a4_sheet"] | None = None
 
 
 class ReasonRequest(BaseModel):

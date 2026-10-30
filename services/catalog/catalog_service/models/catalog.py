@@ -3,6 +3,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     CheckConstraint,
     ForeignKey,
@@ -85,6 +86,9 @@ class Medicine(IdMixin, TimestampMixin, Base):
     controlled_schedule: Mapped[str | None] = mapped_column(String(3))
     storage: Mapped[str] = mapped_column(String(10), default="room", server_default="room")
     reorder_level: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # For allergy and duplicate-therapy checks (prescription keeps a copy from events).
+    active_ingredients: Mapped[list[str]] = mapped_column(JSON, default=list, server_default="[]")
+    drug_classes: Mapped[list[str]] = mapped_column(JSON, default=list, server_default="[]")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     # Goes up on every change; event consumers ignore events older than their copy.
     version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
@@ -118,6 +122,8 @@ class Medicine(IdMixin, TimestampMixin, Base):
             "controlled_schedule": self.controlled_schedule,
             "storage": self.storage,
             "reorder_level": self.reorder_level,
+            "active_ingredients": "; ".join(self.active_ingredients or []),
+            "drug_classes": "; ".join(self.drug_classes or []),
             "is_active": self.is_active,
         }
         for p in self.pack_units:

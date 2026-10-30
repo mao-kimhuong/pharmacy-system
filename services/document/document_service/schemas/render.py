@@ -42,4 +42,30 @@ class InvoiceRender(BaseModel):
     invoice_id: UUID
 
 
-RenderRequest = Annotated[LabelRender | PurchaseOrderRender | InvoiceRender, Field(discriminator="type")]
+class DispensingLabelRender(BaseModel):
+    """Labels for the Rx lines of an invoice. Permission pos.dispense_rx or prescriptions.view."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["dispensing_label"]
+    invoice_id: UUID
+    line_no: int | None = Field(default=None, ge=1, description="Left out: every Rx line")
+    lang: Literal["km", "en"] = "km"
+    size: Literal["70x40", "50x30", "100x50", "a4_sheet"] | None = Field(
+        default=None, description="Left out: the branch setting dispensing_label_size (70x40 by default)"
+    )
+
+
+class RxSummaryRender(BaseModel):
+    """The patient's allergies and prescriptions (A4). Permission prescriptions.view; logged."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["rx_summary"]
+    patient_id: UUID
+
+
+RenderRequest = Annotated[
+    LabelRender | PurchaseOrderRender | InvoiceRender | DispensingLabelRender | RxSummaryRender,
+    Field(discriminator="type"),
+]

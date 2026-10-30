@@ -42,6 +42,14 @@ class LineIn(BaseModel):
     qty: int = Field(ge=1, le=100_000, description="In the pack unit (2 strips, 1 box...)")
     batch_id: UUID | None = Field(default=None, description="Pharmacist only: sell from this batch")
     override_reason: str | None = Field(default=None, max_length=255)
+    rx_item_id: UUID | None = Field(
+        default=None, description="Prescription item this line dispenses (required for Rx-only medicines)"
+    )
+    allergy_override_reason: str | None = Field(
+        default=None, max_length=255,
+        description="Pharmacist with prescriptions.override_warning: sell despite an allergy warning",
+    )  # fmt: skip
+    acknowledge_warnings: bool = Field(default=False, description="Duplicate-therapy warning seen and accepted")
 
 
 class PaymentIn(BaseModel):
@@ -97,6 +105,20 @@ class LineOut(BaseModel):
     override_reason: str | None
     batches: list[LineBatchOut] = Field(description="Batches used, earliest expiry first (FEFO)")
     cost: Decimal | None = Field(default=None, description=CostNote)
+    rx_item_id: UUID | None = None
+    prescription_id: UUID | None = None
+    prescription_number: str | None = None
+    patient_id: UUID | None = None
+    patient_name_en: str | None = None
+    patient_name_km: str | None = None
+    dosage: str | None = None
+    frequency: str | None = None
+    duration_days: int | None = None
+    warnings: list[dict] | None = None
+    allergy_override_reason: str | None = None
+    allergy_override_by: UUID | None = None
+    warnings_acknowledged_by: UUID | None = None
+    warnings_acknowledged_at: datetime | None = None
 
 
 class InvoicePaymentOut(BaseModel):
@@ -115,6 +137,7 @@ class InvoiceOut(BaseModel):
     number: str | None
     branch_id: UUID
     customer_id: UUID | None
+    patient_id: UUID | None
     status: str
     created_by: UUID
     note: str

@@ -13,6 +13,7 @@ class Settings(BaseServiceSettings):
     # The sale saga calls these over the Docker network (/internal/v1)
     inventory_url: str = "http://inventory:8000"
     customers_url: str = "http://customers:8000"
+    prescription_url: str = "http://prescription:8000"
 
     # RabbitMQ consumer (products, branches, branch settings, customers)
     event_consumer_enabled: bool = True

@@ -5,6 +5,7 @@ from pharmacy_shared.consumer import ProcessedMessageMixin
 from pharmacy_shared.outbox import OutboxMixin
 
 from .base import Base
+from .people import PatientCopy, PrescriptionCopy, StaffCopy
 from .products import InvoiceCopy, Product, ProductPackUnit, PurchaseOrderCopy
 
 
@@ -20,8 +21,11 @@ __all__ = [
     "Base",
     "InvoiceCopy",
     "OutboxEvent",
+    "PatientCopy",
+    "PrescriptionCopy",
     "ProcessedMessage",
     "Product",
     "ProductPackUnit",
     "PurchaseOrderCopy",
+    "StaffCopy",
 ]

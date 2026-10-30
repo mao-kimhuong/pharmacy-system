@@ -298,3 +298,21 @@ async def test_owner_resets_a_lost_2fa(client) -> None:
     assert r.status_code == 204
     data = (await login(client, phone="012222222")).json()
     assert data["mfa_setup_required"] is True  # sets it up again
+
+
+async def test_user_events_carry_name_and_pharmacist_flag_but_no_secrets(client) -> None:
+    import json
+
+    from sqlalchemy import text
+
+    from auth_service.cli import republish
+
+    owner, b1, _ = await setup_owner_and_branches()
+    r = await client.post(f"{PREFIX}/users", headers=await as_user(owner),
+                          json={**NEW, "branch_ids": [str(b1)], "is_pharmacist": True})  # fmt: skip
+    async with db.engine.connect() as conn:
+        rows = (await conn.execute(text("SELECT event_type, payload FROM outbox ORDER BY seq"))).all()
+    payload = next(p if isinstance(p, dict) else json.loads(p) for t, p in rows if t == "user.created")
+    assert payload == {"user_id": r.json()["id"], "name": "Dara", "role": "cashier", "is_pharmacist": True,
+                       "is_active": True, "branch_ids": [str(b1)]}  # fmt: skip
+    assert await republish() == 2  # owner + Dara
