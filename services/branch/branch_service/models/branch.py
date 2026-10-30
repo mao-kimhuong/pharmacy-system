@@ -70,6 +70,12 @@ class BranchSettings(Base):
                                                               server_default="200.00")  # fmt: skip
     shrinkage_approval_usd: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("50.00"),
                                                             server_default="50.00")  # fmt: skip
+    # Re-ordering (S6): average sales over this many days; days of safety stock; default
+    # supplier lead time; other branches' batches expiring within this many days are offered.
+    reorder_sales_days: Mapped[int] = mapped_column(Integer, default=30, server_default="30")
+    reorder_safety_days: Mapped[int] = mapped_column(Integer, default=3, server_default="3")
+    reorder_lead_days: Mapped[int] = mapped_column(Integer, default=7, server_default="7")
+    near_expiry_transfer_days: Mapped[int] = mapped_column(Integer, default=90, server_default="90")
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -89,6 +95,10 @@ class BranchSettings(Base):
             "double_count_above_usd": f"{self.double_count_above_usd:.2f}",
             "owner_approval_above_usd": f"{self.owner_approval_above_usd:.2f}",
             "shrinkage_approval_usd": f"{self.shrinkage_approval_usd:.2f}",
+            "reorder_sales_days": self.reorder_sales_days,
+            "reorder_safety_days": self.reorder_safety_days,
+            "reorder_lead_days": self.reorder_lead_days,
+            "near_expiry_transfer_days": self.near_expiry_transfer_days,
         }
 
 

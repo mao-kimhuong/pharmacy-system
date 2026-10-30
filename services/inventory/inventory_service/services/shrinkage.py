@@ -48,7 +48,9 @@ def _not_found() -> AppError:
     return AppError(ErrorCode.NOT_FOUND, "Shrinkage not found", status_code=404)
 
 
-async def get(session: AsyncSession, actor: CurrentUser, shrinkage_id: UUID, *, lock: bool = False) -> Shrinkage:
+async def get(
+    session: AsyncSession, actor: CurrentUser, shrinkage_id: UUID, *, lock: bool = False
+) -> Shrinkage:
     query = select(Shrinkage).where(Shrinkage.id == shrinkage_id)
     s = (await session.execute(query.with_for_update(of=Shrinkage) if lock else query)).scalar_one_or_none()
     if s is None or not actor.can_access_branch(s.branch_id):
@@ -62,7 +64,9 @@ class ShrinkageFilter:
     status: str | None = None
 
 
-async def list_shrinkages(session: AsyncSession, actor: CurrentUser, f: ShrinkageFilter, page: int, size: int):  # noqa: ANN201
+async def list_shrinkages(
+    session: AsyncSession, actor: CurrentUser, f: ShrinkageFilter, page: int, size: int
+):  # noqa: ANN201
     query = select(Shrinkage)
     if f.branch_id:
         actor.require_branch(f.branch_id)

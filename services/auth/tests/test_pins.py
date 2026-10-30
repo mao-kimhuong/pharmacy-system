@@ -108,6 +108,8 @@ async def test_new_and_renamed_keys_reach_existing_roles() -> None:
         # an older stack: pharmacists had pos.dispense_controlled, controlled.dispense did not exist yet
         await s.execute(insert(Permission).values(key="pos.dispense_controlled", group="Sales", label="old", sort=0))
         await s.execute(insert(RolePermission).values(role_key="pharmacist", permission_key="pos.dispense_controlled"))
+        await s.execute(insert(Permission).values(key="transfers.send", group="Transfer", label="old", sort=0))
+        await s.execute(insert(RolePermission).values(role_key="cashier", permission_key="transfers.send"))
         await s.execute(delete(RolePermission).where(RolePermission.permission_key.in_(
             ["controlled.dispense", "inventory.shrinkage"])))  # fmt: skip
         await s.execute(delete(Permission).where(Permission.key.in_(["controlled.dispense", "inventory.shrinkage"])))
@@ -117,6 +119,9 @@ async def test_new_and_renamed_keys_reach_existing_roles() -> None:
             RolePermission.role_key == "pharmacist"))).scalars())  # fmt: skip
         assert (await s.get(Permission, "pos.dispense_controlled")) is None
     assert {"controlled.dispense", "inventory.shrinkage"} <= keys and "pos.dispense_controlled" not in keys
+    async with db.sessionmaker() as s:
+        assert (await s.get(RolePermission, ("cashier", "transfers.dispatch"))) is not None
+        assert (await s.get(Permission, "transfers.send")) is None
 
 
 async def test_a_later_default_is_given_once_and_a_removal_stays() -> None:

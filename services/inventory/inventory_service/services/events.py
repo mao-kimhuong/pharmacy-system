@@ -8,6 +8,7 @@
                     movement at the receiving branch, booked once per line.
 - branch.settings_updated → shrinkage approval limit
 - count.approved  → stock-take adjustments (count_adjust movements, once per line)
+- purchase_order.* → open PO quantities for the re-order list (older versions ignored)
 """
 
 from datetime import date, datetime
@@ -21,10 +22,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pharmacy_shared import copies
 
 from ..models import BranchSettingsCopy, KnownBranch, KnownSupplier, Product, ProductPackUnit
+from . import reorder
 from .counting import book_count
 from .movements import already_booked, apply_movement, get_or_create_batch
 
-ROUTING_KEYS = ("branch.*", "medicine.*", "supplier.*", "goods.received", "count.approved")
+ROUTING_KEYS = (
+    "branch.*",
+    "medicine.*",
+    "supplier.*",
+    "goods.received",
+    "count.approved",
+    "purchase_order.*",
+)
 SUPPLIER_EVENTS = frozenset(
     {"supplier.created", "supplier.updated", "supplier.activated", "supplier.deactivated"}
 )
@@ -37,9 +46,16 @@ async def handle_event(
         await copies.upsert_branch(session, KnownBranch, payload)
     elif event_type == "branch.settings_updated":
         values = {"branch_id": UUID(payload["branch_id"]),
-                  "shrinkage_approval_usd": Decimal(str(payload.get("shrinkage_approval_usd") or "50"))}  # fmt: skip
+                  "shrinkage_approval_usd": Decimal(str(payload.get("shrinkage_approval_usd") or "50")),
+                  "reorder_sales_days": int(payload.get("reorder_sales_days") or 30),
+                  "reorder_safety_days": int(payload.get("reorder_safety_days") if payload.get("reorder_safety_days")
+                                             is not None else 3),
+                  "reorder_lead_days": int(payload.get("reorder_lead_days") if payload.get("reorder_lead_days")
+                                           is not None else 7),
+                  "near_expiry_transfer_days": int(payload.get("near_expiry_transfer_days") or 90),
+                  "expiry_alert_days": list(payload.get("expiry_alert_days") or [180, 90, 30])}  # fmt: skip
         await session.execute(insert(BranchSettingsCopy).values(**values).on_conflict_do_update(
-            index_elements=[BranchSettingsCopy.branch_id], set_={"shrinkage_approval_usd": values["shrinkage_approval_usd"]}))  # fmt: skip
+            index_elements=[BranchSettingsCopy.branch_id], set_={k: v for k, v in values.items() if k != "branch_id"}))  # fmt: skip
     elif event_type in copies.MEDICINE_EVENTS:
         if await copies.upsert_product(session, Product, ProductPackUnit, payload):
             category = payload.get("category") or {}
@@ -56,6 +72,8 @@ async def handle_event(
         await book_goods_received(session, payload)
     elif event_type == "count.approved":
         await book_count(session, payload)
+    elif event_type.startswith("purchase_order."):
+        await reorder.upsert_open_po(session, payload)
 
 
 async def book_goods_received(session: AsyncSession, payload: dict[str, Any]) -> int:

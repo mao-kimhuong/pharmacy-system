@@ -174,6 +174,10 @@ async def update_settings(
         "double_count_above_usd",
         "owner_approval_above_usd",
         "shrinkage_approval_usd",
+        "reorder_sales_days",
+        "reorder_safety_days",
+        "reorder_lead_days",
+        "near_expiry_transfer_days",
     ):
         if field in data:
             setattr(settings, field, data[field])

@@ -83,7 +83,8 @@ async def clean(monkeypatch) -> AsyncIterator[None]:
         await conn.execute(text(
             "TRUNCATE reservation_lines, reservations, quarantine_entries, movements, stock, batches, stock_ins,"
             " product_pack_units, products, known_branches, known_suppliers, processed_messages, outbox, shrinkages,"
-            " shelf_locations, branch_settings, doc_sequences CASCADE"))  # fmt: skip
+            " shelf_locations, branch_settings, doc_sequences, transfer_discrepancies, transfer_picks, transfer_lines,"
+            " transfers, transfer_request_lines, transfer_requests CASCADE"))  # fmt: skip
     redis = Redis.from_url(TEST_REDIS_URL)
     await redis.flushdb()
     await redis.aclose()

@@ -46,6 +46,9 @@ class PurchaseOrder(IdMixin, TimestampMixin, Base):
     cancel_reason: Mapped[str | None] = mapped_column(String(255))
     version: Mapped[int] = mapped_column(Integer, default=1)
     created_by: Mapped[UUID | None] = mapped_column(Uuid)
+    group_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("po_groups.id"), index=True
+    )  # S6: several branches
 
     supplier: Mapped[Supplier] = relationship(lazy="selectin")
     lines: Mapped[list["POLine"]] = relationship(

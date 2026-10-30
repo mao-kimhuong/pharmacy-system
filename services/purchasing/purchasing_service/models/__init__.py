@@ -11,6 +11,7 @@ from pharmacy_shared.outbox import OutboxMixin
 from .base import Base
 from .orders import PO_STATUSES, POLine, PurchaseOrder, Receipt, ReceiptLine
 from .payments import PAYMENT_METHODS, PaymentAllocation, SupplierPayment
+from .requests import POGroup, PurchaseRequest, PurchaseRequestLine
 from .suppliers import Supplier, SupplierGroup
 
 
@@ -53,11 +54,14 @@ __all__ = [
     "OutboxEvent",
     "PAYMENT_METHODS",
     "PO_STATUSES",
+    "POGroup",
     "POLine",
     "PaymentAllocation",
     "ProcessedMessage",
     "Product",
     "ProductPackUnit",
+    "PurchaseRequest",
+    "PurchaseRequestLine",
     "PurchaseOrder",
     "Receipt",
     "ReceiptLine",

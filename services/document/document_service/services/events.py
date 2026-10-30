@@ -6,6 +6,7 @@
   and dispensing labels.
 - patient.* / prescription.* → copies for the Rx summary; user.* → staff names
   (the pharmacist on the dispensing label).
+- transfer.* → copy of transfers for the transfer note (QR code of the number).
   Each event carries the whole product with a `version`; an event older than
   the stored copy (delivered out of order) is ignored.
 """
@@ -19,9 +20,17 @@ from pharmacy_shared import copies
 from pharmacy_shared.copies import MEDICINE_EVENTS
 
 from ..models import Product, ProductPackUnit
-from . import dispensing, purchase_orders, receipts
+from . import dispensing, purchase_orders, receipts, transfer_note
 
-ROUTING_KEYS = ("medicine.*", "purchase_order.*", "invoice.*", "patient.*", "prescription.*", "user.*")
+ROUTING_KEYS = (
+    "medicine.*",
+    "purchase_order.*",
+    "invoice.*",
+    "patient.*",
+    "prescription.*",
+    "user.*",
+    "transfer.*",
+)
 
 
 async def handle_event(
@@ -39,6 +48,8 @@ async def handle_event(
         await dispensing.upsert_prescription(session, payload)
     elif event_type in dispensing.USER_EVENTS:
         await dispensing.upsert_staff(session, payload)
+    elif event_type in transfer_note.TRANSFER_EVENTS:
+        await transfer_note.upsert_transfer(session, payload)
 
 
 async def upsert_product(session: AsyncSession, payload: dict[str, Any]) -> bool:

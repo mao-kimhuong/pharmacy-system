@@ -15,6 +15,14 @@ os.environ["DATABASE_URL"] = test_database_url(TEST_DB)
 os.environ["REDIS_URL"] = TEST_REDIS_URL
 os.environ["OUTBOX_RELAY_ENABLED"] = "false"
 os.environ["EVENT_CONSUMER_ENABLED"] = "false"
+SERVICE_TOKEN = "test-service-token-0123456789abcdef"
+os.environ.update(SERVICE_TOKEN=SERVICE_TOKEN, EXPIRY_JOB_ENABLED="false", STORAGE_BUCKET_CHECK="false",
+                  REORDER_JOB_ENABLED="false")  # fmt: skip
+
+# Fill-by-transfer runs against the REAL inventory app (own test database), like the sale saga tests.
+import inventory_service.config as inventory_config  # noqa: E402
+
+inventory_config.get_settings().database_url = test_database_url("test_purchasing_inventory")
 
 import httpx  # noqa: E402
 import pytest  # noqa: E402
@@ -43,6 +51,11 @@ def database() -> None:
     cfg = Config(str(SERVICE_DIR / "alembic.ini"))
     cfg.set_main_option("script_location", str(SERVICE_DIR / "migrations"))
     command.upgrade(cfg, "head")
+    inventory_url = inventory_config.get_settings().database_url
+    asyncio.run(recreate_database(inventory_url.rsplit("/", 1)[1]))
+    inv = Config(str(SERVICE_DIR.parent / "inventory" / "alembic.ini"))
+    inv.set_main_option("script_location", str(SERVICE_DIR.parent / "inventory" / "migrations"))
+    command.upgrade(inv, "head")
 
 
 @pytest.fixture(autouse=True)
@@ -53,7 +66,7 @@ async def clean(monkeypatch) -> AsyncIterator[None]:
         await conn.execute(text(
             "TRUNCATE payment_allocations, supplier_payments, receipt_lines, receipts, po_lines, purchase_orders,"
             " suppliers, supplier_groups, doc_sequences, product_pack_units, products, known_branches,"
-            " processed_messages, outbox CASCADE"
+            " processed_messages, outbox, purchase_request_lines, purchase_requests, po_groups CASCADE"
         ))  # fmt: skip
     redis = Redis.from_url(TEST_REDIS_URL)
     await redis.flushdb()

@@ -88,7 +88,9 @@ async def controlled_stock(session: AsyncSession, data: dict[str, Any]) -> dict[
                       for r in await session.execute(query)]}  # fmt: skip
 
 
-async def controlled_movement(session: AsyncSession, caller: InternalCaller, data: dict[str, Any]) -> dict[str, Any]:
+async def controlled_movement(
+    session: AsyncSession, caller: InternalCaller, data: dict[str, Any]
+) -> dict[str, Any]:
     batch = await session.get(Batch, data["batch_id"])
     product = await session.get(Product, batch.medicine_id) if batch else None
     if batch is None or product is None or not product.controlled_schedule:

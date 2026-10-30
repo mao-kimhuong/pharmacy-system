@@ -32,7 +32,9 @@ MOVEMENT_TYPES = (
     "transfer_in", "transfer_out", "shrinkage", "count_adjust",
 )  # fmt: skip
 # Booked once per source (a re-delivered event or a retried call books nothing twice).
-ONCE_PER_SOURCE = ("in", "opening", "out", "sale_cancel", "return", "shrinkage", "count_adjust")
+ONCE_PER_SOURCE = (
+    "in", "opening", "out", "sale_cancel", "return", "shrinkage", "count_adjust", "transfer_in", "transfer_out",
+)  # fmt: skip
 
 
 class Batch(IdMixin, Base):
@@ -109,7 +111,8 @@ class Movement(IdMixin, Base):
         Index(
             "uq_movements_source", "type", "ref_type", "ref_id", unique=True,
             postgresql_where=text(
-                "type IN ('in', 'opening', 'out', 'sale_cancel', 'return', 'shrinkage', 'count_adjust')"
+                "type IN ('in', 'opening', 'out', 'sale_cancel', 'return', 'shrinkage', 'count_adjust',"
+                " 'transfer_in', 'transfer_out')"
             ),
         ),
         Index("ix_movements_branch_time", "branch_id", "created_at"),

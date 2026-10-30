@@ -152,6 +152,7 @@ class POOut(BaseModel):
     version: int
     lines: list[POLineOut]
     total: Decimal | None = None
+    group_id: UUID | None = None
     created_at: datetime
 
 
@@ -308,3 +309,106 @@ class StatementOut(BaseModel):
     opening_balance: Decimal
     closing_balance: Decimal
     entries: list[StatementEntry]
+
+
+# ---------------------------------------------------------------- purchase requests (S6)
+
+
+class PRLineIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    medicine_id: UUID
+    qty_base: int = Field(ge=1, le=10_000_000, description="In the base unit")
+    reason: str = Field(default="", max_length=255)
+    needed_by: date | None = None
+
+
+class PRCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    branch_id: UUID
+    note: str = Field(default="", max_length=500)
+    lines: list[PRLineIn] = Field(min_length=1, max_length=200)
+
+
+class PRLineOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    line_no: int
+    medicine_id: UUID
+    qty_base: int
+    reason: str
+    needed_by: date | None
+    status: str
+    po_id: UUID | None
+    po_number: str | None
+    transfer_id: UUID | None
+    transfer_number: str | None
+    fulfilled_base: int
+
+
+class PROut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    number: str
+    branch_id: UUID
+    status: str
+    progress: str = ""
+    note: str
+    source_ref: str | None
+    decision_reason: str | None
+    decided_at: datetime | None
+    lines: list[PRLineOut]
+    created_at: datetime
+
+
+class PRDecision(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str | None = Field(default=None, max_length=255)
+
+
+class ToPOLine(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    request_line_id: UUID
+    pack_unit_id: UUID
+    qty: Qty = Field(description="In the pack unit")
+    unit_cost: UnitCost = Field(description="USD per pack unit")
+
+
+class ToPO(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    supplier_id: UUID
+    note: str = Field(default="", max_length=500)
+    expected_on: date | None = None
+    lines: list[ToPOLine] = Field(min_length=1, max_length=500)
+
+
+class POGroupOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    number: str
+    supplier_id: UUID
+    created_at: datetime
+    purchase_orders: list[POOut] = Field(default_factory=list)
+
+
+class FillByTransfer(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source_branch_id: UUID
+    line_ids: list[UUID] = Field(min_length=1, max_length=200)
+
+
+class PRInternal(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    branch_id: UUID
+    source_ref: str = Field(min_length=1, max_length=80)
+    note: str = Field(default="", max_length=500)
+    lines: list[dict] = Field(min_length=1, max_length=500)

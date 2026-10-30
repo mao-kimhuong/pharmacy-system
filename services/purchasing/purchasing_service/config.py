@@ -14,6 +14,8 @@ class Settings(BaseServiceSettings):
     event_consumer_enabled: bool = True
     # Receiving: an expiry closer than this many days is accepted but flagged
     short_expiry_days: int = 180
+    # Fill purchase requests by transfer (inventory /internal/v1)
+    inventory_url: str = "http://inventory:8000"
 
 
 @lru_cache

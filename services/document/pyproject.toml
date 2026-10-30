@@ -19,6 +19,7 @@ dependencies = [
     # Labels: HTML → PDF through Pango/HarfBuzz (Khmer shaping), Code128 barcodes as SVG
     "weasyprint>=70",
     "python-barcode>=0.15",
+    "segno>=1.6",  # QR code on the transfer note (pure Python, SVG)
 ]
 
 [tool.setuptools.packages.find]

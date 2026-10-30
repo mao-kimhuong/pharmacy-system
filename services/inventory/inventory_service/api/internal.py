@@ -11,6 +11,7 @@ from ..db import db
 from ..schemas.inventory import (
     ControlledMovement,
     ControlledStockRequest,
+    FromPurchaseRequest,
     MovementsSince,
     ReleaseByRef,
     ReservationOut,
@@ -20,7 +21,7 @@ from ..schemas.inventory import (
     ReverseRequest,
     SnapshotRequest,
 )
-from ..services import counting
+from ..services import counting, transfers
 from ..services import reservations as svc
 
 router = APIRouter()
@@ -116,3 +117,15 @@ async def controlled_movement(
 ) -> dict:  # fmt: skip
     """Adjust or destroy controlled stock (PIN + witness checked by the controlled service); once per request_id."""
     return await counting.controlled_movement(session, caller, body.model_dump())
+
+
+# ---------------------------------------------------------------- purchasing (S6)
+
+
+@router.post("/transfers/from-purchase-request")
+async def transfer_from_purchase_request(
+    body: FromPurchaseRequest, caller: InternalCaller = Depends(internal_caller),
+    session: AsyncSession = Depends(db.session),
+) -> dict:  # fmt: skip
+    """A purchase request filled from another branch: approved request + transfer, once per source_ref."""
+    return await transfers.from_purchase_request(session, caller, body.model_dump())

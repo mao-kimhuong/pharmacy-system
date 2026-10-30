@@ -22,6 +22,10 @@ class BranchSettingsOut(BaseModel):
     double_count_above_usd: Decimal
     owner_approval_above_usd: Decimal
     shrinkage_approval_usd: Decimal
+    reorder_sales_days: int
+    reorder_safety_days: int
+    reorder_lead_days: int
+    near_expiry_transfer_days: int
 
 
 class BranchOut(BaseModel):
@@ -81,6 +85,14 @@ class BranchSettingsUpdate(BaseModel):
     shrinkage_approval_usd: Usd | None = Field(
         default=None, description="Shrinkage above this value needs approval"
     )
+    reorder_sales_days: int | None = Field(
+        default=None, ge=7, le=365, description="Re-order: average sales over"
+    )
+    reorder_safety_days: int | None = Field(default=None, ge=0, le=90)
+    reorder_lead_days: int | None = Field(
+        default=None, ge=0, le=180, description="Default supplier lead time"
+    )
+    near_expiry_transfer_days: int | None = Field(default=None, ge=7, le=365)
 
 
 class ReasonRequest(BaseModel):

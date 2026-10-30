@@ -12,6 +12,7 @@ from pharmacy_shared.numbering import DocSequenceMixin
 from pharmacy_shared.outbox import OutboxMixin
 
 from .base import Base
+from .reorder import AlertSent, OpenPOLine, ReorderLine, ReorderList, ReorderSetting
 from .s5 import SHRINKAGE_REASONS, BranchSettingsCopy, ShelfLocation, Shrinkage
 from .stock import (
     BATCH_STATUSES,
@@ -28,6 +29,14 @@ from .stock import (
     Stock,
     StockIn,
 )
+from .transfers import (
+    Transfer,
+    TransferDiscrepancy,
+    TransferLine,
+    TransferPick,
+    TransferRequest,
+    TransferRequestLine,
+)  # fmt: skip
 
 
 class OutboxEvent(OutboxMixin, Base):
@@ -97,8 +106,19 @@ __all__ = [
     "QuarantineEntry",
     "Reservation",
     "ReservationLine",
+    "AlertSent",
+    "OpenPOLine",
+    "ReorderLine",
+    "ReorderList",
+    "ReorderSetting",
     "ShelfLocation",
     "Shrinkage",
     "Stock",
+    "Transfer",
+    "TransferDiscrepancy",
+    "TransferLine",
+    "TransferPick",
+    "TransferRequest",
+    "TransferRequestLine",
     "StockIn",
 ]

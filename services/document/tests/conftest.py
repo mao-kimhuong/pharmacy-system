@@ -54,7 +54,7 @@ async def clean() -> AsyncIterator[None]:
     async with db.engine.begin() as conn:
         await conn.execute(
             text(
-                "TRUNCATE product_pack_units, products, purchase_orders, invoices, patients, prescriptions, known_staff,"
+                "TRUNCATE product_pack_units, products, purchase_orders, invoices, patients, prescriptions, known_staff, transfers,"
                 " processed_messages, outbox CASCADE"
             )
         )

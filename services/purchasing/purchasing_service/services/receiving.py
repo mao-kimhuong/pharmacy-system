@@ -31,7 +31,7 @@ from pharmacy_shared.outbox import add_event
 
 from ..config import get_settings
 from ..models import DocSequence, KnownBranch, OutboxEvent, Receipt, ReceiptLine
-from . import orders
+from . import orders, requests
 from .common import audit, can_see_cost, clean, commit, products_by_id
 
 CENT = Decimal("0.01")
@@ -109,6 +109,7 @@ async def receive(session: AsyncSession, actor: CurrentUser, po_id: UUID, data: 
 
     for po_line_id, qty_base in incoming.items():
         po_lines[po_line_id].qty_received_base += qty_base
+    await requests.on_goods_received(session, dict(incoming))  # purchase requests this PO serves
     fully = all(line.qty_received_base >= line.qty_base for line in po.lines)
     old_status = po.status
     po.status = "received" if fully else "partially_received"

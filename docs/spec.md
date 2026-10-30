@@ -45,7 +45,7 @@ Requests enter only through Traefik; each service writes to its own database and
 | auth | users, roles, branch access, sessions | /api/auth/v1 | user.created, user.deactivated |
 | branch | branches, settings, opening hours | /api/branch/v1 | branch.created |
 | catalog | medicines, generics, strengths, forms, categories, units & pack sizes, Rx/controlled flags | /api/catalog/v1 | medicine.created, medicine.updated |
-| inventory | batches, stock per branch per batch, movements, transfers, expiry alerts | /api/inventory/v1 | stock.reserved, stock.released, batch.expiring, batch.blocked |
+| inventory | batches, stock per branch per batch, movements, transfers, expiry alerts | /api/inventory/v1 | stock.changed, transfer.\*, transfer\_request.\*, stock.low, batch.expiring, batch.expired |
 | stockcount | counts, count lines, approvals | /api/stockcount/v1 | count.started, count.approved, count.cancelled |
 | prescription | patients, doctors, prescriptions, dispense records | /api/prescription/v1 | patient.\*, doctor.\*, prescription.created / activated / dispensed / cancelled / expired |
 | controlled | controlled-drug register, sign-offs, discrepancies | /api/controlled/v1 | register.discrepancy, register.chain_broken |
@@ -79,8 +79,8 @@ The batch is the centre of the model: stock, sales lines, transfers, counts and 
 | inventory | batches | medicine\_id, lot\_no, expiry\_date, cost\_per\_base, supplier\_id, received\_at, status (active / blocked / recalled / expired) |
 | inventory | stock | branch\_id, batch\_id, qty\_on\_hand, qty\_reserved — unique (branch\_id, batch\_id) |
 | inventory | movements | branch\_id, batch\_id, type (in / out / adjust / transfer\_out / transfer\_in / return / expire\_writeoff), qty (signed), ref\_type, ref\_id, reason |
-| inventory | transfers | from\_branch\_id, to\_branch\_id, status (draft / sent / received / cancelled), sent\_by, received\_by, cancel\_reason |
-| inventory | transfer\_lines | transfer\_id, batch\_id, qty\_sent, qty\_received |
+| inventory | transfers | from\_branch\_id, to\_branch\_id, request\_id, status (approved / picked / dispatched / received / closed / cancelled), dispatched\_by, received\_by, witnesses, cancel\_reason |
+| inventory | transfer\_lines · transfer\_picks · transfer\_discrepancies | line: medicine, qty; pick: batch\_id, qty, override\_reason, qty\_received, qty\_damaged; difference: short / damaged / extra, resolution (write\_off / return\_to\_source / accept / reject) |
 | stockcount | counts · count\_lines · count\_entries | branch\_id, status (counting / review / approved / cancelled), scope (full / category / location / controlled), as\_of\_seq; line: batch\_id, snapshot\_qty, expected\_qty, counted\_qty, needs\_double, round; entry: user, qty, round, counted\_at |
 | prescription | patients | name, phone, dob, sex, allergies, notes, is\_active |
 | prescription | doctors | name, license\_no, clinic, phone, is\_active |
@@ -151,7 +151,7 @@ Every screen ships in desktop and mobile, Khmer and English, and in Figma carrie
 | Branches | Branch list, Branch detail, Branch settings (expiry alert days, price override, receipt header) | /api/branch/v1/branches (GET/POST/PATCH) |
 | Catalog | Medicines list, Medicine detail (batches tab), Add/Edit medicine, Pack units, Deactivate, Categories & brands, Excel import, Print shelf labels | /api/catalog/v1/medicines (GET/POST/PATCH) · /medicines/{id}/pack-units · /categories · /brands · POST /imports (validate → commit) · POST /labels |
 | Inventory | Stock by branch, Batches (expiry view), Near-expiry list, Quick stock-in, Adjustment, Movements, Recall | /api/inventory/v1/stock · /batches?expiring\_within=90 · POST /movements · POST /batches/{id}/block · POST /recalls |
-| Transfers | Transfer list, Create transfer, Send, Receive transfer | /api/inventory/v1/transfers · POST /transfers/{id}/send · /receive · /cancel |
+| Transfers | Transfer list, Create transfer, Pick, Dispatch, Receive transfer | /api/inventory/v1/transfers · POST /transfers/{id}/pick · /dispatch · /receive · /cancel · /differences/{id}/resolve |
 | Stock count | Start count, Count (scan), Second count (controlled), Review & approve | POST /api/stockcount/v1/counts · POST /counts/{id}/lines · POST /counts/{id}/approve |
 | Prescriptions | Patients, Patient detail (Rx history, allergies), Doctors, New Rx (photo upload), Rx detail, Dispense from Rx, Cancel Rx | /api/prescription/v1/patients · /doctors · /prescriptions · POST /prescriptions/{id}/cancel · GET /prescriptions/{id}/remaining |
 | Controlled drugs | Register by medicine, Register entry detail, Witness sign-off, Discrepancies, Register export (PDF) | GET /api/controlled/v1/register?medicine\_id&branch\_id · POST /entries (adjust / destroy / correction) · POST /entries/{id}/witness · GET /discrepancies |
@@ -255,13 +255,13 @@ Response `201` returns the invoice with each line split into the batches actuall
 
 Creates or tops up a batch in inventory, posts an `in` movement, and writes a `receive` register entry for controlled medicines.
 
-**POST /api/inventory/v1/transfers** → **/{id}/send** → **/{id}/receive**
+**POST /api/inventory/v1/transfer-requests** → **/{id}/approve** (or **POST /transfers** to push) → **/transfers/{id}/pick** → **/dispatch** → **/receive**
 
 ```json
-{"from_branch_id": "…", "to_branch_id": "…", "lines": [{"batch_id": "…", "qty": 30}]}
+{"from_branch_id": "…", "to_branch_id": "…", "lines": [{"medicine_id": "…", "qty_base": 30}]}
 ```
 
-Receive takes `{"lines": [{"batch_id": "…", "qty_received": 29, "reason": "1 strip damaged"}]}`.
+Pick is FEFO unless a line names batches with a reason. Receive takes `{"lines": [{"pick_id": "…", "qty_received": 28, "qty_damaged": 1, "location": "A3"}]}`; short, damaged or extra quantities open differences resolved with a reason.
 
 **GET /api/inventory/v1/batches?branch\_id=&expiring\_within=90&status=active** — near-expiry list, sorted by expiry.
 
@@ -298,7 +298,8 @@ Receive takes `{"lines": [{"batch_id": "…", "qty_received": 29, "reason": "1 s
 | CREDIT\_LIMIT\_EXCEEDED | 422 | Credit sale over the customer's limit |
 | DUPLICATE\_PHONE | 409 | Customer or patient phone already exists |
 | BRANCH\_FORBIDDEN | 403 | User has no access to the requested branch |
-| TRANSFER\_STATE | 409 | Action not allowed in the transfer's current status |
+| TRANSFER\_STATE | 409 | Action not allowed in the transfer's current status (e.g. cancel after dispatch) |
+| REQUEST\_STATE | 409 | Purchase request or re-order line already decided or requested |
 
 **Security**
 

@@ -181,3 +181,13 @@ async def test_controlled_and_count_settings_have_defaults_and_travel_in_events(
     bad = await client.put(f"{PREFIX}/branches/{branch['id']}/settings", headers=OWNER,
                            json={"double_count_above_usd": "-1"})  # fmt: skip
     assert bad.status_code == 422
+
+
+async def test_reorder_settings_have_defaults_and_travel_in_events(client) -> None:
+    branch = await create(client)
+    s = (await client.get(f"{PREFIX}/branches/{branch['id']}/settings", headers=OWNER)).json()
+    assert (s["reorder_sales_days"], s["reorder_safety_days"], s["reorder_lead_days"],
+            s["near_expiry_transfer_days"]) == (30, 3, 7, 90)  # fmt: skip
+    await client.put(f"{PREFIX}/branches/{branch['id']}/settings", headers=OWNER, json={"reorder_sales_days": 14})
+    payload = [p for t, p in await outbox() if t == "branch.settings_updated"][-1]
+    assert (payload["reorder_sales_days"], payload["near_expiry_transfer_days"]) == (14, 90)

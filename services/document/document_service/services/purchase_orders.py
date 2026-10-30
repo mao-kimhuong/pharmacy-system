@@ -7,13 +7,16 @@ purchase_order.* events. Rules:
 - Draft and cancelled POs are printed with a watermark.
 """
 
+import asyncio
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pharmacy_shared.auth import CurrentUser
+from pharmacy_shared.errors import AppError, ErrorCode
 
 from ..models import PurchaseOrderCopy
 from .pdf import FONTS, e, html_to_pdf
@@ -29,6 +32,7 @@ async def upsert_po(session: AsyncSession, payload: dict[str, Any]) -> bool:
     return await upsert_versioned(session, PurchaseOrderCopy, {
         "id": UUID(str(payload["purchase_order_id"])), "version": int(payload["version"]),
         "branch_id": UUID(str(payload["branch"]["id"])), "number": str(payload["number"]),
+        "group_id": UUID(str(payload["group"]["id"])) if payload.get("group") else None,
         "status": str(payload["status"]), "data": payload})  # fmt: skip
 
 
@@ -116,6 +120,65 @@ def build_html(po: dict[str, Any]) -> str:
       {note}
       <div class="sign"><div>Ordered by</div><div>Approved by</div><div>Supplier</div></div>
     </body></html>"""
+
+
+def group_html(pos: list[dict[str, Any]]) -> str:
+    """One printout for the supplier: the group's POs, a delivery section per branch."""
+    group, supplier = pos[0]["group"], pos[0]["supplier"]
+    sections, total = [], Decimal("0")
+    for po in pos:
+        b = po["branch"]
+        rows = "".join(
+            f"<tr><td><b>{e(x['name'])}</b> <span class='km' lang='km'>{e(x['name_km'])}</span>"
+            f"<div class='sub'>{e(x['sku'])}</div></td><td>{e(x['pack_unit'])}</td><td class='r'>{x['qty']:,}</td>"
+            f"<td class='r'>{_cost(x['unit_cost'])}</td><td class='r'>{_money(x['line_total'])}</td></tr>"
+            for x in po["lines"]
+        )
+        total += Decimal(str(po["total"]))
+        sections.append(f"""<h2>Deliver to · ដឹកជញ្ជូនទៅ: {e(b["name_en"])} <span class="km" lang="km">{e(b["name_km"])}</span>
+          <span class="sub">PO {e(po["number"])} · status {e(po["status"].replace("_", " "))}</span></h2>
+          <table><thead><tr><th>Item</th><th>Pack</th><th class="r">Qty</th><th class="r">Unit cost (USD)</th>
+          <th class="r">Amount (USD)</th></tr></thead><tbody>{rows}</tbody>
+          <tfoot><tr><td colspan="4" class="r">Subtotal</td><td class="r"><b>{_money(po["total"])}</b></td></tr></tfoot>
+          </table>""")
+    css = f"""
+      @page {{ size: A4; margin: 14mm 12mm }} * {{ box-sizing: border-box }}
+      body {{ font-family: {FONTS}; font-size: 9.5pt; color: #111 }} h1 {{ font-size: 15pt; margin: 0 }}
+      h2 {{ font-size: 10.5pt; margin: 6mm 0 1mm }} .km {{ font-size: 9pt; font-weight: 400 }}
+      .sub {{ font-size: 7.5pt; color: #555; font-weight: 400 }}
+      table {{ width: 100%; border-collapse: collapse }} th {{ text-align: left; font-size: 8pt; border-bottom: 0.3mm solid #000 }}
+      td, th {{ padding: 1.2mm 1mm; vertical-align: top }} td {{ border-bottom: 0.2mm solid #ccc }}
+      .r {{ text-align: right; white-space: nowrap }} .total {{ font-size: 12pt; font-weight: 700; margin-top: 5mm; text-align: right }}
+    """
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><style>{css}</style></head><body>
+      <div class="sub">PURCHASE ORDER GROUP · ការបញ្ជាទិញរួម</div><h1>{e(group["number"])}</h1>
+      <div><b>{e(supplier["name"])}</b> <span class="km" lang="km">{e(supplier.get("name_km"))}</span>
+        {"".join(f" · {e(x)}" for x in (supplier.get("phone"), supplier.get("address")) if x)}</div>
+      <div class="sub">{len(pos)} branch(es); each delivery has its own PO and is billed to that branch.</div>
+      {"".join(sections)}
+      <div class="total">Total USD {_money(total)}</div>
+    </body></html>"""
+
+
+async def render_group(session: AsyncSession, actor: CurrentUser, group_id: UUID, wait_seconds: float
+                       ) -> tuple[str, bytes]:  # fmt: skip
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + wait_seconds
+    while True:
+        rows = [(r.branch_id, r.data) for r in (await session.execute(
+            select(PurchaseOrderCopy).where(PurchaseOrderCopy.group_id == group_id)
+            .order_by(PurchaseOrderCopy.number))).scalars()]  # fmt: skip
+        await session.rollback()  # end the read, so the next look sees newly committed copies
+        if rows or loop.time() >= deadline:
+            break
+        await asyncio.sleep(0.25)
+    if not rows:
+        raise AppError(ErrorCode.DOCUMENT_NOT_READY, "This PO group has not reached the document service yet",
+                       status_code=409)  # fmt: skip
+    mine = [data for branch_id, data in rows if actor.can_access_branch(branch_id)]
+    if not mine:
+        raise AppError(ErrorCode.NOT_FOUND, "PO group not found", status_code=404)
+    return mine[0]["group"]["number"], await html_to_pdf(group_html(mine))
 
 
 async def render_po(

@@ -9,7 +9,7 @@ help:
 	@echo "make logs s=sales   follow one service's logs"
 	@echo "make owner     create the first owner account"
 	@echo "make smoke     check login + protected routes through Traefik"
-	@echo "make resync    re-send staff, branches, products and customers as events (after adding a listening service)"
+	@echo "make resync    re-send staff, branches, products, customers and open POs as events (after adding a listening service)"
 	@echo "make test      lint + tests for all services (starts test databases)"
 	@echo "make test-docker   the same, inside a python:3.12 container (no local Python needed)"
 	@echo "make migrate s=auth             run alembic upgrade head in a service"
@@ -43,6 +43,7 @@ resync:
 	docker compose exec branch python -m branch_service.cli republish
 	docker compose exec catalog python -m catalog_service.cli republish
 	docker compose exec customers python -m customers_service.cli republish
+	docker compose exec purchasing python -m purchasing_service.cli republish
 
 test-db:
 	docker compose -f docker-compose.test.yml up -d --wait

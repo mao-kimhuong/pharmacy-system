@@ -8,3 +8,4 @@ openpyxl>=3.1  # pharmacy_shared.xlsx tests
 defusedxml>=0.7
 aioboto3>=13  # pharmacy_shared.storage tests
 Pillow>=10  # pharmacy_shared.uploads tests
+segno>=1.6

@@ -25,7 +25,7 @@ from pharmacy_shared.errors import AppError, ErrorCode
 from pharmacy_shared.numbering import next_number
 from pharmacy_shared.outbox import add_event
 
-from ..models import DocSequence, KnownBranch, OutboxEvent, POLine, PurchaseOrder
+from ..models import DocSequence, KnownBranch, OutboxEvent, POGroup, POLine, PurchaseOrder
 from .common import audit, branch_for, clean, commit, not_found, pack_unit_for, products_by_id
 from .suppliers import active_supplier
 
@@ -56,6 +56,7 @@ async def event_payload(session: AsyncSession, po: PurchaseOrder) -> dict[str, A
             "qty_received_base": line.qty_received_base,
         })  # fmt: skip
     s = po.supplier
+    group = await session.get(POGroup, po.group_id) if po.group_id else None
     return {
         "purchase_order_id": str(po.id), "version": po.version, "number": po.number, "status": po.status,
         "branch": {"id": str(po.branch_id), "code": branch.code if branch else "",
@@ -66,12 +67,16 @@ async def event_payload(session: AsyncSession, po: PurchaseOrder) -> dict[str, A
         "created_at": po.created_at.isoformat() if po.created_at else None,
         "sent_at": po.sent_at.isoformat() if po.sent_at else None,
         "cancel_reason": po.cancel_reason, "total": str(po.total), "lines": lines,
+        "group": {"id": str(group.id), "number": group.number} if group else None,
     }  # fmt: skip
 
 
 async def _publish(session: AsyncSession, po: PurchaseOrder, event: str) -> None:
     await session.flush()
     add_event(session, OutboxEvent, event, await event_payload(session, po))
+
+
+publish = _publish
 
 
 def _summary(po: PurchaseOrder) -> dict[str, Any]:
@@ -222,6 +227,9 @@ async def cancel_order(session: AsyncSession, actor: CurrentUser, po_id: UUID, r
     po.status = "cancelled"
     po.cancel_reason = clean(reason)
     po.version += 1
+    from .requests import on_po_cancelled  # requests imports this module
+
+    await on_po_cancelled(session, po.id)
     await _publish(session, po, "purchase_order.cancelled")
     audit(session, actor, "purchase_order.cancelled", "purchase_order", po.id, branch_id=po.branch_id,
           before={"status": before}, after={"status": "cancelled", "reason": po.cancel_reason})  # fmt: skip

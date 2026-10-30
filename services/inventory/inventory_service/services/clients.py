@@ -13,6 +13,11 @@ def get_auth() -> InternalClient:
     return InternalClient(s.auth_url, s.service_name, s.service_token)
 
 
+def get_purchasing() -> InternalClient:
+    s = get_settings()
+    return InternalClient(s.purchasing_url, s.service_name, s.service_token)
+
+
 @lru_cache
 def get_storage() -> Storage:
     return Storage.from_settings(get_settings())

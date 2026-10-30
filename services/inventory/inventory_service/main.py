@@ -11,6 +11,7 @@ from .models import OutboxEvent, ProcessedMessage
 from .services.clients import get_storage
 from .services.events import ROUTING_KEYS, handle_event
 from .services.expiry import run_scheduler
+from .services.reorder import run_scheduler as run_reorder
 
 settings = get_settings()
 if settings.is_production:
@@ -39,11 +40,17 @@ async def create_bucket() -> None:
             logging.getLogger(__name__).exception("could not check the inventory file bucket")
 
 
+async def reorder_job(stop) -> None:  # noqa: ANN001
+    await run_reorder(db, stop, settings.reorder_job_hour, settings.reorder_job_minute)
+
+
 background = []
 if settings.event_consumer_enabled:
     background.append(consumer.run)
 if settings.expiry_job_enabled:
     background.append(expiry_job)
+if settings.reorder_job_enabled:
+    background.append(reorder_job)
 
 app = create_service_app(
     settings,

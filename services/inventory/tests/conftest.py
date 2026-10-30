@@ -16,6 +16,7 @@ os.environ["REDIS_URL"] = TEST_REDIS_URL
 os.environ["OUTBOX_RELAY_ENABLED"] = "false"
 os.environ["EVENT_CONSUMER_ENABLED"] = "false"
 os.environ["EXPIRY_JOB_ENABLED"] = "false"
+os.environ["REORDER_JOB_ENABLED"] = "false"
 SERVICE_TOKEN = "test-service-token-0123456789abcdef"
 os.environ["SERVICE_TOKEN"] = SERVICE_TOKEN
 S3_ENDPOINT = os.environ.get("TEST_S3_ENDPOINT", "")
@@ -61,7 +62,9 @@ async def clean(monkeypatch) -> AsyncIterator[None]:
         await conn.execute(text(
             "TRUNCATE reservation_lines, reservations, quarantine_entries, movements, stock, batches, stock_ins, opening_lines, opening_balances, initialize_locks,"
             " product_pack_units, products, known_branches, known_suppliers, processed_messages, outbox, shrinkages,"
-            " shelf_locations, branch_settings, doc_sequences CASCADE"
+            " shelf_locations, branch_settings, doc_sequences, transfer_discrepancies, transfer_picks, transfer_lines,"
+            " transfers, transfer_request_lines, transfer_requests, reorder_lines, reorder_lists, reorder_settings,"
+            " open_po_lines, alerts_sent CASCADE"
         ))  # fmt: skip
     redis = Redis.from_url(TEST_REDIS_URL)
     await redis.flushdb()

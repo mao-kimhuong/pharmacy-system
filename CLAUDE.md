@@ -65,7 +65,7 @@ Traefik v3.6. Python 3.12. Lint with ruff.
 - `docker compose exec controlled python -m controlled_service.cli open-balances` – once after installing S5:
   controlled stock from before the register gets "opening" entries (`check` runs the 00:20 register check now)
 - `python -m sales_service.cli recover` – finish sales/returns left half-way (also runs every minute)
-- `make resync` – re-send staff, branches, branch settings, products and customers as events (needed once when a service starts
+- `make resync` – re-send staff, branches, branch settings, products, customers and open POs as events (needed once when a service starts
   listening after the data exists: RabbitMQ drops events for queues that did not exist yet)
 
 ## How things work (from S0)
@@ -288,6 +288,40 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   pending until someone else with `inventory.shrinkage_approve` approves; photo private in SeaweedFS
   (`inventory-files`), streamed + logged. `PUT /shelf-locations` (`inventory.locations`), code like "A3".
 
+- **Scheduled jobs:** all in Asia/Phnom_Penh time (`clock.TIMEZONE`), each once at start-up too, one replica
+  at a time (advisory lock): inventory expiry 00:05, prescription expiry 00:10, register check 00:20,
+  re-order lists + alerts 00:30.
+- **Transfers (inventory, from S6):** request (`transfers.request`, destination) → approve / reject
+  (`transfers.approve`, source) → transfer `PP1-TR-…`: approved → picked → dispatched → received → closed, or
+  cancelled (reason, only before dispatch, reservations released → TRANSFER_STATE after). Push without a
+  request (`transfers.dispatch`, source). Pick = FEFO (reuses the reservation helpers) or chosen batches with a
+  reason, and reserves the stock. Dispatch (Idempotency-Key) = `transfer_out` per pick → in transit (derived:
+  dispatched picks, then open short/damaged differences; `GET /transfers/in-transit`). Receive (destination,
+  Idempotency-Key) = `transfer_in` into the same batch (lot, expiry, supplier, cost kept), optional shelf
+  location; short / damaged / extra → differences; resolve (`transfers.resolve`): write_off (posted shrinkage
+  record with no movement; short on the source's books, damaged on the destination's), return_to_source
+  (`transfer_in` at the source), accept extra (`adjust_in`), reject. Controlled lines: PIN + witness on dispatch
+  and on receive (actions `transfers.dispatch` / `transfers.receive`), meta → register entries on both sides.
+  `transfer_in/out` are once per source ref. Events `transfer.*` (full snapshot + version, cost per base) and
+  `transfer_request.*`. `GET /transfers/by-number/{n}` (QR scan). Note PDF: `POST /api/documents/v1/render
+  {"type":"transfer_note","transfer_id"}` (segno QR as SVG data URI).
+- **Purchase requests (purchasing, from S6):** `PP1-PR-…`, submitted → approved / rejected / cancelled (reason);
+  lines → ordered (PO) / transferring → fulfilled. To PO (`purchasing.order`): lines of several branches + one
+  supplier → one draft PO per branch (S2 POs unchanged; same pack merged) + `po_groups` `PP1-PG-…`
+  (`PurchaseOrder.group_id`, in purchase_order.* events); printout `{"type":"purchase_order_group","group_id"}`.
+  Fill by transfer (`purchasing.request_approve`) → inventory `/internal/v1/transfers/from-purchase-request`
+  (approved request + transfer, once per source_ref). Progress: receipts (oldest request first), PO cancel →
+  approved again, `transfer.*` (absolute, newer versions only; fulfilled when all arrived or the transfer is
+  closed). Re-order lists call `/internal/v1/purchase-requests` (once per source_ref).
+- **Re-ordering (inventory, from S6):** `reorder_settings` (min, max, lead time, preferred supplier; bulk by
+  category; `inventory.reorder_settings`). avg = net sales (out − sale_cancel − return) / `reorder_sales_days`
+  (30); point = min or avg × (lead 7 + safety 3); available = sellable + in transit + open POs (copy of
+  `purchase_order.*` → `open_po_lines`); target = max or avg × (lead + safety + days); rounded up to the biggest
+  pack adding ≤ 25 %. Transfer suggestion: other branch with spare (above its max / 60 days of its sales) or
+  near-expiry stock (within its `near_expiry_transfer_days` 90, more than it will sell in time, we sell faster).
+  Lists (`POST /reorder-lists/run`, daily job) → purchase request or transfer requests in one step. Events
+  `stock.low` and `batch.expiring` (branch `expiry_alert_days`) at most once a day (`alerts_sent`).
+
 ## Definition of done
 API matches the spec, migration included, tests pass (`make test` and `make test-docker`),
 `docker compose up` works, permissions checked per role, audit log written.
@@ -301,7 +335,7 @@ API matches the spec, migration included, tests pass (`make test` and `make test
 - [x] S3 POS + sales – FEFO checkout, invoices, returns, customers, receipts
 - [x] S4 Prescriptions – patients, doctors, Rx, dispensing, allergy warnings, labels
 - [x] S5 Controlled + counts – register, PIN + witness, stock take, shrinkage
-- [ ] S6 Branches – transfer requests, transfers, purchase requests, re-order
+- [x] S6 Branches – transfer requests, transfers, purchase requests, re-order
 - [ ] S7 Sales extras – sale order, suspend, templates, promotions, hampers, commission
 - [ ] S8 Reports – dashboard, all reports, Telegram 20:00
 - [ ] S9 Hardening – performance, security, offline POS, UAT fixes; per-service tokens for

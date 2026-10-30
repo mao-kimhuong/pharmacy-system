@@ -20,6 +20,12 @@ class Settings(BaseServiceSettings):
     expiry_job_minute: int = 5
     # Shrinkage photos: private bucket in the file store (pharmacy_shared.storage)
     s3_bucket: str = "inventory-files"
+    # Re-order lists turn into purchase requests there (/internal/v1)
+    purchasing_url: str = "http://purchasing:8000"
+    # Daily re-order lists + stock.low / batch.expiring (00:30 Asia/Phnom_Penh, and at start-up)
+    reorder_job_enabled: bool = True
+    reorder_job_hour: int = 0
+    reorder_job_minute: int = 30
     storage_bucket_check: bool = True
 
 

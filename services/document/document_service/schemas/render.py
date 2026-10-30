@@ -78,12 +78,32 @@ class RegisterRender(BaseModel):
     date_to: date | None = None
 
 
+class TransferNoteRender(BaseModel):
+    """Transfer note with a QR code of the number. Any transfers.* permission, source or destination."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["transfer_note"]
+    transfer_id: UUID
+
+
+class PurchaseOrderGroupRender(BaseModel):
+    """The POs of a group (several branches, one supplier) on one printout. Permission purchasing.order."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["purchase_order_group"]
+    group_id: UUID
+
+
 RenderRequest = Annotated[
     LabelRender
     | PurchaseOrderRender
     | InvoiceRender
     | DispensingLabelRender
     | RxSummaryRender
-    | RegisterRender,
+    | RegisterRender
+    | TransferNoteRender
+    | PurchaseOrderGroupRender,
     Field(discriminator="type"),
 ]

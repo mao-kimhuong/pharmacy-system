@@ -33,12 +33,20 @@ class ShelfLocation(Base):
 
 
 class BranchSettingsCopy(Base):
-    """From branch.settings_updated: the shrinkage value above which a manager approves."""
+    """From branch.settings_updated: shrinkage approval limit, re-order and alert settings."""
 
     __tablename__ = "branch_settings"
 
     branch_id: Mapped[UUID] = mapped_column(primary_key=True)
     shrinkage_approval_usd: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("50.00"))
+    # re-ordering and alerts (S6)
+    reorder_sales_days: Mapped[int] = mapped_column(Integer, default=30, server_default="30")
+    reorder_safety_days: Mapped[int] = mapped_column(Integer, default=3, server_default="3")
+    reorder_lead_days: Mapped[int] = mapped_column(Integer, default=7, server_default="7")
+    near_expiry_transfer_days: Mapped[int] = mapped_column(Integer, default=90, server_default="90")
+    expiry_alert_days: Mapped[list[int]] = mapped_column(
+        JSON, default=lambda: [180, 90, 30], server_default="[180, 90, 30]"
+    )
 
 
 class Shrinkage(IdMixin, Base):

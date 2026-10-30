@@ -67,10 +67,14 @@ CATALOG: tuple[PermissionDef, ...] = (
     P("stockcount.approve", "Inventory", "Approve stock counts"),
     # Transfers
     P("transfers.request", "Transfer", "Request stock from another branch"),
-    P("transfers.send", "Transfer", "Send transfers"),
-    P("transfers.receive", "Transfer", "Receive transfers"),
+    P("transfers.approve", "Transfer", "Approve requests to send stock (source branch)"),
+    P("transfers.dispatch", "Transfer", "Pick and send transfers (source branch)"),
+    P("transfers.receive", "Transfer", "Receive transfers (destination branch)"),
+    P("transfers.resolve", "Transfer", "Resolve transfer differences"),
     # Purchasing
     P("purchasing.request", "Purchase", "Purchase requests"),
+    P("purchasing.request_approve", "Purchase", "Approve or reject purchase requests"),
+    P("inventory.reorder_settings", "Purchase", "Re-order levels and the re-order list"),
     P("purchasing.order", "Purchase", "Create purchase orders"),
     P("purchasing.receive", "Purchase", "Receive goods"),
     P("purchasing.over_receive", "Purchase", "Receive more than ordered"),
@@ -98,11 +102,12 @@ CATALOG: tuple[PermissionDef, ...] = (
 )
 KEYS = frozenset(p.key for p in CATALOG)
 # Old key → new key: grants move to the new key at start-up (catalog_sync).
-RENAMED: dict[str, str] = {"pos.dispense_controlled": "controlled.dispense"}
+RENAMED: dict[str, str] = {"pos.dispense_controlled": "controlled.dispense", "transfers.send": "transfers.dispatch"}
 # Existing keys added to a built-in role's defaults in a later sprint: given once
 # to stacks that already exist (tag, role, key); a later removal by the owner stays.
 DEFAULT_ADDITIONS: tuple[tuple[str, str, str], ...] = (
     ("S5:pharmacist:controlled.adjust", "pharmacist", "controlled.adjust"),
+    ("S6:pharmacist:purchasing.request", "pharmacist", "purchasing.request"),
 )
 
 OWNER = "owner"
@@ -118,7 +123,7 @@ _PHARMACIST = {
     "sales.cancel", "sales.return", "sales.suspend", "prescriptions.manage", "controlled.view",
     "patients.view", "patients.manage", "prescriptions.view", "prescriptions.override_warning",
     "controlled.witness", "controlled.adjust", "products.view", "labels.print", "inventory.view", "inventory.stock_in",
-    "stockcount.count", "stockcount.approve", "transfers.request", "transfers.send",
+    "stockcount.count", "stockcount.approve", "transfers.request", "transfers.dispatch", "purchasing.request",
     "transfers.receive", "purchasing.receive", "contacts.customers", "reports.stock", "inventory.shrinkage",
 }  # fmt: skip
 _CASHIER = {
@@ -174,8 +179,9 @@ MENU: tuple[MenuItem, ...] = (
     M("inventory", "import_product", "Import Product", ("products.import",)),
     M("inventory", "print_label", "Print Label", ("labels.print",)),
     M("transfer", "stock_transfer_request", "Stock Transfer Request", ("transfers.request",)),
-    M("transfer", "stock_transfer", "Stock Transfer", ("transfers.send", "transfers.receive")),
-    M("purchase", "purchase_request", "Purchase Request", ("purchasing.request",)),
+    M("transfer", "stock_transfer", "Stock Transfer", ("transfers.dispatch", "transfers.receive")),
+    M("purchase", "purchase_request", "Purchase Request", ("purchasing.request", "purchasing.request_approve")),
+    M("purchase", "reorder", "Re-order", ("inventory.reorder_settings",)),
     M("purchase", "purchase_order", "Purchase Order", ("purchasing.order",)),
     M("purchase", "receiving_goods", "Receiving Goods", ("purchasing.receive",)),
     M("purchase", "purchase_payment", "Purchase Payment", ("purchasing.pay",)),

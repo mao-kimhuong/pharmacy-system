@@ -9,12 +9,14 @@ from ..db import db
 from ..schemas.render import (
     DispensingLabelRender,
     LabelRender,
+    PurchaseOrderGroupRender,
     PurchaseOrderRender,
     RegisterRender,
     RenderRequest,
     RxSummaryRender,
+    TransferNoteRender,
 )
-from ..services import dispensing, labels, purchase_orders, receipts
+from ..services import dispensing, labels, purchase_orders, receipts, transfer_note
 from ..services import register as register_pdf
 
 router = APIRouter(tags=["render"])
@@ -51,6 +53,10 @@ async def render(
       prescriptions with what is left; written to the User Log.
     - `type: controlled_register` (controlled.view, own branches): the register as A4
       landscape, per medicine, with the hash-chain check.
+    - `type: transfer_note` (transfers.*, source or destination): batches, both branches,
+      a QR code of the transfer number for receiving by scan.
+    - `type: purchase_order_group` (purchasing.order): one printout of a PO group for the
+      supplier, a delivery section per branch.
     PO and invoice: right after they are saved, waits up to 5 s for them, then
     DOCUMENT_NOT_READY (409).
     """
@@ -73,6 +79,17 @@ async def render(
             session, user, body.invoice_id, body.line_no, body.size, body.lang, settings.document_wait_seconds
         )
         filename = f"{number}-label.pdf"
+    elif isinstance(body, TransferNoteRender):
+        number, pdf = await transfer_note.render(
+            session, user, body.transfer_id, settings.document_wait_seconds
+        )
+        filename = f"{number}.pdf"
+    elif isinstance(body, PurchaseOrderGroupRender):
+        user.require("purchasing.order")
+        number, pdf = await purchase_orders.render_group(
+            session, user, body.group_id, settings.document_wait_seconds
+        )
+        filename = f"{number}.pdf"
     elif isinstance(body, RegisterRender):
         user.require("controlled.view")
         pdf = await register_pdf.render(

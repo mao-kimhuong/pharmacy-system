@@ -46,7 +46,14 @@ the register PDF prints; a controlled stock take is counted by both pharmacists
 (one tablet short), approved with a PIN and posted to stock and the register;
 the User Log.
 
-Without prompts: SMOKE_PHONE, SMOKE_PASSWORD, SMOKE_S1=y ... SMOKE_S4=y, SMOKE_S5=y.
+S6 checks (optional, needs the S1b sample products): two new test branches A and B;
+PARA500 stocked at A; B requests 40, A approves, picks FEFO and dispatches (stock in
+transit), B's cashier receives 3 short, the difference is written off and the
+transfer closes (stock and in transit add up), the transfer note prints with its
+QR code; a purchase request at A becomes a PO group with a PO for A (printout for
+the supplier); B's re-order list is run with a min/max for PARA500 and printed.
+
+Without prompts: SMOKE_PHONE, SMOKE_PASSWORD, SMOKE_S1=y ... SMOKE_S5=y, SMOKE_S6=y.
 
 Uses only the Python standard library.
 """
@@ -1095,6 +1102,139 @@ def s5_checks(token: str) -> None:
         remove_test_cashier(token, bid, cashier)
 
 
+def s6_checks(token: str) -> None:
+    cat, inv, pur, docs = "/api/catalog/v1", "/api/inventory/v1", "/api/purchasing/v1", "/api/documents/v1/render"
+    _, found = call("GET", f"{cat}/medicines/search?q=PARA500", token=token)
+    para = next((x for x in found.get("items", []) if x["sku"] == "PARA500"), None)
+    if para is None:
+        check(False, "sample product PARA500 exists (run the S1b step first)")
+        return
+    packs = {p["name"]: p for p in para["pack_units"]}
+    made_a, made_b = make_test_cashier(token), make_test_cashier(token)
+    if made_a is None or made_b is None:
+        return
+    (a, cashier_a, _, _), (b, cashier_b, b_phone, b_password) = made_a, made_b
+    today = date.today()
+    supplier: dict = {}
+
+    def key() -> dict:
+        return {"Idempotency-Key": str(uuid.uuid4())}
+
+    def on_hand(branch: str) -> int:
+        _, out = call("GET", f"{inv}/stock?branch_id={branch}&q=PARA500", token=token)
+        return sum(i["qty_on_hand"] for i in out.get("items", []))
+
+    def in_transit() -> int:
+        _, rows = call("GET", f"{inv}/transfers/in-transit?branch_id={a}", token=token)
+        return sum(r["qty_base"] for r in rows if r["medicine_id"] == para["id"]) if isinstance(rows, list) else -1
+
+    try:
+        stock = {"branch_id": a, "reason": "Smoke test S6", "lines": [
+            {"medicine_id": para["id"], "pack_unit_id": packs["strip"]["id"], "lot_no": "S6EARLY",
+             "expiry_date": (today + timedelta(days=200)).isoformat(), "qty": 3, "unit_cost": "0.50"},
+            {"medicine_id": para["id"], "pack_unit_id": packs["strip"]["id"], "lot_no": "S6LATE",
+             "expiry_date": (today + timedelta(days=600)).isoformat(), "qty": 5, "unit_cost": "0.55"}]}  # fmt: skip
+
+        def stock_in():
+            st, out = call("POST", f"{inv}/stock-in", stock, token=token, headers=key())
+            return (st, out) if out.get("code") not in ("UNKNOWN_BRANCH", "UNKNOWN_MEDICINE") else None
+
+        status, _ = wait_for(stock_in, tries=30) or (0, {})
+        if not check(status == 201, f"stock-in PARA500 at branch A -> 201 (got {status})"):
+            return
+        strip = packs["strip"]["qty_in_base"]
+        total = on_hand(a) + on_hand(b) + in_transit()
+
+        # request → approve → pick (FEFO) → dispatch → receive short → resolve
+        def ask():
+            st, out = call("POST", f"{inv}/transfer-requests", {"from_branch_id": a, "to_branch_id": b,
+                           "reason": "Smoke S6", "lines": [{"medicine_id": para["id"], "qty_base": 4 * strip}]},
+                           token=token)  # fmt: skip
+            return (st, out) if out.get("code") != "UNKNOWN_BRANCH" else None
+
+        status, request = wait_for(ask, tries=30) or (0, {})
+        check(status == 201, f"branch B requests 4 strips from A -> 201 ({request.get('number')})")
+        status, t = call("POST", f"{inv}/transfer-requests/{request.get('id')}/approve", token=token)
+        check(status == 200 and t.get("status") == "approved", f"A approves -> transfer {t.get('number')}")
+        status, t = call("POST", f"{inv}/transfers/{t['id']}/pick", {}, token=token)
+        lots = [(p["lot_no"], p["qty_base"]) for p in t.get("picks", [])]
+        check(lots == [("S6EARLY", 3 * strip), ("S6LATE", strip)], f"picked FEFO, earliest expiry first ({lots})")
+        status, t = call("POST", f"{inv}/transfers/{t['id']}/dispatch", {}, token=token, headers=key())
+        check(status == 200 and t.get("status") == "dispatched" and in_transit() == 4 * strip,
+              f"dispatched: {4 * strip} in transit, visible to both branches")  # fmt: skip
+        note = json.dumps({"type": "transfer_note", "transfer_id": t["id"]}).encode()
+        status, pdf, _ = call_raw("POST", docs, note, token, {"Content-Type": "application/json"})
+        if check(status == 200 and pdf.startswith(b"%PDF"), f"transfer note PDF with QR code ({status})"):
+            out = Path(tempfile.gettempdir()) / "pharmacy-smoke-transfer-note.pdf"
+            out.write_bytes(pdf)
+            print(f"        open {out}")
+        btoken = call("POST", "/api/auth/v1/login", {"phone": b_phone, "password": b_password})[1].get("access_token")
+        lines = [{"pick_id": p["id"], "qty_received": p["qty_base"] - (3 if p["lot_no"] == "S6LATE" else 0),
+                  "location": "S6"} for p in t["picks"]]  # fmt: skip
+        status, t = call("POST", f"{inv}/transfers/{t['id']}/receive", {"lines": lines}, token=btoken, headers=key())
+        diffs = t.get("discrepancies", [])
+        check(status == 200 and t.get("status") == "received" and [(d["kind"], d["qty_base"]) for d in diffs]
+              == [("short", 3)], f"B's cashier receives 3 short -> a difference is open ({status})")  # fmt: skip
+        status, t = call("POST", f"{inv}/transfers/{t['id']}/differences/{diffs[0]['id']}/resolve",
+                         {"resolution": "write_off", "reason": "Smoke: lost on the way"}, token=token, headers=key())  # fmt: skip
+        check(status == 200 and t.get("status") == "closed", f"difference written off -> transfer closed ({status})")
+        after = on_hand(a) + on_hand(b) + in_transit()
+        check(after == total - 3 and on_hand(b) == 4 * strip - 3,
+              f"stock adds up: A {on_hand(a)} + B {on_hand(b)} + in transit {in_transit()} = {after} (was {total}, 3 lost)")  # fmt: skip
+
+        # purchase request → PO group
+        code = f"S6{random.randint(1000, 9999)}"
+        status, supplier = call("POST", f"{pur}/suppliers", {"code": code, "name": f"Smoke supplier {code}",
+                                "payment_terms_days": 30}, token=token)  # fmt: skip
+        status, pr = call("POST", f"{pur}/purchase-requests", {"branch_id": a, "lines": [
+            {"medicine_id": para["id"], "qty_base": 2 * packs["box"]["qty_in_base"], "reason": "Smoke S6"}]}, token=token)  # fmt: skip
+        check(status == 201, f"purchase request at A -> 201 ({pr.get('number')})")
+        status, pr = call("POST", f"{pur}/purchase-requests/{pr['id']}/approve", token=token)
+        check(pr.get("status") == "approved", "purchase request approved")
+        status, group = call("POST", f"{pur}/purchase-requests/to-purchase-orders", {"supplier_id": supplier["id"],
+                             "lines": [{"request_line_id": pr["lines"][0]["id"], "pack_unit_id": packs["box"]["id"],
+                                        "qty": 2, "unit_cost": "4.50"}]}, token=token)  # fmt: skip
+        pos = group.get("purchase_orders", [])
+        check(status == 201 and len(pos) == 1 and pos[0]["branch_id"] == a,
+              f"turned into PO group {group.get('number')} with PO {pos[0]['number'] if pos else '?'}")  # fmt: skip
+        _, pr = call("GET", f"{pur}/purchase-requests/{pr['id']}", token=token)
+        check(pr.get("progress") == "ordered", f"the request shows its progress ({pr.get('progress')})")
+        printout = json.dumps({"type": "purchase_order_group", "group_id": group.get("id")}).encode()
+        status, pdf, _ = call_raw("POST", docs, printout, token, {"Content-Type": "application/json"})
+        if check(status == 200 and pdf.startswith(b"%PDF"), f"PO group printout for the supplier ({status})"):
+            out = Path(tempfile.gettempdir()) / "pharmacy-smoke-po-group.pdf"
+            out.write_bytes(pdf)
+            print(f"        open {out}")
+
+        # re-order list for B
+        call("PUT", f"{inv}/reorder-settings", {"branch_id": b, "medicine_id": para["id"], "min_qty": 50,
+             "max_qty": 200}, token=token)  # fmt: skip
+        status, rl = call("POST", f"{inv}/reorder-lists/run?branch_id={b}", token=token)
+        line = next((x for x in rl.get("lines", []) if x["sku"] == "PARA500"), {})
+        check(status == 200 and line.get("reorder_point") == 50 and line.get("suggested_qty", 0) > 0,
+              f"re-order list for B suggests PARA500 ({status})")  # fmt: skip
+        print(f"        re-order list {rl.get('run_date')} for branch B:")
+        for x in rl.get("lines", []):
+            source = f" · could come from another branch ({x['source_reason']}, {x['source_qty']})" if x.get(
+                "source_branch_id") else ""  # fmt: skip
+            print(f"          {x['sku']:<10} on hand {x['on_hand']:>5}  in transit {x['in_transit']:>4}  "
+                  f"on order {x['on_order']:>4}  point {x['reorder_point']:>4}  suggest {x['suggested_qty']:>5} "
+                  f"({x['pack_qty']} {x['pack_unit']}){source}")
+        for action in ("transfer.dispatched", "transfer.received", "transfer.difference_resolved",
+                       "purchase_request.approved", "po_group.created"):  # fmt: skip
+
+            def logged(action=action):
+                _, log = call("GET", f"/api/auth/v1/audit-logs?action={action}&size=1", token=token)
+                return log.get("total")
+
+            check(bool(wait_for(logged)), f"User Log shows {action}")
+    finally:
+        if supplier.get("id"):
+            call("POST", f"{pur}/suppliers/{supplier['id']}/deactivate", {"reason": "smoke test"}, token=token)
+        remove_test_cashier(token, a, cashier_a)
+        remove_test_cashier(token, b, cashier_b)
+
+
 def main() -> int:
     print(f"Smoke test against {BASE}\n")
     tokens = s0_checks()
@@ -1141,6 +1281,13 @@ def main() -> int:
     if run_s5.strip().lower() in ("y", "yes", "1"):
         print()
         s5_checks(tokens["access_token"])
+    run_s6 = os.environ.get("SMOKE_S6") or input(
+        "\nAlso run the S6 checks? It creates two test branches, a transfer with a short receipt, a purchase\n"
+        "request turned into a PO group, and a re-order list (all deactivated afterwards). [y/N] "
+    )
+    if run_s6.strip().lower() in ("y", "yes", "1"):
+        print()
+        s6_checks(tokens["access_token"])
 
     status, _ = call(
         "POST",

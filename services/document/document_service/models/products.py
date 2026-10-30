@@ -34,6 +34,9 @@ class PurchaseOrderCopy(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True)
     version: Mapped[int] = mapped_column(Integer)
     branch_id: Mapped[UUID] = mapped_column(Uuid, index=True)
+    group_id: Mapped[UUID | None] = mapped_column(
+        Uuid, index=True
+    )  # S6: POs of several branches, one supplier
     number: Mapped[str] = mapped_column(String(32))
     status: Mapped[str] = mapped_column(String(20))
     data: Mapped[dict[str, Any]] = mapped_column(JSON)

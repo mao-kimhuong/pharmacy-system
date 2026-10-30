@@ -18,7 +18,7 @@ from ..models import KnownBranch, KnownSupplier, OutboxEvent, ProductPackUnit
 
 SERVICE = "inventory"
 # Cost and stock value: only for users with finance.cost_profit (docs/spec.md).
-COST_FIELDS = frozenset({"cost_per_base", "unit_cost", "value", "stock_value"})
+COST_FIELDS = frozenset({"cost_per_base", "unit_cost", "value", "stock_value", "last_cost_per_base"})
 
 
 def can_see_cost(user: CurrentUser) -> bool:
