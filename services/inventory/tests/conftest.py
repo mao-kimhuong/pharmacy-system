@@ -18,6 +18,10 @@ os.environ["EVENT_CONSUMER_ENABLED"] = "false"
 os.environ["EXPIRY_JOB_ENABLED"] = "false"
 SERVICE_TOKEN = "test-service-token-0123456789abcdef"
 os.environ["SERVICE_TOKEN"] = SERVICE_TOKEN
+S3_ENDPOINT = os.environ.get("TEST_S3_ENDPOINT", "")
+os.environ.update(STORAGE_BUCKET_CHECK="false", S3_ENDPOINT=S3_ENDPOINT or "http://127.0.0.1:9",
+                  S3_BUCKET="test-inventory-files", S3_ACCESS_KEY="testkey123",
+                  S3_SECRET_KEY="test-secret-0123456789abcdef")  # fmt: skip
 
 import httpx  # noqa: E402
 import pytest  # noqa: E402
@@ -56,7 +60,8 @@ async def clean(monkeypatch) -> AsyncIterator[None]:
     async with db.engine.begin() as conn:
         await conn.execute(text(
             "TRUNCATE reservation_lines, reservations, quarantine_entries, movements, stock, batches, stock_ins, opening_lines, opening_balances, initialize_locks,"
-            " product_pack_units, products, known_branches, known_suppliers, processed_messages, outbox CASCADE"
+            " product_pack_units, products, known_branches, known_suppliers, processed_messages, outbox, shrinkages,"
+            " shelf_locations, branch_settings, doc_sequences CASCADE"
         ))  # fmt: skip
     redis = Redis.from_url(TEST_REDIS_URL)
     await redis.flushdb()
@@ -122,7 +127,7 @@ async def scalar(sql: str):
 
 
 async def add_product(sku: str = "PARA500", base: str = "tablet", packs=(("strip", 10), ("box", 100)),
-                      controlled: str | None = None) -> dict:  # fmt: skip
+                      controlled: str | None = None, category: str | None = None) -> dict:  # fmt: skip
     medicine_id = uuid4()
     units = [(base, 1), *packs]
     ids = {name: uuid4() for name, _ in units}
@@ -130,6 +135,7 @@ async def add_product(sku: str = "PARA500", base: str = "tablet", packs=(("strip
         "medicine_id": str(medicine_id), "version": 1, "sku": sku, "brand_name": sku.title(),
         "generic_name": "Generic", "strength": "500mg", "dosage_form": base, "name_km": "ថ្នាំ",
         "base_unit": base, "is_rx_only": bool(controlled), "controlled_schedule": controlled, "is_active": True,
+        "category": {"id": category, "name_en": "Cat", "name_km": ""} if category else None,
         "pack_units": [{"id": str(ids[n]), "name": n, "qty_in_base": q, "barcode": None, "sell_price": "1.00",
                         "is_base": q == 1, "is_active": True} for n, q in units],
     })  # fmt: skip

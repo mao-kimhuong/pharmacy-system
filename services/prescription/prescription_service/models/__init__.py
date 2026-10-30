@@ -40,6 +40,7 @@ class BranchSettingsCopy(Base):
 
     branch_id: Mapped[UUID] = mapped_column(primary_key=True)
     rx_valid_days: Mapped[int] = mapped_column(Integer, default=30)
+    controlled_rx_valid_days: Mapped[int] = mapped_column(Integer, default=7, server_default="7")
 
 
 class Product(ProductCopyMixin, Base):

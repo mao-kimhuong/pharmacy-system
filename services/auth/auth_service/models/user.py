@@ -38,6 +38,9 @@ class User(IdMixin, TimestampMixin, Base):
     failed_attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     pin_hash: Mapped[str | None] = mapped_column(String(255))
+    # PIN step-up (controlled drugs): 5 wrong PINs lock the PIN for 15 minutes
+    pin_failed_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    pin_locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # Two-factor login (authenticator app). The secret is stored encrypted.
     totp_secret_enc: Mapped[str | None] = mapped_column(String(255))
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")

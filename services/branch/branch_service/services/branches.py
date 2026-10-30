@@ -170,6 +170,10 @@ async def update_settings(
         "allow_opened_pack_returns",
         "rx_valid_days",
         "dispensing_label_size",
+        "controlled_rx_valid_days",
+        "double_count_above_usd",
+        "owner_approval_above_usd",
+        "shrinkage_approval_usd",
     ):
         if field in data:
             setattr(settings, field, data[field])

@@ -217,7 +217,14 @@ services:
       DB_NAME: pharmacy_inventory
       DB_USER: inventory_user
       DB_PASSWORD: ${INVENTORY_DB_PASSWORD}
-    depends_on: *service-deps
+      S3_ENDPOINT: http://seaweedfs:8333
+      S3_BUCKET: inventory-files
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+    depends_on:
+      <<: *service-deps
+      seaweedfs:
+        condition: service_healthy
     labels:
       - traefik.enable=true
       - traefik.http.services.inventory.loadbalancer.server.port=8000

@@ -18,6 +18,9 @@ class Settings(BaseServiceSettings):
     expiry_job_enabled: bool = True
     expiry_job_hour: int = 0
     expiry_job_minute: int = 5
+    # Shrinkage photos: private bucket in the file store (pharmacy_shared.storage)
+    s3_bucket: str = "inventory-files"
+    storage_bucket_check: bool = True
 
 
 @lru_cache

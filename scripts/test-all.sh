@@ -48,9 +48,11 @@ ruff check .
 echo "== shared"
 (cd shared && python -m pytest -q)
 
+# Install every service first: some test suites run other services' apps in-process.
 for dir in services/*/; do
-  name=$(basename "$dir")
-  echo "== $name"
   pip install -q -e "$dir"
+done
+for dir in services/*/; do
+  echo "== $(basename "$dir")"
   (cd "$dir" && python -m pytest -q)
 done

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
@@ -92,3 +93,38 @@ class SetPinRequest(BaseModel):
 
     password: str = Field(min_length=1, max_length=128)
     pin: str = Field(min_length=4, max_length=6)
+
+
+class PinVerifyRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    pin: str = Field(min_length=4, max_length=6)
+    action: str = Field(min_length=3, max_length=60, examples=["controlled.dispense"])
+
+
+class PinWitnessRequest(PinVerifyRequest):
+    witness_user_id: UUID
+
+
+class PinTokenOut(BaseModel):
+    pin_token: str
+    expires_at: datetime
+    user_id: UUID
+    name: str
+
+
+class WitnessOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    role: str
+    is_pharmacist: bool
+
+
+class PinConsumeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    token: str = Field(min_length=10, max_length=200)
+    action: str = Field(min_length=3, max_length=60)
+    kind: Literal["actor", "witness"]

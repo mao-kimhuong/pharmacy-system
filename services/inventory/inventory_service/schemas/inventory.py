@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -247,6 +247,7 @@ class ReserveLine(BaseModel):
     medicine_id: UUID
     qty_base: int = Field(ge=1, le=10_000_000)
     batch_id: UUID | None = Field(default=None, description="Pharmacist's batch override")
+    meta: dict[str, Any] | None = Field(default=None, description="Controlled lines: Rx, patient, pharmacist")
 
 
 class ReserveRequest(BaseModel):
@@ -297,6 +298,7 @@ class ReturnItem(BaseModel):
     ref_id: str = Field(min_length=1, max_length=80, description="Unique per returned line and batch")
     batch_id: UUID
     qty_base: int = Field(ge=1, le=10_000_000)
+    meta: dict[str, Any] | None = Field(default=None, description="Controlled lines: Rx / patient refs")
 
 
 class ReturnRequest(BaseModel):
@@ -313,3 +315,119 @@ class ReturnBooked(BaseModel):
     batch_id: UUID
     qty_base: int
     booked: bool
+
+
+# ---------------------------------------------------------------- S5: shelf locations, shrinkage
+
+
+class LocationIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    branch_id: UUID
+    medicine_id: UUID
+    code: str = Field(default="", max_length=12, examples=["A3"], description="Empty: no location")
+
+
+class LocationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    branch_id: UUID
+    medicine_id: UUID
+    code: str
+
+
+class LocationRow(LocationOut):
+    sku: str
+    name: str
+
+
+class ShrinkageIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    branch_id: UUID
+    batch_id: UUID
+    qty_base: int = Field(ge=1, le=10_000_000)
+    reason: Literal["expired", "damaged", "broken", "lost_theft", "recalled"]
+    note: str = Field(default="", max_length=1000)
+    destruction_method: str = Field(default="", max_length=120, description="Required for controlled medicines")
+    pin_token: str | None = Field(default=None, max_length=200, description="Controlled: your PIN (auth /pin/verify)")
+    witness_token: str | None = Field(default=None, max_length=200, description="Controlled: the witness (/pin/witness)")
+
+
+class ShrinkageOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    number: str
+    branch_id: UUID
+    batch_id: UUID
+    medicine_id: UUID
+    lot_no: str = ""
+    qty_base: int
+    reason: str
+    note: str
+    destruction_method: str
+    value: Decimal | None = Field(default=None, description="Only with finance.cost_profit")
+    status: str
+    is_controlled: bool
+    witness_id: UUID | None
+    witness_name: str
+    has_photo: bool = False
+    created_by: UUID | None
+    decided_by: UUID | None
+    decided_at: datetime | None
+    reject_reason: str | None
+    created_at: datetime
+
+
+class ShrinkagePage(BaseModel):
+    items: list[ShrinkageOut]
+    total: int
+    page: int
+    size: int
+
+
+# ---------------------------------------------------------------- S5: internal (stockcount, controlled)
+
+
+class SnapshotRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    branch_id: UUID
+    scope: Literal["full", "category", "location", "controlled"] = "full"
+    category_id: UUID | None = None
+    location: str | None = Field(default=None, max_length=12)
+
+
+class BatchUntil(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    batch_id: UUID
+    until: datetime
+
+
+class MovementsSince(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    branch_id: UUID
+    after_seq: int = Field(ge=0)
+    batch_ids: list[UUID] | None = Field(default=None, max_length=20_000)
+    until: list[BatchUntil] | None = Field(default=None, max_length=20_000)
+
+
+class ControlledStockRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    branch_id: UUID | None = None
+
+
+class ControlledMovement(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    request_id: UUID
+    branch_id: UUID
+    batch_id: UUID
+    kind: Literal["adjust_in", "adjust_out", "destroy"]
+    qty_base: int = Field(ge=1, le=10_000_000)
+    reason: str = Field(min_length=1, max_length=255)
+    meta: dict[str, Any] = Field(default_factory=dict)

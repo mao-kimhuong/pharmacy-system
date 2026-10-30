@@ -100,3 +100,22 @@ async def test_daily_job_expires_open_prescriptions(client) -> None:
     r = (await client.get(f"{PREFIX}/prescriptions/{rx['id']}", headers=PHARMACIST)).json()
     assert r["status"] == "expired"
     assert (await client.get(f"{PREFIX}/prescriptions/{draft['id']}", headers=PHARMACIST)).json()["status"] == "draft"
+
+
+async def test_controlled_rx_is_valid_7_days_at_most(client) -> None:
+    p, d = await add_patient(client), await add_doctor(client)
+    diaz = await add_product("DIAZ5", "Diazepam")
+    from prescription_service.db import db as rx_db
+    from prescription_service.models import Product
+
+    async with rx_db.sessionmaker() as s, s.begin():
+        (await s.get(Product, diaz)).controlled_schedule = "IV"
+    rx = await add_rx(client, p, d, [{"medicine_id": diaz, "qty_base": 10}], activate=False)
+    assert rx["valid_until"] == "2026-11-01"  # issued 2026-10-25 + 7
+    r = await client.post(f"{PREFIX}/prescriptions", headers=PHARMACIST, json={
+        "branch_id": str(PP1), "patient_id": p["id"], "doctor_id": d["id"], "issued_on": "2026-10-25",
+        "valid_until": "2026-11-20", "items": [{"medicine_id": diaz, "qty_base": 10}]})  # fmt: skip
+    assert r.status_code == 422 and r.json()["details"]["field"] == "valid_until"
+    await event("branch.settings_updated", {"branch_id": str(PP1), "rx_valid_days": 30, "controlled_rx_valid_days": 3})
+    rx = await add_rx(client, p, d, [{"medicine_id": diaz, "qty_base": 10}], activate=False)
+    assert rx["valid_until"] == "2026-10-28"

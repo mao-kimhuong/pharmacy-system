@@ -58,6 +58,8 @@ from sales_service.models import OutboxEvent, ProcessedMessage  # noqa: E402
 from sales_service.services.clients import Clients, get_clients  # noqa: E402
 from sales_service.services.events import handle_event  # noqa: E402
 
+from .fake_auth import FakeAuth  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[2]
 PREFIX = "/api/sales/v1"
 TODAY = date(2026, 10, 27)
@@ -81,6 +83,9 @@ def databases() -> None:
     _migrate("prescription", prescription_config.get_settings().database_url)
 
 
+AUTH = FakeAuth()
+
+
 def real_clients(**override) -> Clients:
     def client(asgi_app) -> InternalClient:  # noqa: ANN001
         return InternalClient(
@@ -89,7 +94,8 @@ def real_clients(**override) -> Clients:
 
     return Clients(inventory=override.get("inventory") or client(inventory_main.app),
                    customers=override.get("customers") or client(customers_main.app),
-                   prescription=override.get("prescription") or client(prescription_main.app))  # fmt: skip
+                   prescription=override.get("prescription") or client(prescription_main.app),
+                   auth=override.get("auth") or AUTH)  # fmt: skip
 
 
 @pytest.fixture(autouse=True)

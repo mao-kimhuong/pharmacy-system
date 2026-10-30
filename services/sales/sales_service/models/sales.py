@@ -146,6 +146,10 @@ class InvoiceLine(IdMixin, Base):
     allergy_override_by: Mapped[UUID | None] = mapped_column(Uuid)
     warnings_acknowledged_by: Mapped[UUID | None] = mapped_column(Uuid)
     warnings_acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # controlled medicine (S5): the patient's ID document, the pharmacist who typed their PIN
+    is_controlled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    patient_id_document: Mapped[str | None] = mapped_column(String(40))
+    pin_confirmed_by: Mapped[UUID | None] = mapped_column(Uuid)
 
     invoice: Mapped[Invoice] = relationship(back_populates="lines")
     batches: Mapped[list["InvoiceLineBatch"]] = relationship(lazy="selectin", order_by="InvoiceLineBatch.seq")

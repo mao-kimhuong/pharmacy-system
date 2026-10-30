@@ -1,8 +1,11 @@
 from datetime import datetime
-from typing import Literal
+from decimal import Decimal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
+
+Usd = Annotated[Decimal, Field(ge=0, le=1_000_000, max_digits=14, decimal_places=2)]
 
 
 class BranchSettingsOut(BaseModel):
@@ -15,6 +18,10 @@ class BranchSettingsOut(BaseModel):
     allow_opened_pack_returns: bool
     rx_valid_days: int
     dispensing_label_size: str
+    controlled_rx_valid_days: int
+    double_count_above_usd: Decimal
+    owner_approval_above_usd: Decimal
+    shrinkage_approval_usd: Decimal
 
 
 class BranchOut(BaseModel):
@@ -64,6 +71,16 @@ class BranchSettingsUpdate(BaseModel):
     allow_opened_pack_returns: bool | None = None
     rx_valid_days: int | None = Field(default=None, ge=1, le=365)
     dispensing_label_size: Literal["70x40", "50x30", "100x50", "a4_sheet"] | None = None
+    controlled_rx_valid_days: int | None = Field(default=None, ge=1, le=90)
+    double_count_above_usd: Usd | None = Field(
+        default=None, description="Stock take: count twice above this line value"
+    )
+    owner_approval_above_usd: Usd | None = Field(
+        default=None, description="Stock take: owner approves above this total variance"
+    )
+    shrinkage_approval_usd: Usd | None = Field(
+        default=None, description="Shrinkage above this value needs approval"
+    )
 
 
 class ReasonRequest(BaseModel):

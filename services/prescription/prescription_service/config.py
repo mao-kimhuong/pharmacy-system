@@ -17,6 +17,7 @@ class Settings(BaseServiceSettings):
     expiry_job_hour: int = 0
     expiry_job_minute: int = 10
     default_rx_valid_days: int = 30  # until the branch's own setting has arrived
+    default_controlled_rx_valid_days: int = 7
     # Create the private Rx file bucket at start-up when missing
     storage_bucket_check: bool = True
 

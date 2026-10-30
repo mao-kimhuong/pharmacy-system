@@ -1,13 +1,8 @@
-"""All routers of the controlled service are included here.
-
-Mounted under /api/controlled/v1. Endpoints for this service are listed in
-docs/spec.md (Screen -> API map, Menu structure, Endpoint reference).
-"""
+"""All routers of the controlled service, mounted under /api/controlled/v1."""
 
 from fastapi import APIRouter
 
-router = APIRouter()
+from .register import router as register_router
 
-# Example for sprint work:
-# from .<feature> import router as <feature>_router
-# router.include_router(<feature>_router, prefix="/<feature>", tags=["<feature>"])
+router = APIRouter()
+router.include_router(register_router)

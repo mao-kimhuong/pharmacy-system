@@ -8,7 +8,7 @@ from .audit import AuditLog
 from .base import Base
 from .known_branch import KnownBranch
 from .refresh_token import RefreshToken
-from .role import Permission, RolePermission, RoleRecord
+from .role import AppliedGrant, Permission, RolePermission, RoleRecord
 from .user import ROLES, Role, User, UserBranch
 
 
@@ -21,6 +21,7 @@ class ProcessedMessage(ProcessedMessageMixin, Base):
 
 
 __all__ = [
+    "AppliedGrant",
     "AuditLog",
     "Base",
     "KnownBranch",

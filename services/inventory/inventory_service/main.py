@@ -1,3 +1,5 @@
+import logging
+
 from pharmacy_shared.app_factory import create_service_app
 from pharmacy_shared.consumer import EventConsumer
 
@@ -6,10 +8,13 @@ from .api.router import router
 from .config import get_settings
 from .db import db
 from .models import OutboxEvent, ProcessedMessage
+from .services.clients import get_storage
 from .services.events import ROUTING_KEYS, handle_event
 from .services.expiry import run_scheduler
 
 settings = get_settings()
+if settings.is_production:
+    settings.check_storage_keys()
 
 consumer = EventConsumer(
     url=settings.rabbitmq_url,
@@ -25,6 +30,15 @@ async def expiry_job(stop) -> None:  # noqa: ANN001
     await run_scheduler(db, stop, settings.expiry_job_hour, settings.expiry_job_minute)
 
 
+async def create_bucket() -> None:
+    """The private bucket for shrinkage photos; if the store is down, uploads answer 503."""
+    if settings.storage_bucket_check:
+        try:
+            await get_storage().ensure_bucket()
+        except Exception:  # noqa: BLE001
+            logging.getLogger(__name__).exception("could not check the inventory file bucket")
+
+
 background = []
 if settings.event_consumer_enabled:
     background.append(consumer.run)
@@ -37,6 +51,7 @@ app = create_service_app(
     router,
     title="Pharmacy inventory service",
     outbox_model=OutboxEvent,
+    on_startup=(create_bucket,),
     background=tuple(background),
     internal_router=internal_router,
 )

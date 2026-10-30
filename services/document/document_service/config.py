@@ -16,6 +16,8 @@ class Settings(BaseServiceSettings):
     max_labels: int = 1000
     # A document whose data is still on its way (event) is waited for this long
     document_wait_seconds: float = 5.0
+    # The controlled-drug register PDF reads the register from the controlled service (/internal/v1)
+    controlled_url: str = "http://controlled:8000"
 
 
 @lru_cache

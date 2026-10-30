@@ -57,7 +57,8 @@ async def handle_event(
         await copies.upsert_branch(session, KnownBranch, payload)
     elif event_type == "branch.settings_updated":
         await _upsert(session, BranchSettingsCopy, "branch_id", {
-            "branch_id": UUID(payload["branch_id"]), "rx_valid_days": int(payload.get("rx_valid_days") or 30)})  # fmt: skip
+            "branch_id": UUID(payload["branch_id"]), "rx_valid_days": int(payload.get("rx_valid_days") or 30),
+            "controlled_rx_valid_days": int(payload.get("controlled_rx_valid_days") or 7)})  # fmt: skip
     elif event_type in copies.MEDICINE_EVENTS:
         await upsert_product(session, payload)
     elif event_type in CUSTOMER_EVENTS:

@@ -26,7 +26,6 @@ CATALOG: tuple[PermissionDef, ...] = (
     # Sales
     P("pos.sell", "Sales", "Sell (POS)"),
     P("pos.dispense_rx", "Sales", "Dispense prescription-only medicines"),
-    P("pos.dispense_controlled", "Sales", "Dispense controlled medicines"),
     P("sales.view", "Sales", "See invoices (List Sale)"),
     P("sales.cancel", "Sales", "Cancel invoices"),
     P("sales.cancel_any", "Sales", "Cancel invoices from earlier days"),
@@ -47,8 +46,10 @@ CATALOG: tuple[PermissionDef, ...] = (
         "Override allergy warnings (pharmacist, with reason)",
     ),
     P("controlled.view", "Controlled drugs", "See the controlled-drug register"),
+    P("controlled.dispense", "Controlled drugs", "Dispense controlled medicines (pharmacist, with PIN)"),
     P("controlled.witness", "Controlled drugs", "Witness controlled-drug entries"),
     P("controlled.adjust", "Controlled drugs", "Adjust or destroy controlled stock"),
+    P("controlled.resolve", "Controlled drugs", "Resolve register discrepancies"),
     # Inventory
     P("products.view", "Inventory", "See products"),
     P("products.manage", "Inventory", "Edit medicines and prices"),
@@ -57,7 +58,10 @@ CATALOG: tuple[PermissionDef, ...] = (
     P("hampers.manage", "Inventory", "Hampers (bundles)"),
     P("inventory.view", "Inventory", "See stock"),
     P("inventory.stock_in", "Inventory", "Quick stock-in"),
-    P("inventory.adjust", "Inventory", "Shrinkage and adjustments"),
+    P("inventory.adjust", "Inventory", "Adjustments and quarantine release"),
+    P("inventory.shrinkage", "Inventory", "Record shrinkage (damaged, lost, expired...)"),
+    P("inventory.shrinkage_approve", "Inventory", "Approve shrinkage above the branch limit"),
+    P("inventory.locations", "Inventory", "Set shelf locations"),
     P("inventory.initialize", "Inventory", "Opening stock (Initialize)"),
     P("stockcount.count", "Inventory", "Count stock (Stock Take)"),
     P("stockcount.approve", "Inventory", "Approve stock counts"),
@@ -93,6 +97,13 @@ CATALOG: tuple[PermissionDef, ...] = (
     P("settings.features", "Settings", "Turn features on or off"),
 )
 KEYS = frozenset(p.key for p in CATALOG)
+# Old key → new key: grants move to the new key at start-up (catalog_sync).
+RENAMED: dict[str, str] = {"pos.dispense_controlled": "controlled.dispense"}
+# Existing keys added to a built-in role's defaults in a later sprint: given once
+# to stacks that already exist (tag, role, key); a later removal by the owner stays.
+DEFAULT_ADDITIONS: tuple[tuple[str, str, str], ...] = (
+    ("S5:pharmacist:controlled.adjust", "pharmacist", "controlled.adjust"),
+)
 
 OWNER = "owner"
 SYSTEM_ROLES: dict[str, str] = {
@@ -103,12 +114,12 @@ SYSTEM_ROLES: dict[str, str] = {
 }
 
 _PHARMACIST = {
-    "dashboard.view", "pos.sell", "pos.dispense_rx", "pos.dispense_controlled", "sales.view",
+    "dashboard.view", "pos.sell", "pos.dispense_rx", "controlled.dispense", "sales.view",
     "sales.cancel", "sales.return", "sales.suspend", "prescriptions.manage", "controlled.view",
     "patients.view", "patients.manage", "prescriptions.view", "prescriptions.override_warning",
-    "controlled.witness", "products.view", "labels.print", "inventory.view", "inventory.stock_in",
+    "controlled.witness", "controlled.adjust", "products.view", "labels.print", "inventory.view", "inventory.stock_in",
     "stockcount.count", "stockcount.approve", "transfers.request", "transfers.send",
-    "transfers.receive", "purchasing.receive", "contacts.customers", "reports.stock",
+    "transfers.receive", "purchasing.receive", "contacts.customers", "reports.stock", "inventory.shrinkage",
 }  # fmt: skip
 _CASHIER = {
     "dashboard.view", "pos.sell", "sales.view", "sales.suspend", "products.view", "inventory.view",
@@ -159,7 +170,7 @@ MENU: tuple[MenuItem, ...] = (
     M("inventory", "hamper", "Hamper", ("hampers.manage",)),
     M("inventory", "stock", "Stock", ("inventory.view",)),
     M("inventory", "stock_take", "Stock Take", ("stockcount.count",)),
-    M("inventory", "shrinkage", "Shrinkage", ("inventory.adjust",)),
+    M("inventory", "shrinkage", "Shrinkage", ("inventory.shrinkage", "inventory.shrinkage_approve")),
     M("inventory", "import_product", "Import Product", ("products.import",)),
     M("inventory", "print_label", "Print Label", ("labels.print",)),
     M("transfer", "stock_transfer_request", "Stock Transfer Request", ("transfers.request",)),

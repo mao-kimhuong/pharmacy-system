@@ -164,7 +164,7 @@ async def reserve(session: AsyncSession, caller: InternalCaller, data: dict[str,
         seq[line["line_no"]] += 1
         reservation.lines.append(ReservationLine(
             line_no=line["line_no"], seq=seq[line["line_no"]], medicine_id=line["medicine_id"],
-            batch_id=stock.batch_id, qty_base=qty, overridden=overridden, batch=stock.batch,
+            batch_id=stock.batch_id, qty_base=qty, overridden=overridden, batch=stock.batch, meta=line.get("meta"),
         ))  # fmt: skip
     session.add(reservation)
     await session.commit()
@@ -183,7 +183,7 @@ async def confirm(session: AsyncSession, caller: InternalCaller, reservation_id:
         await session.flush()  # the movement re-reads the locked row
         await apply_movement(session, branch_id=r.branch_id, batch=line.batch, type="out", qty_base=-line.qty_base,
                              ref_type="reservation_line", ref_id=str(line.id), reason=f"Sale {r.ref_id}",
-                             actor_id=caller.user_id)  # fmt: skip
+                             actor_id=caller.user_id, meta=line.meta)  # fmt: skip
     r.status = "confirmed"
     await session.commit()
     return to_dict(r)
@@ -229,7 +229,8 @@ async def reverse(
     for line in r.lines:
         await apply_movement(session, branch_id=r.branch_id, batch=line.batch, type="sale_cancel",
                              qty_base=line.qty_base, ref_type="reservation_line", ref_id=str(line.id),
-                             reason=clean(reason) or f"Sale {r.ref_id} cancelled", actor_id=caller.user_id)  # fmt: skip
+                             reason=clean(reason) or f"Sale {r.ref_id} cancelled", actor_id=caller.user_id,
+                             meta=line.meta)  # fmt: skip
     r.status = "reversed"
     await session.commit()
     return to_dict(r)
@@ -257,7 +258,8 @@ async def book_returns(
             continue
         await apply_movement(session, branch_id=data["branch_id"], batch=batch, type="return",
                              qty_base=item["qty_base"], ref_type="return_line", ref_id=ref_id,
-                             reason=clean(data.get("reason")), actor_id=caller.user_id)  # fmt: skip
+                             reason=clean(data.get("reason")), actor_id=caller.user_id,
+                             meta=item.get("meta"))  # fmt: skip
         if data["to"] == "quarantine":
             stock = await lock_stock(session, data["branch_id"], batch.id)
             stock.qty_quarantined += item["qty_base"]

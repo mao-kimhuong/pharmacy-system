@@ -49,7 +49,15 @@ class LineIn(BaseModel):
         default=None, max_length=255,
         description="Pharmacist with prescriptions.override_warning: sell despite an allergy warning",
     )  # fmt: skip
-    acknowledge_warnings: bool = Field(default=False, description="Duplicate-therapy warning seen and accepted")
+    acknowledge_warnings: bool = Field(
+        default=False, description="Duplicate-therapy warning seen and accepted"
+    )
+    patient_id_document: str | None = Field(
+        default=None,
+        min_length=3,
+        max_length=40,
+        description="Controlled medicine: the patient's ID card / passport no.",
+    )
 
 
 class PaymentIn(BaseModel):
@@ -71,6 +79,10 @@ class InvoiceCreate(BaseModel):
         default="USD_KHR", description="USD_KHR: whole dollars in USD, the cents in riel (rounded to 100)"
     )
     note: str = Field(default="", max_length=500)
+    pin_token: str | None = Field(
+        default=None, max_length=200,
+        description="Controlled medicines: the pharmacist's PIN for controlled.dispense (auth /pin/verify)",
+    )  # fmt: skip
 
 
 class LineBatchOut(BaseModel):
@@ -119,6 +131,9 @@ class LineOut(BaseModel):
     allergy_override_by: UUID | None = None
     warnings_acknowledged_by: UUID | None = None
     warnings_acknowledged_at: datetime | None = None
+    is_controlled: bool = False
+    patient_id_document: str | None = None
+    pin_confirmed_by: UUID | None = None
 
 
 class InvoicePaymentOut(BaseModel):

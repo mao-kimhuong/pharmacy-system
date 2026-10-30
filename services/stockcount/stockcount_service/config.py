@@ -10,6 +10,10 @@ class Settings(BaseServiceSettings):
     db_user: str = "stockcount_user"
     db_password: str = "change-me-stockcount"
 
+    inventory_url: str = "http://inventory:8000"
+    # RabbitMQ consumer (branches, branch settings)
+    event_consumer_enabled: bool = True
+
 
 @lru_cache
 def get_settings() -> Settings:

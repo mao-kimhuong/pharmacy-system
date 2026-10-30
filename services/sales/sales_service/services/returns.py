@@ -36,15 +36,19 @@ from . import money
 from .clients import Clients
 from .common import audit, clean
 from .queries import get_invoice, returns_of
+from .sale_saga import controlled_meta
 from .snapshot import invoice_payload
 
 
 async def return_steps(session: AsyncSession, ret: SaleReturn, inv: Invoice, actor: CurrentUser | None,
                        clients: Clients) -> None:  # fmt: skip
     """Book the stock, then the credit note; then finish. Idempotent."""
+    by_id = {line.id: line for line in inv.lines}
     await clients.inventory.post("/returns", {
         "branch_id": str(ret.branch_id), "to": "quarantine" if ret.to_quarantine else "stock", "reason": ret.reason,
-        "items": [{"ref_id": str(x.id), "batch_id": str(x.batch_id), "qty_base": x.qty_base} for x in ret.lines],
+        "items": [{"ref_id": str(x.id), "batch_id": str(x.batch_id), "qty_base": x.qty_base,
+                   **({"meta": {**controlled_meta(inv, by_id[x.invoice_line_id].line_no), "reason": ret.reason}}
+                      if by_id[x.invoice_line_id].is_controlled else {})} for x in ret.lines],
     }, actor=actor, branch_id=ret.branch_id)  # fmt: skip
     if ret.refund_method == "credit_note":
         await clients.customers.post("/credit/reverse", {

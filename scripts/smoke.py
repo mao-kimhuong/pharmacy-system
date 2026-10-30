@@ -23,7 +23,7 @@ without cost fields, the User Log. The test branch, cashier and supplier are dea
 S3 checks (optional, needs the S1b sample products): in a new test branch, stock-in,
 the KHR rate, a cashier selling 2 items for mixed USD/KHR cash (change, FEFO split,
 80mm receipt), the same Idempotency-Key not selling twice, two tills selling the
-last unit at once, Rx-only / controlled refused, a credit sale over the limit
+last unit at once, Rx-only / controlled refused without an Rx, a credit sale over the limit
 refused (nothing left reserved), a credit sale + customer payment, a cashier's 403
 on cancel, cancel back to the same batches, a partial return, /internal not
 reachable through Traefik, the User Log.
@@ -36,7 +36,16 @@ blocks the sale until the pharmacist overrides it with a reason, part of the Rx 
 sold and the rest is shown as remaining, selling more than the Rx allows is
 refused, the dispensing label and the Rx summary print, the User Log.
 
-Without prompts: SMOKE_PHONE, SMOKE_PASSWORD, SMOKE_S1=y, SMOKE_S1B=y, SMOKE_S2=y, SMOKE_S3=y, SMOKE_S4=y.
+S5 checks (optional, needs the S1b sample products): in a new test branch, two
+pharmacists set their PINs; DIAZ5 (controlled) is stocked in and reaches the
+register; a controlled sale on an Rx needs the patient's ID and the PIN (refused
+without it); one tablet is destroyed with a witness's PIN; the register shows
+receive / dispense / destroy with the right balance and its hash chain verifies;
+the register PDF prints; a controlled stock take is counted by both pharmacists
+(one tablet short), approved with a PIN and posted to stock and the register;
+the User Log.
+
+Without prompts: SMOKE_PHONE, SMOKE_PASSWORD, SMOKE_S1=y ... SMOKE_S4=y, SMOKE_S5=y.
 
 Uses only the Python standard library.
 """
@@ -633,8 +642,8 @@ def s3_checks(token: str) -> None:
         status == 422 and r.get("code") == "RX_REQUIRED", f"Rx-only refused -> RX_REQUIRED ({r.get('code')})"
     )
     status, r = sell([line("DIAZ5", "strip", 1)], cash)
-    check(status == 422 and r.get("code") == "CONTROLLED_NOT_AVAILABLE",
-          f"controlled refused -> CONTROLLED_NOT_AVAILABLE ({r.get('code')})")  # fmt: skip
+    check(status == 422 and r.get("code") == "RX_REQUIRED",
+          f"controlled without an Rx refused -> RX_REQUIRED ({r.get('code')})")  # fmt: skip
 
     # 5. credit: over the limit refused with nothing reserved; within it fine; a payment lowers it
     status, customer = call("POST", f"{cust}/customers", {"phone": f"097{random.randint(1000000, 9999999)}",
@@ -884,6 +893,168 @@ def s4_checks(token: str) -> None:
         remove_test_cashier(token, bid, cashier)
 
 
+def s5_checks(token: str) -> None:
+    cat, inv, sales, rxp = "/api/catalog/v1", "/api/inventory/v1", "/api/sales/v1", "/api/prescription/v1"
+    ctl, cnt, auth = "/api/controlled/v1", "/api/stockcount/v1", "/api/auth/v1"
+    _, found = call("GET", f"{cat}/medicines/search?q=DIAZ5", token=token)
+    diaz = next((x for x in found.get("items", []) if x["sku"] == "DIAZ5"), None)
+    if diaz is None:
+        check(False, "sample product DIAZ5 exists (run the S1b step first)")
+        return
+    packs = {p["name"]: p for p in diaz["pack_units"]}
+    strip = packs["strip"]["qty_in_base"]
+    made = make_test_cashier(token)
+    if made is None:
+        return
+    bid, cashier, _, _ = made
+    today = date.today()
+
+    def key() -> dict:
+        return {"Idempotency-Key": str(uuid.uuid4())}
+
+    people, toks = [], []
+    for n, pin in ((1, "2468"), (2, "1357")):
+        phone, password = f"09{random.randint(1000000, 9999999)}", f"smoke-{random.randint(100000, 999999)}"
+        status, person = call("POST", f"{auth}/users", {"name": f"Smoke pharmacist {n}", "phone": phone,
+                              "password": password, "role": "pharmacist", "is_pharmacist": True,
+                              "branch_ids": [bid]}, token=token)  # fmt: skip
+        if not check(status == 201, f"pharmacist {n} created -> 201 (got {status})"):
+            return remove_test_cashier(token, bid, cashier)
+        tok = call("POST", f"{auth}/login", {"phone": phone, "password": password})[1].get("access_token", "")
+        status, _ = call("PUT", f"{auth}/me/pin", {"password": password, "pin": pin}, token=tok)
+        check(status == 204, f"pharmacist {n} sets a PIN -> 204 (got {status})")
+        people.append((person, pin))
+        toks.append(tok)
+    (p1, pin1), (p2, pin2) = people
+    t1, t2 = toks
+    patient, doctor = {}, {}
+
+    def pin_token(action: str) -> str:
+        return call("POST", f"{auth}/pin/verify", {"pin": pin1, "action": action}, token=t1)[1].get("pin_token", "")
+
+    def witness_token(action: str) -> str:
+        return call("POST", f"{auth}/pin/witness", {"witness_user_id": p2["id"], "pin": pin2, "action": action},
+                    token=t1)[1].get("pin_token", "")  # fmt: skip
+
+    def register() -> dict:
+        return call("GET", f"{ctl}/register?branch_id={bid}&medicine_id={diaz['id']}", token=t1)[1]
+
+    try:
+        stock = {"branch_id": bid, "reason": "Smoke test S5", "lines": [{
+            "medicine_id": diaz["id"], "pack_unit_id": packs["strip"]["id"], "lot_no": "S5LOT",
+            "expiry_date": (today + timedelta(days=500)).isoformat(), "qty": 3, "unit_cost": "0.90"}]}  # fmt: skip
+
+        def stock_in():
+            st, out = call("POST", f"{inv}/stock-in", stock, token=token, headers=key())
+            return (st, out) if out.get("code") not in ("UNKNOWN_BRANCH", "UNKNOWN_MEDICINE") else None
+
+        status, _ = wait_for(stock_in, tries=30) or (0, {})
+        check(status == 201, f"stock-in 3 strips of DIAZ5 -> 201 (got {status})")
+        got = wait_for(lambda: register() if len(register().get("entries", [])) >= 1 else None, tries=40)
+        if not check(bool(got) and got["entries"][0]["entry_type"] == "receive"
+                     and got["entries"][0]["balance_after"] == 3 * strip,
+                     f"register shows the receipt, balance {3 * strip} (run make resync if it never comes)"):  # fmt: skip
+            return
+        call("PUT", f"{sales}/exchange-rates/{bid}", {"khr_per_usd": 4100}, token=token)
+
+        # Rx for the controlled medicine (valid 7 days by default)
+        def new_patient():
+            st, out = call("POST", f"{rxp}/patients", {"branch_id": bid, "name_en": "Smoke S5 Patient",
+                           "sex": "male", "phone": f"097{random.randint(1000000, 9999999)}"}, token=t1)  # fmt: skip
+            return (st, out) if out.get("code") != "UNKNOWN_BRANCH" else None
+
+        status, patient = wait_for(new_patient, tries=30) or (0, {})
+        status, doctor = call("POST", f"{rxp}/doctors", {"name": "Dr Smoke S5", "licence_no":
+                              f"S5-{uuid.uuid4().hex[:8]}"}, token=t1)  # fmt: skip
+        status, rx = call("POST", f"{rxp}/prescriptions", {"branch_id": bid, "patient_id": patient.get("id"),
+                          "doctor_id": doctor.get("id"), "issued_on": today.isoformat(),
+                          "items": [{"medicine_id": diaz["id"], "qty_base": strip, "dosage": "1 tablet",
+                                     "frequency": "at night"}]}, token=t1)  # fmt: skip
+        call("POST", f"{rxp}/prescriptions/{rx.get('id')}/activate", token=t1)
+        check(status == 201 and rx.get("valid_until") == (today + timedelta(days=7)).isoformat(),
+              f"controlled Rx valid 7 days ({rx.get('valid_until')})")  # fmt: skip
+
+        def sell(**extra):
+            return call("POST", f"{sales}/invoices", {"branch_id": bid, "lines": [{
+                "medicine_id": diaz["id"], "pack_unit_id": packs["strip"]["id"], "qty": 1,
+                "rx_item_id": rx["items"][0]["id"], "patient_id_document": "SMOKE-ID-001"}],
+                "payments": [{"method": "cash", "currency": "USD", "amount": "20.00"}], **extra},
+                token=t1, headers=key())  # fmt: skip
+
+        status, r = sell()
+        check(status == 401 and r.get("code") == "PIN_REQUIRED", f"controlled sale without PIN -> 401 ({r.get('code')})")
+        status, sale = sell(pin_token=pin_token("controlled.dispense"))
+        check(status == 201 and sale["lines"][0].get("is_controlled"),
+              f"controlled sale with Rx, patient ID and PIN -> 201 ({sale.get('number')})")  # fmt: skip
+
+        # destroy one tablet with a witness
+        batch = next((b["batch_id"] for i in call("GET", f"{inv}/stock?branch_id={bid}&q=DIAZ5", token=token)[1]
+                      .get("items", []) for b in i["batches"]), None)  # fmt: skip
+        body = {"branch_id": bid, "batch_id": batch, "kind": "destroy", "qty_base": 1, "reason": "Smoke: broken tablet",
+                "destruction_method": "Crushed, witnessed"}  # fmt: skip
+        status, r = call("POST", f"{ctl}/entries", {**body, "pin_token": pin_token("controlled.destroy")}, token=t1,
+                         headers=key())  # fmt: skip
+        check(status == 422 and r.get("code") == "WITNESS_REQUIRED", f"destroy without witness -> 422 ({r.get('code')})")
+        status, r = call("POST", f"{ctl}/entries", {**body, "pin_token": pin_token("controlled.destroy"),
+                         "witness_token": witness_token("controlled.destroy")}, token=t1, headers=key())  # fmt: skip
+        check(status == 201 and r.get("witness_name") == "Smoke pharmacist 2",
+              f"destroy 1 tablet with the witness's PIN -> 201 (got {status} {r.get('code', '')})")  # fmt: skip
+        expected = 3 * strip - strip - 1
+        got = wait_for(lambda: register() if len(register().get("entries", [])) >= 3 else None, tries=40) or {}
+        kinds = [(e["entry_type"], e["balance_after"]) for e in got.get("entries", [])]
+        check(kinds == [("receive", 3 * strip), ("dispense", 2 * strip), ("destroy", expected)],
+              f"register: receive, dispense, destroy with running balance ({kinds})")  # fmt: skip
+        last = (got.get("entries") or [{}])[-1]
+        check(last.get("witness_name") == "Smoke pharmacist 2", "the register names the witness")
+        disp = next((e for e in got.get("entries", []) if e["entry_type"] == "dispense"), {})
+        check(disp.get("prescription_number") == rx.get("number") and disp.get("patient_id_document") == "SMOKE-ID-001",
+              "the dispense entry carries the Rx and the patient's ID")  # fmt: skip
+        status, v = call("GET", f"{ctl}/register/verify?branch_id={bid}", token=t1)
+        check(status == 200 and v.get("valid") is True, "hash chain verifies")
+        pdf_body = json.dumps({"type": "controlled_register", "branch_id": bid}).encode()
+        status, pdf, _ = call_raw("POST", "/api/documents/v1/render", pdf_body, t1, {"Content-Type": "application/json"})
+        if check(status == 200 and pdf.startswith(b"%PDF"), f"register PDF ({status})"):
+            out = Path(tempfile.gettempdir()) / "pharmacy-smoke-register.pdf"
+            out.write_bytes(pdf)
+            print(f"        open {out}")
+
+        # stock take of controlled medicines: both pharmacists count (one tablet short), approve with PIN
+        status, count = call("POST", f"{cnt}/counts", {"branch_id": bid, "scope": "controlled"}, token=t1)
+        if check(status == 201 and len(count.get("lines", [])) == 1 and "snapshot_qty" not in count["lines"][0],
+                 f"controlled stock take started, blind ({count.get('number')})"):  # fmt: skip
+            line = count["lines"][0]
+            for tok in (t1, t2):
+                status, r = call("POST", f"{cnt}/counts/{count['id']}/entries",
+                                 {"line_id": line["id"], "qty": expected - 1}, token=tok)  # fmt: skip
+            check(r.get("status") == "agreed", f"two pharmacists counted the same -> agreed ({r.get('status')})")
+            status, review = call("POST", f"{cnt}/counts/{count['id']}/submit", token=t1)
+            check(status == 200 and review["lines"][0]["variance"] == -1, f"review shows a variance of -1 ({status})")
+            status, r = call("POST", f"{cnt}/counts/{count['id']}/approve", {}, token=t1, headers=key())
+            check(status == 401 and r.get("code") == "PIN_REQUIRED", "approving a controlled variance needs the PIN")
+            status, r = call("POST", f"{cnt}/counts/{count['id']}/approve",
+                             {"pin_token": pin_token("stockcount.approve")}, token=t1, headers=key())  # fmt: skip
+            check(status == 200 and r.get("status") == "approved", f"stock take approved with PIN ({status})")
+            got = wait_for(lambda: register() if len(register().get("entries", [])) >= 4 else None, tries=40) or {}
+            last = (got.get("entries") or [{}])[-1]
+            check(last.get("entry_type") == "count_adjust" and last.get("balance_after") == expected - 1,
+                  f"the stock take reached stock and the register (balance {last.get('balance_after')})")  # fmt: skip
+        for action in ("user.pin_set", "invoice.created", "register.destroy", "stock_count.approved"):
+
+            def logged(action=action):
+                _, log = call("GET", f"{auth}/audit-logs?action={action}&size=1", token=token)
+                return log.get("total")
+
+            check(bool(wait_for(logged)), f"User Log shows {action}")
+    finally:
+        if patient.get("id"):
+            call("POST", f"{rxp}/patients/{patient['id']}/deactivate", {"reason": "smoke test"}, token=token)
+        if doctor.get("id"):
+            call("POST", f"{rxp}/doctors/{doctor['id']}/deactivate", {"reason": "smoke test"}, token=token)
+        for person, _ in people:
+            call("POST", f"{auth}/users/{person['id']}/deactivate", {"reason": "smoke test"}, token=token)
+        remove_test_cashier(token, bid, cashier)
+
+
 def main() -> int:
     print(f"Smoke test against {BASE}\n")
     tokens = s0_checks()
@@ -923,6 +1094,13 @@ def main() -> int:
     if run_s4.strip().lower() in ("y", "yes", "1"):
         print()
         s4_checks(tokens["access_token"])
+    run_s5 = os.environ.get("SMOKE_S5") or input(
+        "\nAlso run the S5 checks? It creates a test branch, two pharmacists with PINs, stock-in, a controlled sale,\n"
+        "a destruction and a stock take of DIAZ5 (all in the deactivated test branch). [y/N] "
+    )
+    if run_s5.strip().lower() in ("y", "yes", "1"):
+        print()
+        s5_checks(tokens["access_token"])
 
     status, _ = call(
         "POST",

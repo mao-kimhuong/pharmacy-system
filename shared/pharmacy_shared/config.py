@@ -51,6 +51,8 @@ class BaseServiceSettings(BaseSettings):
     # Production refuses to start when it is missing, a default or < 32 characters.
     # TODO S9: one token per calling service (see CLAUDE.md).
     service_token: str = ""
+    # The auth service (PIN tokens for controlled-drug steps, pharmacy_shared.pin)
+    auth_url: str = "http://auth:8000"
 
     # File storage, S3 API (pharmacy_shared.storage). SeaweedFS locally, cloud S3 later.
     s3_endpoint: str = "http://seaweedfs:8333"

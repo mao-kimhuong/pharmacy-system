@@ -166,3 +166,18 @@ async def test_prescription_settings_have_defaults_and_travel_in_events(client) 
     bad = await client.put(f"{PREFIX}/branches/{branch['id']}/settings", headers=OWNER,
                            json={"dispensing_label_size": "10x10"})  # fmt: skip
     assert bad.status_code == 422
+
+
+async def test_controlled_and_count_settings_have_defaults_and_travel_in_events(client) -> None:
+    branch = await create(client)
+    s = (await client.get(f"{PREFIX}/branches/{branch['id']}/settings", headers=OWNER)).json()
+    assert (s["controlled_rx_valid_days"], s["double_count_above_usd"], s["owner_approval_above_usd"],
+            s["shrinkage_approval_usd"]) == (7, "50.00", "200.00", "50.00")  # fmt: skip
+    r = await client.put(f"{PREFIX}/branches/{branch['id']}/settings", headers=OWNER,
+                         json={"controlled_rx_valid_days": 5, "shrinkage_approval_usd": "25"})  # fmt: skip
+    assert r.status_code == 200, r.text
+    payload = [p for t, p in await outbox() if t == "branch.settings_updated"][-1]
+    assert (payload["controlled_rx_valid_days"], payload["shrinkage_approval_usd"]) == (5, "25.00")
+    bad = await client.put(f"{PREFIX}/branches/{branch['id']}/settings", headers=OWNER,
+                           json={"double_count_above_usd": "-1"})  # fmt: skip
+    assert bad.status_code == 422

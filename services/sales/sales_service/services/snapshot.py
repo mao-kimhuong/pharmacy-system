@@ -37,6 +37,7 @@ async def invoice_payload(
                    "patient_name_en": x.patient_name_en, "patient_name_km": x.patient_name_km,
                    "doctor_name": x.doctor_name, "dosage": x.dosage, "frequency": x.frequency,
                    "duration_days": x.duration_days, "warnings": x.warnings or [],
+                   "is_controlled": x.is_controlled, "patient_id_document": x.patient_id_document,
                    "allergy_override_reason": x.allergy_override_reason,
                    "allergy_override_by": str(x.allergy_override_by) if x.allergy_override_by else None,
                    "warnings_acknowledged_by": str(x.warnings_acknowledged_by) if x.warnings_acknowledged_by else None,

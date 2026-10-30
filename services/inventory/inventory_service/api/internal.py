@@ -9,13 +9,18 @@ from pharmacy_shared.internal import InternalCaller, internal_caller
 
 from ..db import db
 from ..schemas.inventory import (
+    ControlledMovement,
+    ControlledStockRequest,
+    MovementsSince,
     ReleaseByRef,
     ReservationOut,
     ReserveRequest,
     ReturnBooked,
     ReturnRequest,
     ReverseRequest,
+    SnapshotRequest,
 )
+from ..services import counting
 from ..services import reservations as svc
 
 router = APIRouter()
@@ -74,3 +79,40 @@ async def returns(
 ) -> list[dict]:
     """Returned goods back into their batch, or into quarantine."""
     return await svc.book_returns(session, caller, body.model_dump())
+
+
+# ---------------------------------------------------------------- stock take, controlled register (S5)
+
+
+@router.post("/stock/snapshot")
+async def stock_snapshot(
+    body: SnapshotRequest, caller: InternalCaller = Depends(internal_caller),
+    session: AsyncSession = Depends(db.session),
+) -> dict:  # fmt: skip
+    """Stock per batch for a stock take, valid at `as_of_seq` (no quantities are shown to counters)."""
+    return await counting.snapshot(session, body.model_dump())
+
+
+@router.post("/movements/since")
+async def movements_since(
+    body: MovementsSince, caller: InternalCaller = Depends(internal_caller),
+    session: AsyncSession = Depends(db.session),
+) -> dict:  # fmt: skip
+    return await counting.movements_since(session, body.model_dump())
+
+
+@router.post("/stock/controlled")
+async def controlled_stock(
+    body: ControlledStockRequest, caller: InternalCaller = Depends(internal_caller),
+    session: AsyncSession = Depends(db.session),
+) -> dict:  # fmt: skip
+    return await counting.controlled_stock(session, body.model_dump())
+
+
+@router.post("/movements/controlled")
+async def controlled_movement(
+    body: ControlledMovement, caller: InternalCaller = Depends(internal_caller),
+    session: AsyncSession = Depends(db.session),
+) -> dict:  # fmt: skip
+    """Adjust or destroy controlled stock (PIN + witness checked by the controlled service); once per request_id."""
+    return await counting.controlled_movement(session, caller, body.model_dump())

@@ -1,7 +1,8 @@
 """Prescriptions. Rules:
 
 - Numbered per branch: PP1-RX-2026-000001. Valid until issued_on + the branch's
-  rx_valid_days (30 by default) unless given.
+  rx_valid_days (30 by default) unless given. With a controlled medicine on it:
+  controlled_rx_valid_days (7) by default and at most.
 - draft: items and dates can change. activate: items are fixed. Then the status
   follows the balances: partly_dispensed / fully_dispensed. The daily job (or
   the date at dispense time) makes it expired. cancelled: reason, User Log;
@@ -141,10 +142,21 @@ async def _items(session: AsyncSession, raw: list[dict[str, Any]]) -> list[RxIte
     return items
 
 
-async def _valid_until(session: AsyncSession, branch_id: UUID, data: dict[str, Any]):  # noqa: ANN202
+async def _valid_until(session: AsyncSession, branch_id: UUID, data: dict[str, Any], items: list[RxItem]):  # noqa: ANN202
+    s = await session.get(BranchSettingsCopy, branch_id)
+    controlled = False
+    for item in items:
+        product = await session.get(Product, item.medicine_id)
+        controlled = controlled or bool(product and product.controlled_schedule)
+    if controlled:
+        days = s.controlled_rx_valid_days if s else get_settings().default_controlled_rx_valid_days
+        latest = data["issued_on"] + timedelta(days=days)
+        if data.get("valid_until") and data["valid_until"] > latest:
+            raise AppError(ErrorCode.VALIDATION_ERROR, f"A prescription for a controlled medicine is valid at most "
+                           f"{days} days (until {latest})", status_code=422, details={"field": "valid_until"})  # fmt: skip
+        return data.get("valid_until") or latest
     if data.get("valid_until"):
         return data["valid_until"]
-    s = await session.get(BranchSettingsCopy, branch_id)
     days = s.rx_valid_days if s else get_settings().default_rx_valid_days
     return data["issued_on"] + timedelta(days=days)
 
@@ -162,12 +174,13 @@ async def create_rx(session: AsyncSession, actor: CurrentUser, data: dict[str, A
     doctor = await get_doctor(session, data["doctor_id"])
     if not doctor.is_active:
         raise AppError(ErrorCode.VALIDATION_ERROR, "This doctor is deactivated", status_code=422)
-    valid_until = await _valid_until(session, branch.id, data)
+    items = await _items(session, data["items"])
+    valid_until = await _valid_until(session, branch.id, data, items)
     _dates(data["issued_on"], valid_until)
     rx = Prescription(branch_id=branch.id, patient=patient, doctor=doctor, rx_no=clean(data.get("rx_no")),
                       issued_on=data["issued_on"],
                       valid_until=valid_until, status="draft", notes=clean(data.get("notes")), version=1,
-                      created_by=actor.id, items=await _items(session, data["items"]), attachments=[])  # fmt: skip
+                      created_by=actor.id, items=items, attachments=[])  # fmt: skip
     rx.number = await next_number(session, DocSequence, branch.id, branch.code, "RX")
     session.add(rx)
     await patients.link_branch(session, patient.id, branch.id)
@@ -203,6 +216,10 @@ async def update_rx(
         rx.items.clear()
         await session.flush()
         rx.items.extend(new_items)
+    # a controlled medicine caps the validity (raises when too long)
+    await _valid_until(
+        session, rx.branch_id, {"issued_on": rx.issued_on, "valid_until": rx.valid_until}, rx.items
+    )
     rx.version += 1
     await publish(session, rx, "prescription.updated")
     audit(session, actor, "prescription.updated", "prescription", rx.id, branch_id=rx.branch_id, before=before,

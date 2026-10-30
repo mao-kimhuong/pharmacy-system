@@ -62,6 +62,8 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   S2 checks: supplier, PO + PDF, receive 2 lots per line, FEFO stock, pay to 0, cashier sees no cost;
   optional S3 checks: USD/KHR sale + receipt, FEFO split, last-unit race, credit, cancel, return)
 - `make revision s=<service> m="message"` then `make migrate s=<service>`
+- `docker compose exec controlled python -m controlled_service.cli open-balances` – once after installing S5:
+  controlled stock from before the register gets "opening" entries (`check` runs the 00:20 register check now)
 - `python -m sales_service.cli recover` – finish sales/returns left half-way (also runs every minute)
 - `make resync` – re-send staff, branches, branch settings, products and customers as events (needed once when a service starts
   listening after the data exists: RabbitMQ drops events for queues that did not exist yet)
@@ -246,6 +248,45 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   invoice.*, patient.*, prescription.* and user.* (pharmacist names; `python -m auth_service.cli
   republish` / `make resync` sends existing users). Receipts show the Rx number and lots on Rx lines.
 
+- **PIN step-up (auth, from S5):** `POST /api/auth/v1/pin/verify {pin, action}` → one-time `pin_token`
+  (2 min, Redis, only its hash stored, bound to person + action); `/pin/witness {witness_user_id, pin, action}`
+  = a second person on the same device; `GET /pin/witnesses?branch_id=`. 5 wrong PINs → PIN_LOCKED 15 min
+  (User Log `user.pin_locked`). Services consume tokens with `pharmacy_shared.pin.consume_pin / consume_witness`
+  (auth `/internal/v1/pin-tokens/consume`, GETDEL): missing → PIN_REQUIRED (401) / WITNESS_REQUIRED (422);
+  used, expired, wrong person or action → PIN_INVALID; witness = actor, other branch or no
+  `controlled.witness` → WITNESS_INVALID. Actions: controlled.dispense / adjust / destroy / resolve,
+  stockcount.approve, inventory.shrinkage. Services never see a PIN.
+- **Permission sync (from S5):** keys new to the DB go to the built-in roles whose defaults have them;
+  `RENAMED` moves grants (`pos.dispense_controlled` → `controlled.dispense`); `DEFAULT_ADDITIONS` gives an
+  existing key to a role once (table `applied_grants`).
+- **Movements (from S5):** `meta` JSON (witness, Rx, patient, pharmacist, method…) travels in `stock.changed`
+  (with `seq`, `occurred_at`); new types `shrinkage`, `count_adjust` (once per source). Reservation lines and
+  returns pass `meta` for controlled sales.
+- **Controlled register (from S5):** controlled service builds entries from `stock.changed` of controlled
+  medicines (once per movement id): one hash chain per branch + medicine (`sha256(prev_hash + canonical JSON)`,
+  UTC timestamps, advisory lock per chain), `balance_after`. DB trigger refuses UPDATE/DELETE/TRUNCATE
+  (tests clean up with `SET LOCAL session_replication_role = replica`). `GET /register` (chain_valid),
+  `/register/verify`, `POST /entries` (adjust/destroy: PIN + witness → inventory `/internal/v1/movements/controlled`,
+  once per request), `/entries/correction` (new row, old one stays). Daily 00:20 (+ start-up, advisory lock):
+  verify chains (`register.chain_broken`), register vs stock per batch (`register.discrepancy`; skipped while the
+  register is behind = inventory's last seq > the watermark of seen movements; an open one clears itself when
+  they agree again); resolve: `controlled.resolve`, PIN + witness, optional correction entry. PDF:
+  `POST /api/documents/v1/render {"type":"controlled_register", branch_id, medicine_id?, date_from?, date_to?}`
+  (document reads it over controlled `/internal/v1/register`).
+- **Controlled sales (from S5):** line needs `rx_item_id`, `patient_id_document`, `is_pharmacist` +
+  `controlled.dispense`; invoice `pin_token` (controlled.dispense) consumed in step 1. Controlled Rx valid
+  `controlled_rx_valid_days` (7) by default and at most.
+- **Stock take (stockcount, from S5):** start = inventory snapshot (`/internal/v1/stock/snapshot`, scope full /
+  category / location / controlled, under a short SHARE lock on movements → `as_of_seq`); blind counter view +
+  barcode lookup; double count (controlled, or line value > `double_count_above_usd` 50) needs two people with
+  the same number (recount otherwise; `round` keeps old counts); submit: expected = snapshot + movements after
+  as_of_seq up to the moment the line was counted (DB clock); approve: PIN if a controlled line has a variance,
+  owner only above `owner_approval_above_usd` (200) → `count.approved` → inventory `count_adjust` once per line.
+- **Shrinkage + shelf locations (inventory, from S5):** `POST /shrinkages` (reasons expired / damaged / broken /
+  lost_theft / recalled; controlled: PIN + witness + destruction method), above `shrinkage_approval_usd` (50)
+  pending until someone else with `inventory.shrinkage_approve` approves; photo private in SeaweedFS
+  (`inventory-files`), streamed + logged. `PUT /shelf-locations` (`inventory.locations`), code like "A3".
+
 ## Definition of done
 API matches the spec, migration included, tests pass (`make test` and `make test-docker`),
 `docker compose up` works, permissions checked per role, audit log written.
@@ -258,11 +299,12 @@ API matches the spec, migration included, tests pass (`make test` and `make test
 - [x] S2 Stock + buying – batches, stock, initialize, suppliers, PO, receiving, payments
 - [x] S3 POS + sales – FEFO checkout, invoices, returns, customers, receipts
 - [x] S4 Prescriptions – patients, doctors, Rx, dispensing, allergy warnings, labels
-- [ ] S5 Controlled + counts – register, PIN + witness, stock take, shrinkage
+- [x] S5 Controlled + counts – register, PIN + witness, stock take, shrinkage
 - [ ] S6 Branches – transfer requests, transfers, purchase requests, re-order
 - [ ] S7 Sales extras – sale order, suspend, templates, promotions, hampers, commission
 - [ ] S8 Reports – dashboard, all reports, Telegram 20:00
 - [ ] S9 Hardening – performance, security, offline POS, UAT fixes; per-service tokens for
   internal calls (today one shared SERVICE_TOKEN: a service could call any other's /internal);
-  SeaweedFS: lock down its IAM gRPC port and use a non-admin S3 identity per service
+  SeaweedFS: lock down its IAM gRPC port and use a non-admin S3 identity per service; register table owned by a
+  NOLOGIN role (today: trigger + REVOKE on the service user, which still owns the table)
 - [ ] S10 AI – DeepSeek phase A

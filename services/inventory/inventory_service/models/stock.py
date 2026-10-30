@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
@@ -26,16 +27,12 @@ from pharmacy_shared.db import IdMixin
 from .base import Base
 
 BATCH_STATUSES = ("active", "expired", "blocked", "recalled", "quarantine")
-# transfer_in / transfer_out (S6), out / return (S3), shrinkage (S5) come later.
 MOVEMENT_TYPES = (
-    "in",
-    "opening",
-    "adjust_in",
-    "adjust_out",
-    "expire_writeoff",
-    "transfer_in",
-    "transfer_out",
-)
+    "in", "opening", "out", "sale_cancel", "return", "adjust_in", "adjust_out", "expire_writeoff",
+    "transfer_in", "transfer_out", "shrinkage", "count_adjust",
+)  # fmt: skip
+# Booked once per source (a re-delivered event or a retried call books nothing twice).
+ONCE_PER_SOURCE = ("in", "opening", "out", "sale_cancel", "return", "shrinkage", "count_adjust")
 
 
 class Batch(IdMixin, Base):
@@ -99,18 +96,21 @@ class Movement(IdMixin, Base):
     """Every stock change, signed, in base units. Append-only."""
 
     __tablename__ = "movements"
+    __mapper_args__ = {"eager_defaults": True}  # seq and created_at are read back on insert (stock.changed)
     __table_args__ = (
         CheckConstraint("qty_base <> 0", name="ck_movements_qty"),
         CheckConstraint(
             "type IN ('in', 'opening', 'out', 'sale_cancel', 'return', 'adjust_in', 'adjust_out', "
-            "'expire_writeoff', 'transfer_in', 'transfer_out')",
+            "'expire_writeoff', 'transfer_in', 'transfer_out', 'shrinkage', 'count_adjust')",
             name="ck_movements_type",
         ),
         # A receipt line, stock-in line, opening line, sold or returned line is booked
         # once, even if its event or call arrives again.
         Index(
             "uq_movements_source", "type", "ref_type", "ref_id", unique=True,
-            postgresql_where=text("type IN ('in', 'opening', 'out', 'sale_cancel', 'return')"),
+            postgresql_where=text(
+                "type IN ('in', 'opening', 'out', 'sale_cancel', 'return', 'shrinkage', 'count_adjust')"
+            ),
         ),
         Index("ix_movements_branch_time", "branch_id", "created_at"),
     )  # fmt: skip
@@ -125,6 +125,8 @@ class Movement(IdMixin, Base):
     ref_type: Mapped[str] = mapped_column(String(20))
     ref_id: Mapped[str] = mapped_column(String(80))
     reason: Mapped[str] = mapped_column(String(255), default="", server_default="")
+    # Who/why details for the controlled register: witness, Rx, patient, destruction method...
+    meta: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     created_by: Mapped[UUID | None] = mapped_column(Uuid)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -247,6 +249,7 @@ class ReservationLine(IdMixin, Base):
     batch_id: Mapped[UUID] = mapped_column(ForeignKey("batches.id"))
     qty_base: Mapped[int] = mapped_column(Integer)
     overridden: Mapped[bool] = mapped_column(default=False)
+    meta: Mapped[dict[str, Any] | None] = mapped_column(JSON)  # controlled sale: Rx, patient, pharmacist
 
     reservation: Mapped[Reservation] = relationship(back_populates="lines")
     batch: Mapped[Batch] = relationship(lazy="joined", innerjoin=True)

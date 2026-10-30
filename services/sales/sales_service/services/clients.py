@@ -13,6 +13,7 @@ class Clients:
     inventory: InternalClient
     customers: InternalClient
     prescription: InternalClient
+    auth: InternalClient
 
 
 def get_clients() -> Clients:
@@ -21,4 +22,5 @@ def get_clients() -> Clients:
         inventory=InternalClient(s.inventory_url, s.service_name, s.service_token),
         customers=InternalClient(s.customers_url, s.service_name, s.service_token),
         prescription=InternalClient(s.prescription_url, s.service_name, s.service_token),
+        auth=InternalClient(s.auth_url, s.service_name, s.service_token),
     )

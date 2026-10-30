@@ -2,18 +2,27 @@ from fastapi import APIRouter, Body, Depends, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pharmacy_shared.auth import CurrentUser, current_user
+from pharmacy_shared.internal import InternalClient
 
+from ..config import get_settings
 from ..db import db
 from ..schemas.render import (
     DispensingLabelRender,
     LabelRender,
     PurchaseOrderRender,
+    RegisterRender,
     RenderRequest,
     RxSummaryRender,
 )
 from ..services import dispensing, labels, purchase_orders, receipts
+from ..services import register as register_pdf
 
 router = APIRouter(tags=["render"])
+
+
+def get_controlled() -> InternalClient:
+    s = get_settings()
+    return InternalClient(s.controlled_url, s.service_name, s.service_token)
 
 
 @router.post(
@@ -26,6 +35,7 @@ async def render(
     body: RenderRequest = Body(discriminator="type"),
     user: CurrentUser = Depends(current_user),
     session: AsyncSession = Depends(db.session),
+    controlled: InternalClient = Depends(get_controlled),
 ) -> Response:
     """Returns a PDF.
 
@@ -39,6 +49,8 @@ async def render(
       from the branch setting (70×40 mm by default).
     - `type: rx_summary` (prescriptions.view): the patient's allergies and
       prescriptions with what is left; written to the User Log.
+    - `type: controlled_register` (controlled.view, own branches): the register as A4
+      landscape, per medicine, with the hash-chain check.
     PO and invoice: right after they are saved, waits up to 5 s for them, then
     DOCUMENT_NOT_READY (409).
     """
@@ -61,6 +73,12 @@ async def render(
             session, user, body.invoice_id, body.line_no, body.size, body.lang, settings.document_wait_seconds
         )
         filename = f"{number}-label.pdf"
+    elif isinstance(body, RegisterRender):
+        user.require("controlled.view")
+        pdf = await register_pdf.render(
+            controlled, user, body.branch_id, body.medicine_id, body.date_from, body.date_to
+        )
+        filename = "controlled-register.pdf"
     elif isinstance(body, RxSummaryRender):
         user.require("prescriptions.view")
         name, pdf = await dispensing.render_summary(

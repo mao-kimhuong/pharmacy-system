@@ -19,6 +19,8 @@ dependencies = [
     "openpyxl>=3.1",  # opening stock upload (pharmacy_shared.xlsx)
     "defusedxml>=0.7",
     "python-multipart>=0.0.9",
+    "aioboto3>=13",  # shrinkage photos (pharmacy_shared.storage)
+    "Pillow>=10",  # upload checks (pharmacy_shared.uploads)
 ]
 
 [tool.setuptools.packages.find]

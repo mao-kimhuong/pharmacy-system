@@ -1,10 +1,11 @@
 """The sale saga (POST /invoices). Steps, and what undoes each:
 
   1. validate         active products, price from the local copy, qty in pack
-                      units → base units; controlled → CONTROLLED_NOT_AVAILABLE
-                      (until S5); Rx-only → needs rx_item_id (RX_REQUIRED) and a
-                      pharmacist with pos.dispense_rx (PHARMACIST_REQUIRED); an
+                      units → base units; Rx-only → needs rx_item_id (RX_REQUIRED)
+                      and a pharmacist with pos.dispense_rx (PHARMACIST_REQUIRED); an
                       allergy override also needs prescriptions.override_warning;
+                      controlled → also controlled.dispense, the patient's ID
+                      document and the pharmacist's PIN (pin_token, consumed here);
                       payments settle (money.py). Saved as "pending" (no number).
   1b. Rx check + hold prescription: state, valid date, quantity, allergy,
                       duplicate therapy; holds the quantity    ← rx/release
@@ -41,6 +42,7 @@ from pharmacy_shared.auth import CurrentUser
 from pharmacy_shared.errors import AppError, ErrorCode
 from pharmacy_shared.numbering import next_number
 from pharmacy_shared.outbox import add_event
+from pharmacy_shared.pin import consume_pin
 
 from ..models import (
     DocSequence,
@@ -81,6 +83,8 @@ class LinePlan:
     rx_item_id: UUID | None = None
     allergy_override_reason: str | None = None
     acknowledge_warnings: bool = False
+    controlled: bool = False
+    patient_id_document: str | None = None
 
 
 # ---------------------------------------------------------------- 1. validate
@@ -100,14 +104,20 @@ async def _plan_lines(session: AsyncSession, actor: CurrentUser, raw: list[dict[
         if not (pack.is_active and product.is_active):
             raise AppError(ErrorCode.UNKNOWN_MEDICINE, f"Line {i}: {product.sku} ({pack.name}) is not sold any more",
                            status_code=422, details=details)  # fmt: skip
-        if product.controlled_schedule:
-            raise AppError(
-                ErrorCode.CONTROLLED_NOT_AVAILABLE,
-                f"Line {i}: {product.display_name} is a controlled medicine (schedule {product.controlled_schedule}). "
-                "Controlled sales need the controlled-drug register, coming in sprint S5.",
-                status_code=422, details={**details, "medicine_id": str(product.id)},
-            )  # fmt: skip
         rx_item_id = item.get("rx_item_id")
+        controlled = bool(product.controlled_schedule)
+        if controlled:
+            if rx_item_id is None:
+                raise AppError(ErrorCode.RX_REQUIRED, f"Line {i}: {product.display_name} is a controlled medicine "
+                               f"(schedule {product.controlled_schedule}): choose the patient's prescription",
+                               status_code=422, details={**details, "medicine_id": str(product.id)})  # fmt: skip
+            if not (actor.is_pharmacist and actor.has("controlled.dispense")):
+                raise AppError(ErrorCode.PHARMACIST_REQUIRED,
+                               f"Line {i}: only a pharmacist allowed to dispense controlled medicines",
+                               status_code=403, details=details)  # fmt: skip
+            if not clean(item.get("patient_id_document")):
+                raise AppError(ErrorCode.VALIDATION_ERROR, f"Line {i}: give the patient's ID card or passport number",
+                               status_code=422, details={**details, "field": "patient_id_document"})  # fmt: skip
         if product.is_rx_only and rx_item_id is None:
             raise AppError(
                 ErrorCode.RX_REQUIRED,
@@ -138,7 +148,8 @@ async def _plan_lines(session: AsyncSession, actor: CurrentUser, raw: list[dict[
         plans.append(LinePlan(line_no=i, pack=pack, qty=item["qty"], qty_base=item["qty"] * pack.qty_in_base,
                               unit_price=price, line_total=money.usd(price * item["qty"]), batch_id=batch_id,
                               override_reason=reason, rx_item_id=rx_item_id, allergy_override_reason=allergy_reason,
-                              acknowledge_warnings=bool(item.get("acknowledge_warnings"))))  # fmt: skip
+                              acknowledge_warnings=bool(item.get("acknowledge_warnings")), controlled=controlled,
+                              patient_id_document=clean(item.get("patient_id_document")) or None))  # fmt: skip
     return plans
 
 
@@ -233,6 +244,10 @@ async def create_invoice(
     branch = await branch_for(session, actor, data["branch_id"])
     customer = await _customer(session, data.get("customer_id"))
     lines = await _plan_lines(session, actor, data["lines"])
+    pharmacist = None
+    if any(x.controlled for x in lines):  # the PIN typed for this sale; one-time
+        pharmacist = await consume_pin(clients.auth, data.get("pin_token"), "controlled.dispense", user=actor,
+                                       branch_id=branch.id)  # fmt: skip
     payments = [
         money.PaymentIn(p["method"], p["currency"], Decimal(str(p["amount"]))) for p in data["payments"]
     ]
@@ -254,7 +269,8 @@ async def create_invoice(
             name=x.pack.product.display_name, name_km=x.pack.product.name_km, pack_unit=x.pack.name, qty=x.qty,
             qty_in_base=x.pack.qty_in_base, qty_base=x.qty_base, unit_price=x.unit_price, line_total=x.line_total,
             batch_override_id=x.batch_id, override_reason=x.override_reason, rx_item_id=x.rx_item_id,
-            allergy_override_reason=x.allergy_override_reason,
+            allergy_override_reason=x.allergy_override_reason, is_controlled=x.controlled,
+            patient_id_document=x.patient_id_document, pin_confirmed_by=actor.id if x.controlled else None,
         ) for x in lines],
         payments=[InvoicePayment(seq=i, method=p.method, currency=p.currency, amount=p.amount, amount_usd=u)
                   for i, (p, u) in enumerate(s.payments, start=1)],
@@ -284,7 +300,9 @@ async def create_invoice(
         reservation = await clients.inventory.post("/reservations", {
             "ref_type": "invoice", "ref_id": str(inv_id), "branch_id": str(branch.id),
             "lines": [{"line_no": x.line_no, "medicine_id": str(x.pack.product_id), "qty_base": x.qty_base,
-                       **({"batch_id": str(x.batch_id)} if x.batch_id else {})} for x in lines],
+                       **({"batch_id": str(x.batch_id)} if x.batch_id else {}),
+                       **({"meta": controlled_meta(inv, x.line_no, pharmacist)} if x.controlled else {})}
+                      for x in lines],
         }, actor=actor, branch_id=branch.id, idempotency_key=f"{idempotency_key}:reserve")  # fmt: skip
         inv.reservation_id = UUID(str(reservation["id"]))
         await session.commit()
@@ -320,6 +338,19 @@ async def create_invoice(
     return inv
 
 
+def controlled_meta(inv: Invoice, line_no: int, pharmacist: Any = None) -> dict[str, Any]:
+    """What the controlled-drug register records with the stock movement."""
+    line = next(x for x in inv.lines if x.line_no == line_no)
+    return {
+        "entry_type": None, "invoice_id": str(inv.id), "rx_item_id": str(line.rx_item_id),
+        "prescription_id": str(line.prescription_id) if line.prescription_id else None,
+        "prescription_number": line.prescription_number, "patient_id": str(line.patient_id) if line.patient_id else None,
+        "patient_name": line.patient_name_en or line.patient_name_km, "patient_id_document": line.patient_id_document,
+        "pharmacist_id": str(line.pin_confirmed_by or inv.created_by),
+        "pharmacist_name": pharmacist.name if pharmacist else "", "pin_confirmed": True,
+    }  # fmt: skip
+
+
 def _apply_rx(inv: Invoice, actor: CurrentUser, held: list[dict[str, Any]]) -> None:
     """The Rx, patient, directions and warnings onto the lines; who accepted the
     warnings, and when (also in the User Log when the sale completes)."""
@@ -328,7 +359,10 @@ def _apply_rx(inv: Invoice, actor: CurrentUser, held: list[dict[str, Any]]) -> N
         h = by_line.get(line.line_no)
         if h is None:
             continue
-        line.prescription_id, line.prescription_number = UUID(str(h["prescription_id"])), h["prescription_number"]
+        line.prescription_id, line.prescription_number = (
+            UUID(str(h["prescription_id"])),
+            h["prescription_number"],
+        )
         line.patient_id = UUID(str(h["patient_id"]))
         line.patient_name_en, line.patient_name_km = h["patient_name_en"], h["patient_name_km"]
         line.doctor_name, line.dosage, line.frequency = h["doctor_name"], h["dosage"], h["frequency"]

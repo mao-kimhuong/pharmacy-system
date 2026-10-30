@@ -46,9 +46,9 @@ Requests enter only through Traefik; each service writes to its own database and
 | branch | branches, settings, opening hours | /api/branch/v1 | branch.created |
 | catalog | medicines, generics, strengths, forms, categories, units & pack sizes, Rx/controlled flags | /api/catalog/v1 | medicine.created, medicine.updated |
 | inventory | batches, stock per branch per batch, movements, transfers, expiry alerts | /api/inventory/v1 | stock.reserved, stock.released, batch.expiring, batch.blocked |
-| stockcount | counts, count lines, approvals | /api/stockcount/v1 | count.approved |
+| stockcount | counts, count lines, approvals | /api/stockcount/v1 | count.started, count.approved, count.cancelled |
 | prescription | patients, doctors, prescriptions, dispense records | /api/prescription/v1 | patient.\*, doctor.\*, prescription.created / activated / dispensed / cancelled / expired |
-| controlled | controlled-drug register, sign-offs, discrepancies | /api/controlled/v1 | register.discrepancy |
+| controlled | controlled-drug register, sign-offs, discrepancies | /api/controlled/v1 | register.discrepancy, register.chain_broken |
 | sales | invoices, POS, returns, payments at sale | /api/sales/v1 | invoice.created, invoice.cancelled |
 | customers | customers, credit, payments, statements | /api/customers/v1 | payment.recorded |
 | purchasing | suppliers, POs, receiving (with batch + expiry), supplier payments, returns to supplier | /api/purchasing/v1 | po.received |
@@ -81,7 +81,7 @@ The batch is the centre of the model: stock, sales lines, transfers, counts and 
 | inventory | movements | branch\_id, batch\_id, type (in / out / adjust / transfer\_out / transfer\_in / return / expire\_writeoff), qty (signed), ref\_type, ref\_id, reason |
 | inventory | transfers | from\_branch\_id, to\_branch\_id, status (draft / sent / received / cancelled), sent\_by, received\_by, cancel\_reason |
 | inventory | transfer\_lines | transfer\_id, batch\_id, qty\_sent, qty\_received |
-| stockcount | counts · count\_lines | branch\_id, status, scope (all / category / controlled); line: batch\_id, system\_qty, counted\_qty, second\_count\_qty (controlled) |
+| stockcount | counts · count\_lines · count\_entries | branch\_id, status (counting / review / approved / cancelled), scope (full / category / location / controlled), as\_of\_seq; line: batch\_id, snapshot\_qty, expected\_qty, counted\_qty, needs\_double, round; entry: user, qty, round, counted\_at |
 | prescription | patients | name, phone, dob, sex, allergies, notes, is\_active |
 | prescription | doctors | name, license\_no, clinic, phone, is\_active |
 | prescription | prescriptions | patient\_id, doctor\_id, rx\_no, issued\_on, valid\_until, image\_url, status (open / partially\_dispensed / dispensed / cancelled / expired), cancel\_reason |
@@ -290,6 +290,10 @@ Receive takes `{"lines": [{"batch_id": "…", "qty_received": 29, "reason": "1 s
 | PHARMACIST\_REQUIRED | 403 | Rx or controlled dispense by a non-pharmacist |
 | PIN\_REQUIRED / PIN\_INVALID | 401 | Controlled dispense without a valid PIN re-entry |
 | WITNESS\_REQUIRED | 422 | Controlled destroy or adjust without a second staff member |
+| WITNESS\_INVALID | 422 | The witness is the actor, works elsewhere or may not witness |
+| PIN\_LOCKED | 423 | 5 wrong PINs: the PIN is locked for 15 minutes |
+| COUNT\_STATE / SHRINKAGE\_STATE / REGISTER\_STATE | 409 | Action not allowed in the stock take's, shrinkage's or discrepancy's status |
+| OWNER\_APPROVAL\_REQUIRED | 403 | Stock-take variance above the branch limit: only the owner approves |
 | ALLERGY\_WARNING | 409 | Patient allergy match; resend with `allergy_acknowledged: true` |
 | CREDIT\_LIMIT\_EXCEEDED | 422 | Credit sale over the customer's limit |
 | DUPLICATE\_PHONE | 409 | Customer or patient phone already exists |

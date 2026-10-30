@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -65,7 +66,24 @@ class RxSummaryRender(BaseModel):
     patient_id: UUID
 
 
+class RegisterRender(BaseModel):
+    """The controlled-drug register (A4, Khmer/English). Permission controlled.view, own branches."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["controlled_register"]
+    branch_id: UUID
+    medicine_id: UUID | None = None
+    date_from: date | None = None
+    date_to: date | None = None
+
+
 RenderRequest = Annotated[
-    LabelRender | PurchaseOrderRender | InvoiceRender | DispensingLabelRender | RxSummaryRender,
+    LabelRender
+    | PurchaseOrderRender
+    | InvoiceRender
+    | DispensingLabelRender
+    | RxSummaryRender
+    | RegisterRender,
     Field(discriminator="type"),
 ]

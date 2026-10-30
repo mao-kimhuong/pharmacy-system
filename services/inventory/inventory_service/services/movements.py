@@ -6,8 +6,9 @@
 - On hand never goes below zero (OUT_OF_STOCK) nor below what is reserved + quarantined.
 - A batch is identified by medicine + lot + expiry + supplier + cost per base
   unit: the same lot at another cost is another batch.
-- Each movement emits stock.changed (branch, batch, medicine, delta, reason,
-  ref, controlled flag, lot, expiry, cost for reports).
+- Each movement emits stock.changed (seq, branch, batch, medicine, delta, reason,
+  ref, controlled flag, lot, expiry, cost for reports, and `meta`: the witness,
+  Rx, patient... the controlled-drug register needs).
 """
 
 from datetime import date, datetime
@@ -80,13 +81,15 @@ async def apply_movement(
     ref_id: str,
     reason: str = "",
     actor_id: UUID | None = None,
+    meta: dict[str, Any] | None = None,
+    allow_below_held: bool = False,
 ) -> Movement:
     if qty_base == 0:
         raise AppError(ErrorCode.VALIDATION_ERROR, "A movement needs a quantity", status_code=422)
     stock = await lock_stock(session, branch_id, batch.id)
     after = stock.qty_on_hand + qty_base
     held = stock.qty_reserved + stock.qty_quarantined  # reserved for sales or quarantined: not movable
-    if after < held:
+    if after < (0 if allow_below_held else held):
         free = stock.qty_on_hand - held
         raise AppError(
             ErrorCode.OUT_OF_STOCK, f"Only {free} available in lot {batch.lot_no}",
@@ -95,7 +98,7 @@ async def apply_movement(
     stock.qty_on_hand = after
     movement = Movement(
         branch_id=branch_id, batch_id=batch.id, medicine_id=batch.medicine_id, type=type, qty_base=qty_base,
-        qty_after=after, ref_type=ref_type, ref_id=str(ref_id), reason=reason, created_by=actor_id,
+        qty_after=after, ref_type=ref_type, ref_id=str(ref_id), reason=reason, created_by=actor_id, meta=meta,
     )  # fmt: skip
     session.add(movement)
     await session.flush()
@@ -106,13 +109,14 @@ async def apply_movement(
 
 def stock_changed_payload(m: Movement, batch: Batch, product: Product | None) -> dict[str, Any]:
     return {
-        "movement_id": str(m.id), "branch_id": str(m.branch_id), "batch_id": str(batch.id),
+        "movement_id": str(m.id), "seq": m.seq, "branch_id": str(m.branch_id), "batch_id": str(batch.id),
         "medicine_id": str(batch.medicine_id), "type": m.type, "delta": m.qty_base, "qty_after": m.qty_after,
         "reason": m.reason, "ref_type": m.ref_type, "ref_id": m.ref_id, "lot_no": batch.lot_no,
         "expiry_date": batch.expiry_date.isoformat(), "cost_per_base": str(batch.cost_per_base),
         "controlled_schedule": product.controlled_schedule if product else None,
         "is_controlled": bool(product and product.controlled_schedule),
         "created_by": str(m.created_by) if m.created_by else None,
+        "occurred_at": m.created_at.isoformat() if m.created_at else None, "meta": m.meta or {},
     }  # fmt: skip
 
 

@@ -1,8 +1,9 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, Uuid, func
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from pharmacy_shared.db import IdMixin, TimestampMixin
@@ -61,6 +62,14 @@ class BranchSettings(Base):
     rx_valid_days: Mapped[int] = mapped_column(Integer, default=30, server_default="30")
     # Dispensing label printer: 70x40 (default), 50x30, 100x50 mm or a4_sheet.
     dispensing_label_size: Mapped[str] = mapped_column(String(10), default="70x40", server_default="70x40")
+    # Controlled drugs and stock takes (S5)
+    controlled_rx_valid_days: Mapped[int] = mapped_column(Integer, default=7, server_default="7")
+    double_count_above_usd: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("50.00"),
+                                                            server_default="50.00")  # fmt: skip
+    owner_approval_above_usd: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("200.00"),
+                                                              server_default="200.00")  # fmt: skip
+    shrinkage_approval_usd: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("50.00"),
+                                                            server_default="50.00")  # fmt: skip
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -76,6 +85,10 @@ class BranchSettings(Base):
             "allow_opened_pack_returns": self.allow_opened_pack_returns,
             "rx_valid_days": self.rx_valid_days,
             "dispensing_label_size": self.dispensing_label_size,
+            "controlled_rx_valid_days": self.controlled_rx_valid_days,
+            "double_count_above_usd": f"{self.double_count_above_usd:.2f}",
+            "owner_approval_above_usd": f"{self.owner_approval_above_usd:.2f}",
+            "shrinkage_approval_usd": f"{self.shrinkage_approval_usd:.2f}",
         }
 
 

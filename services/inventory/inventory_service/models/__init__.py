@@ -3,17 +3,20 @@ Alembic autogenerate can see it."""
 
 from uuid import UUID
 
-from sqlalchemy import Boolean, String
+from sqlalchemy import Boolean, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from pharmacy_shared.consumer import ProcessedMessageMixin
 from pharmacy_shared.copies import BranchCopyMixin, PackUnitCopyMixin, ProductCopyMixin
+from pharmacy_shared.numbering import DocSequenceMixin
 from pharmacy_shared.outbox import OutboxMixin
 
 from .base import Base
+from .s5 import SHRINKAGE_REASONS, BranchSettingsCopy, ShelfLocation, Shrinkage
 from .stock import (
     BATCH_STATUSES,
     MOVEMENT_TYPES,
+    ONCE_PER_SOURCE,
     Batch,
     InitializeLock,
     Movement,
@@ -29,6 +32,10 @@ from .stock import (
 
 class OutboxEvent(OutboxMixin, Base):
     __tablename__ = "outbox"
+
+
+class DocSequence(DocSequenceMixin, Base):
+    __tablename__ = "doc_sequences"
 
 
 class ProcessedMessage(ProcessedMessageMixin, Base):
@@ -57,6 +64,8 @@ class Product(ProductCopyMixin, Base):
 
     __tablename__ = "products"
 
+    category_id: Mapped[UUID | None] = mapped_column(Uuid, index=True)  # stock takes by category
+
     pack_units: Mapped[list["ProductPackUnit"]] = relationship(back_populates="product", lazy="selectin")
 
 
@@ -69,8 +78,12 @@ class ProductPackUnit(PackUnitCopyMixin, Base):
 __all__ = [
     "BATCH_STATUSES",
     "MOVEMENT_TYPES",
+    "ONCE_PER_SOURCE",
+    "SHRINKAGE_REASONS",
     "Base",
     "Batch",
+    "BranchSettingsCopy",
+    "DocSequence",
     "InitializeLock",
     "KnownBranch",
     "KnownSupplier",
@@ -84,6 +97,8 @@ __all__ = [
     "QuarantineEntry",
     "Reservation",
     "ReservationLine",
+    "ShelfLocation",
+    "Shrinkage",
     "Stock",
     "StockIn",
 ]

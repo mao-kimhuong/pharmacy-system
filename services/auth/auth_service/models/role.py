@@ -42,6 +42,16 @@ class Permission(Base):
     sort: Mapped[int] = mapped_column(Integer, default=0)
 
 
+class AppliedGrant(Base):
+    """A one-time default grant (permissions.DEFAULT_ADDITIONS) already given, so it
+    is never given again – the owner may have taken it away since."""
+
+    __tablename__ = "applied_grants"
+
+    tag: Mapped[str] = mapped_column(String(120), primary_key=True)
+    applied_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class RolePermission(Base):
     __tablename__ = "role_permissions"
 
