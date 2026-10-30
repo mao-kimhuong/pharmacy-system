@@ -143,7 +143,14 @@ async def test_controlled_shrinkage_needs_pin_witness_and_method(client, auth) -
     assert r.status_code == 422 and r.json()["code"] == "WITNESS_INVALID"
     witness = str(uuid4())
     pin = auth.issue(actor, "inventory.shrinkage", branches=(PP1,))
-    ok = auth.issue(witness, "inventory.shrinkage", "witness", branches=(PP1,), name="Witness Sok")
+    pin = auth.issue(actor, "inventory.shrinkage", branches=(PP1,))
+    pharmacist_witness = auth.issue(witness, "inventory.shrinkage", "witness", branches=(PP1,))
+    r = await client.post(f"{PREFIX}/shrinkages", headers={**PHARMACIST, **idem()},
+                          json={**body, "pin_token": pin, "witness_token": pharmacist_witness})  # fmt: skip
+    assert r.status_code == 422 and r.json()["code"] == "WITNESS_INVALID"  # destruction: manager or owner
+    pin = auth.issue(actor, "inventory.shrinkage", branches=(PP1,))
+    ok = auth.issue(witness, "inventory.shrinkage", "witness", branches=(PP1,), name="Witness Sok",
+                    role="branch_manager")
     r = await client.post(f"{PREFIX}/shrinkages", headers={**PHARMACIST, **idem()},
                           json={**body, "pin_token": pin, "witness_token": ok})  # fmt: skip
     assert r.status_code == 201, r.text
@@ -151,6 +158,17 @@ async def test_controlled_shrinkage_needs_pin_witness_and_method(client, auth) -
     meta = [p for t, p in await outbox() if t == "stock.changed"][-1]["meta"]
     assert meta["witness_id"] == witness and meta["entry_type"] == "destroy"
     assert meta["destruction_method"].startswith("Crushed")
+
+
+async def test_controlled_loss_may_have_a_pharmacist_witness(client, auth) -> None:
+    product, _ = await stocked("DIAZ5", controlled="IV")
+    batch = await batch_of(client, product)
+    actor = PHARMACIST["X-User-Id"]
+    r = await client.post(f"{PREFIX}/shrinkages", headers={**PHARMACIST, **idem()}, json={
+        "branch_id": str(PP1), "batch_id": batch, "qty_base": 1, "reason": "lost_theft", "note": "missing at count",
+        "destruction_method": "n/a (lost)", "pin_token": auth.issue(actor, "inventory.shrinkage", branches=(PP1,)),
+        "witness_token": auth.issue(str(uuid4()), "inventory.shrinkage", "witness", branches=(PP1,))})  # fmt: skip
+    assert r.status_code == 201, r.text
 
 
 @pytest.mark.skipif(not S3_ENDPOINT, reason="TEST_S3_ENDPOINT not set")

@@ -11,8 +11,8 @@ once. Services never see a PIN.
 
 Errors: no token → PIN_REQUIRED (401) / WITNESS_REQUIRED (422); unknown, used,
 expired, another person's or another action's token → PIN_INVALID (401);
-witness = the same person, not at the branch or without `controlled.witness`
-→ WITNESS_INVALID (422).
+witness = the same person, not at the branch, without `controlled.witness` or
+(when `roles` is given, e.g. destruction) not in one of those roles → WITNESS_INVALID (422).
 """
 
 from dataclasses import dataclass
@@ -63,10 +63,15 @@ async def consume_pin(
     return person
 
 
+DESTRUCTION_WITNESS_ROLES = ("branch_manager", "owner")
+
+
 async def consume_witness(
-    auth: InternalClient, token: str | None, action: str, *, actor: CurrentUser, branch_id: UUID
-) -> PinPerson:
-    """A second staff member's PIN: not the actor, works at the branch, may witness."""
+    auth: InternalClient, token: str | None, action: str, *, actor: CurrentUser, branch_id: UUID,
+    roles: tuple[str, ...] | None = None,
+) -> PinPerson:  # fmt: skip
+    """A second staff member's PIN: not the actor, works at the branch, may witness
+    (and, when `roles` is given, has one of those roles)."""
     if not token:
         raise AppError(ErrorCode.WITNESS_REQUIRED, "A second staff member must witness this with their PIN",
                        status_code=422, details={"action": action})  # fmt: skip
@@ -76,4 +81,7 @@ async def consume_witness(
     if not person.works_at(branch_id) or not person.has("controlled.witness"):
         raise AppError(ErrorCode.WITNESS_INVALID, f"{person.name or 'This person'} cannot witness at this branch",
                        status_code=422)  # fmt: skip
+    if roles and person.role not in roles:
+        raise AppError(ErrorCode.WITNESS_INVALID, "Destroying controlled stock needs a branch manager or the owner "
+                       "as witness", status_code=422, details={"witness_roles": list(roles)})  # fmt: skip
     return person

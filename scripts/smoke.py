@@ -39,7 +39,8 @@ refused, the dispensing label and the Rx summary print, the User Log.
 S5 checks (optional, needs the S1b sample products): in a new test branch, two
 pharmacists set their PINs; DIAZ5 (controlled) is stocked in and reaches the
 register; a controlled sale on an Rx needs the patient's ID and the PIN (refused
-without it); one tablet is destroyed with a witness's PIN; the register shows
+without it); destroying one tablet with a pharmacist as witness is refused, with a branch
+manager's PIN (2FA on) it works; the register shows
 receive / dispense / destroy with the right balance and its hash chain verifies;
 the register PDF prints; a controlled stock take is counted by both pharmacists
 (one tablet short), approved with a PIN and posted to stock and the register;
@@ -50,7 +51,10 @@ Without prompts: SMOKE_PHONE, SMOKE_PASSWORD, SMOKE_S1=y ... SMOKE_S4=y, SMOKE_S
 Uses only the Python standard library.
 """
 
+import base64
 import getpass
+import hashlib
+import hmac
 import json
 import os
 import random
@@ -709,6 +713,31 @@ def s3_checks(token: str) -> None:
     remove_test_cashier(token, bid, cashier)
 
 
+def totp_now(secret: str) -> str:
+    """The current authenticator code for a base32 secret (RFC 6238, standard library only)."""
+    key = base64.b32decode(secret + "=" * (-len(secret) % 8), casefold=True)
+    digest = hmac.new(key, struct.pack(">Q", int(time.time()) // 30), hashlib.sha1).digest()
+    offset = digest[-1] & 15
+    return f"{(struct.unpack('>I', digest[offset:offset + 4])[0] & 0x7FFFFFFF) % 1_000_000:06d}"
+
+
+def make_test_manager(token: str, bid: str, pin: str) -> tuple[dict, str] | None:
+    """A branch manager for the test branch, with 2FA turned on and a PIN: (user, access token)."""
+    phone, password = f"09{random.randint(1000000, 9999999)}", f"smoke-{random.randint(100000, 999999)}"
+    status, manager = call("POST", "/api/auth/v1/users", {"name": "Smoke manager", "phone": phone,
+                           "password": password, "role": "branch_manager", "branch_ids": [bid]}, token=token)  # fmt: skip
+    if not check(status == 201, f"test branch manager created -> 201 (got {status} {manager.get('code', '')})"):
+        return None
+    data = call("POST", "/api/auth/v1/login", {"phone": phone, "password": password})[1]
+    secret = call("POST", "/api/auth/v1/2fa/setup", token=data.get("access_token"))[1].get("secret", "")
+    status, data = call("POST", "/api/auth/v1/2fa/enable", {"code": totp_now(secret)}, token=data.get("access_token"))
+    if not check(status == 200, f"manager turns on 2FA -> 200 (got {status} {data.get('code', '')})"):
+        return None
+    status, _ = call("PUT", "/api/auth/v1/me/pin", {"password": password, "pin": pin}, token=data["access_token"])
+    check(status == 204, f"manager sets a PIN -> 204 (got {status})")
+    return manager, data["access_token"]
+
+
 def tiny_png() -> bytes:
     """A 2×2 white PNG, made with the standard library."""
 
@@ -932,9 +961,15 @@ def s5_checks(token: str) -> None:
     def pin_token(action: str) -> str:
         return call("POST", f"{auth}/pin/verify", {"pin": pin1, "action": action}, token=t1)[1].get("pin_token", "")
 
-    def witness_token(action: str) -> str:
-        return call("POST", f"{auth}/pin/witness", {"witness_user_id": p2["id"], "pin": pin2, "action": action},
-                    token=t1)[1].get("pin_token", "")  # fmt: skip
+    def witness_token(action: str, who: dict | None = None, pin: str | None = None) -> str:
+        return call("POST", f"{auth}/pin/witness", {"witness_user_id": (who or p2)["id"], "pin": pin or pin2,
+                    "action": action}, token=t1)[1].get("pin_token", "")  # fmt: skip
+
+    made_manager = make_test_manager(token, bid, "8642")
+    if made_manager is None:
+        return remove_test_cashier(token, bid, cashier)
+    manager = made_manager[0]
+    people.append((manager, "8642"))
 
     def register() -> dict:
         return call("GET", f"{ctl}/register?branch_id={bid}&medicine_id={diaz['id']}", token=t1)[1]
@@ -997,15 +1032,20 @@ def s5_checks(token: str) -> None:
         check(status == 422 and r.get("code") == "WITNESS_REQUIRED", f"destroy without witness -> 422 ({r.get('code')})")
         status, r = call("POST", f"{ctl}/entries", {**body, "pin_token": pin_token("controlled.destroy"),
                          "witness_token": witness_token("controlled.destroy")}, token=t1, headers=key())  # fmt: skip
-        check(status == 201 and r.get("witness_name") == "Smoke pharmacist 2",
-              f"destroy 1 tablet with the witness's PIN -> 201 (got {status} {r.get('code', '')})")  # fmt: skip
+        check(status == 422 and r.get("code") == "WITNESS_INVALID",
+              f"destroy witnessed by a pharmacist -> 422 WITNESS_INVALID ({r.get('code')})")  # fmt: skip
+        status, r = call("POST", f"{ctl}/entries", {**body, "pin_token": pin_token("controlled.destroy"),
+                         "witness_token": witness_token("controlled.destroy", manager, "8642")}, token=t1,
+                         headers=key())  # fmt: skip
+        check(status == 201 and r.get("witness_name") == "Smoke manager",
+              f"destroy 1 tablet with the branch manager's PIN as witness -> 201 (got {status} {r.get('code', '')})")  # fmt: skip
         expected = 3 * strip - strip - 1
         got = wait_for(lambda: register() if len(register().get("entries", [])) >= 3 else None, tries=40) or {}
         kinds = [(e["entry_type"], e["balance_after"]) for e in got.get("entries", [])]
         check(kinds == [("receive", 3 * strip), ("dispense", 2 * strip), ("destroy", expected)],
               f"register: receive, dispense, destroy with running balance ({kinds})")  # fmt: skip
         last = (got.get("entries") or [{}])[-1]
-        check(last.get("witness_name") == "Smoke pharmacist 2", "the register names the witness")
+        check(last.get("witness_name") == "Smoke manager", "the register names the witness")
         disp = next((e for e in got.get("entries", []) if e["entry_type"] == "dispense"), {})
         check(disp.get("prescription_number") == rx.get("number") and disp.get("patient_id_document") == "SMOKE-ID-001",
               "the dispense entry carries the Rx and the patient's ID")  # fmt: skip

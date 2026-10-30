@@ -123,7 +123,7 @@ These are the rules the services enforce on the server; the UI only mirrors them
 1. Any medicine with a `controlled_schedule` writes a register entry for every receive, dispense, transfer, return, destruction and adjustment, in the same saga as the stock movement.
 2. Each entry stores `balance_after`; the register balance must always equal stock for that medicine at that branch, or a `register.discrepancy` event alerts the owner.
 3. Dispensing needs a prescription, the patient's ID, and the pharmacist's PIN re-entered at the moment of sale.
-4. Destruction and adjustments need a second staff member as witness.
+4. Destruction and adjustments need a second staff member as witness; for destruction the witness is a branch manager or the owner.
 5. Entries are hash-chained (`hash = sha256(prev_hash + entry)`) so editing a past row is detectable; corrections are new rows.
 6. Stock counts of controlled drugs need two independent counts before approval.
 7. Exact schedules, record-keeping periods and reporting forms must be confirmed against Cambodia's Ministry of Health (Department of Drugs and Food) requirements before go-live.

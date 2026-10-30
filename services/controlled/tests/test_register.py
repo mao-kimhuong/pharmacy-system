@@ -38,10 +38,10 @@ async def register(client, medicine_id: str | None = None, headers=PHARMACIST) -
     return r.json()
 
 
-def tokens(action: str, actor: dict = PHARMACIST, witness: str | None = None) -> dict:
+def tokens(action: str, actor: dict = PHARMACIST, witness: str | None = None, role: str = "branch_manager") -> dict:
     return {"pin_token": AUTH.issue(actor["X-User-Id"], action, branches=(PP1,)),
             "witness_token": AUTH.issue(witness or str(uuid4()), action, "witness", branches=(PP1,),
-                                        name="Witness Dara")}  # fmt: skip
+                                        name="Witness Dara", role=role)}  # fmt: skip
 
 
 async def test_receipt_becomes_an_entry_once_with_running_balance(client) -> None:
@@ -122,6 +122,29 @@ async def test_destroy_needs_pin_witness_and_method(client) -> None:
     assert (last["entry_type"], last["qty_base"], last["balance_after"]) == ("destroy", -4, 96)
     assert last["witness_name"] == "Witness Dara" and last["reason"] == "Broken tablets"
     assert (await register(client, diaz))["chain_valid"]
+
+
+async def test_destroy_needs_a_manager_or_owner_witness_adjust_does_not(client) -> None:
+    diaz = await add_controlled()
+    await receive(diaz, 50)
+    await relay()
+    batch = await batch_id(diaz)
+    destroy = {"branch_id": str(PP1), "batch_id": batch, "kind": "destroy", "qty_base": 2, "reason": "Expired",
+               "destruction_method": "Incinerated"}  # fmt: skip
+    r = await client.post(f"{PREFIX}/entries", json={**destroy, **tokens("controlled.destroy", role="pharmacist")},
+                          headers={**PHARMACIST, **idem()})  # fmt: skip
+    assert r.status_code == 422 and r.json()["code"] == "WITNESS_INVALID"
+    assert r.json()["details"]["witness_roles"] == ["branch_manager", "owner"]
+    for role in ("branch_manager", "owner"):
+        r = await client.post(f"{PREFIX}/entries", json={**destroy, **tokens("controlled.destroy", role=role)},
+                              headers={**PHARMACIST, **idem()})  # fmt: skip
+        assert r.status_code == 201, r.text
+    adjust = {"branch_id": str(PP1), "batch_id": batch, "kind": "adjust_out", "qty_base": 1, "reason": "Miscount"}
+    r = await client.post(f"{PREFIX}/entries", json={**adjust, **tokens("controlled.adjust", role="pharmacist")},
+                          headers={**PHARMACIST, **idem()})  # fmt: skip
+    assert r.status_code == 201, r.text
+    await relay()
+    assert (await register(client, diaz))["entries"][-1]["balance_after"] == 45
 
 
 async def test_cashier_and_other_branch_cannot(client) -> None:

@@ -4,7 +4,8 @@ recalled. Rules:
 - inventory.shrinkage, own branch, Idempotency-Key. Value = qty × the batch's
   cost per base unit.
 - Controlled medicine: the user's PIN and a witness's PIN (another person of
-  the branch with controlled.witness) → both recorded; the movement carries
+  the branch with controlled.witness; a destruction – any reason except
+  lost/stolen – needs a branch manager or the owner as witness) → both recorded; the movement carries
   them to the controlled-drug register. A destruction method is required.
 - Value above the branch's `shrinkage_approval_usd` (50 by default) → pending;
   someone else with inventory.shrinkage_approve approves (posted) or rejects
@@ -27,7 +28,7 @@ from pharmacy_shared.auth import CurrentUser
 from pharmacy_shared.errors import AppError, ErrorCode
 from pharmacy_shared.internal import InternalClient
 from pharmacy_shared.numbering import next_number
-from pharmacy_shared.pin import consume_pin, consume_witness
+from pharmacy_shared.pin import DESTRUCTION_WITNESS_ROLES, consume_pin, consume_witness
 from pharmacy_shared.storage import Storage
 from pharmacy_shared.uploads import check_upload
 
@@ -107,7 +108,9 @@ async def create(
             raise AppError(ErrorCode.VALIDATION_ERROR, "Give the destruction method for a controlled medicine",
                            status_code=422, details={"field": "destruction_method"})  # fmt: skip
         await consume_pin(auth, data.get("pin_token"), ACTION, user=actor, branch_id=branch.id)
-        witness = await consume_witness(auth, data.get("witness_token"), ACTION, actor=actor, branch_id=branch.id)
+        destroyed = data["reason"] != "lost_theft"
+        witness = await consume_witness(auth, data.get("witness_token"), ACTION, actor=actor, branch_id=branch.id,
+                                        roles=DESTRUCTION_WITNESS_ROLES if destroyed else None)  # fmt: skip
         meta.update(entry_type="destroy" if data["reason"] != "lost_theft" else "loss",
                     witness_id=str(witness.user_id), witness_name=witness.name,
                     destruction_method=clean(data.get("destruction_method")), pin_confirmed=True)  # fmt: skip

@@ -254,7 +254,8 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   (User Log `user.pin_locked`). Services consume tokens with `pharmacy_shared.pin.consume_pin / consume_witness`
   (auth `/internal/v1/pin-tokens/consume`, GETDEL): missing → PIN_REQUIRED (401) / WITNESS_REQUIRED (422);
   used, expired, wrong person or action → PIN_INVALID; witness = actor, other branch or no
-  `controlled.witness` → WITNESS_INVALID. Actions: controlled.dispense / adjust / destroy / resolve,
+  `controlled.witness` → WITNESS_INVALID; destroying controlled stock (register `destroy`, controlled
+  shrinkage except lost/stolen) needs a branch_manager or owner witness (`roles=DESTRUCTION_WITNESS_ROLES`). Actions: controlled.dispense / adjust / destroy / resolve,
   stockcount.approve, inventory.shrinkage. Services never see a PIN.
 - **Permission sync (from S5):** keys new to the DB go to the built-in roles whose defaults have them;
   `RENAMED` moves grants (`pos.dispense_controlled` → `controlled.dispense`); `DEFAULT_ADDITIONS` gives an

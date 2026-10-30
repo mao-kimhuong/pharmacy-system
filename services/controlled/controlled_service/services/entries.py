@@ -2,7 +2,8 @@
 
 - Adjust or destroy (controlled.adjust): the user's PIN and a witness's PIN
   (another person of the branch with controlled.witness), a reason; destroy
-  also needs the destruction method. Inventory makes the movement (once per
+  also needs the destruction method and a branch manager or the owner as the
+  witness (an adjustment may have a pharmacist witness). Inventory makes the movement (once per
   request); its register entry arrives with the stock.changed event.
 - Correction (controlled.adjust, PIN + witness): a register-only row pointing
   at the entry it corrects (signed quantity, may be 0 for a note). The wrong
@@ -17,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pharmacy_shared import clock
 from pharmacy_shared.auth import CurrentUser
 from pharmacy_shared.errors import AppError, ErrorCode
-from pharmacy_shared.pin import consume_pin, consume_witness
+from pharmacy_shared.pin import DESTRUCTION_WITNESS_ROLES, consume_pin, consume_witness
 
 from ..models import AdjustRequest, KnownBranch, RegisterEntry
 from .chain import append
@@ -43,7 +44,8 @@ async def adjust(
                        details={"field": "destruction_method"})  # fmt: skip
     me = await consume_pin(clients.auth, data.get("pin_token"), action, user=actor, branch_id=branch.id)
     witness = await consume_witness(
-        clients.auth, data.get("witness_token"), action, actor=actor, branch_id=branch.id
+        clients.auth, data.get("witness_token"), action, actor=actor, branch_id=branch.id,
+        roles=DESTRUCTION_WITNESS_ROLES if data["kind"] == "destroy" else None,
     )
     req = AdjustRequest(id=uuid4(), branch_id=branch.id, batch_id=data["batch_id"], kind=data["kind"],
                         qty_base=data["qty_base"], reason=clean(data["reason"]),
