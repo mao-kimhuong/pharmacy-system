@@ -14,9 +14,10 @@ from ..schemas.render import (
     RegisterRender,
     RenderRequest,
     RxSummaryRender,
+    SaleOrderRender,
     TransferNoteRender,
 )
-from ..services import dispensing, labels, purchase_orders, receipts, transfer_note
+from ..services import dispensing, labels, purchase_orders, receipts, sale_orders, transfer_note
 from ..services import register as register_pdf
 
 router = APIRouter(tags=["render"])
@@ -57,6 +58,8 @@ async def render(
       a QR code of the transfer number for receiving by scan.
     - `type: purchase_order_group` (purchasing.order): one printout of a PO group for the
       supplier, a delivery section per branch.
+    - `type: sale_order` (sales.orders or sales.view, own branches): the quote or
+      sale order, Khmer/English, with the deposit taken.
     PO and invoice: right after they are saved, waits up to 5 s for them, then
     DOCUMENT_NOT_READY (409).
     """
@@ -88,6 +91,13 @@ async def render(
         user.require("purchasing.order")
         number, pdf = await purchase_orders.render_group(
             session, user, body.group_id, settings.document_wait_seconds
+        )
+        filename = f"{number}.pdf"
+    elif isinstance(body, SaleOrderRender):
+        if not user.has_any("sales.orders", "sales.view"):
+            user.require("sales.orders")
+        number, pdf = await sale_orders.render(
+            session, user, body.sale_order_id, settings.document_wait_seconds
         )
         filename = f"{number}.pdf"
     elif isinstance(body, RegisterRender):

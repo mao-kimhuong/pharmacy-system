@@ -26,6 +26,8 @@ class BranchSettingsOut(BaseModel):
     reorder_safety_days: int
     reorder_lead_days: int
     near_expiry_transfer_days: int
+    order_deposit_on_cancel: str
+    max_discount_pct: dict[str, int]
 
 
 class BranchOut(BaseModel):
@@ -93,6 +95,13 @@ class BranchSettingsUpdate(BaseModel):
         default=None, ge=0, le=180, description="Default supplier lead time"
     )
     near_expiry_transfer_days: int | None = Field(default=None, ge=7, le=365)
+    order_deposit_on_cancel: Literal["keep_as_credit", "refund", "forfeit"] | None = Field(
+        default=None,
+        description="A cancelled sale order's deposit: stays as credit, refunded, or kept by the shop",
+    )
+    max_discount_pct: dict[str, Annotated[int, Field(ge=0, le=100)]] | None = Field(
+        default=None, description='Manual discount cap per role, e.g. {"cashier": 5, "pharmacist": 10}'
+    )
 
 
 class ReasonRequest(BaseModel):

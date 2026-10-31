@@ -263,6 +263,8 @@ Creates or tops up a batch in inventory, posts an `in` movement, and writes a `r
 
 Pick is FEFO unless a line names batches with a reason. Receive takes `{"lines": [{"pick_id": "…", "qty_received": 28, "qty_damaged": 1, "location": "A3"}]}`; short, damaged or extra quantities open differences resolved with a reason.
 
+**POST /api/sales/v1/sale-orders** (quote) → **/{id}/confirm** `{"reserve": true, "reserve_days": 3, "deposit": {"method": "cash", "currency": "USD", "amount": 5}}` → **/{id}/invoice** `{"lines": [{"order_line_id": "…", "qty": 1}], "payments": [{"method": "deposit", "deposit_id": "…", "amount": 5}]}` → **/cancel** or **/close**. Also **/carts/suspend**, **/carts/{id}/resume**, **/sale-templates/{id}/load**, **/carts/price**, **/commission/rules**, **/commission/periods/{branch}/{month}/close|paid**, **/commission/report**; catalog **/promotions** and **/hampers**; inventory **GET /hampers/{id}/availability**.
+
 **GET /api/inventory/v1/batches?branch\_id=&expiring\_within=90&status=active** — near-expiry list, sorted by expiry.
 
 **POST /api/prescription/v1/prescriptions** — patient, doctor, `rx_no`, `issued_on`, `valid_until`, and `items[]` (`medicine_id`, `qty_base` = one fill, `dosage`, `frequency`, `duration_days`, `repeats_allowed`). The photo is uploaded after: **POST /prescriptions/{id}/attachments** (JPEG/PNG/PDF ≤ 10 MB) and read back only through **GET /prescriptions/{id}/attachments/{att_id}** (checked and logged on every request).
@@ -300,6 +302,13 @@ Pick is FEFO unless a line names batches with a reason. Receive takes `{"lines":
 | BRANCH\_FORBIDDEN | 403 | User has no access to the requested branch |
 | TRANSFER\_STATE | 409 | Action not allowed in the transfer's current status (e.g. cancel after dispatch) |
 | REQUEST\_STATE | 409 | Purchase request or re-order line already decided or requested |
+| BELOW\_COST | 422 | A line's net price is below its batch cost (needs `sales.below_cost`) |
+| DISCOUNT\_APPROVAL\_REQUIRED | 403 | Manual discount above the role's cap: a manager's (or the owner's) PIN approval |
+| PROMOTION\_LIMIT | 409 | Promotion used up (in total or for this customer) |
+| ORDER\_STATE / CART\_STATE | 409 | Action not allowed in the sale order's or suspended cart's status |
+| DEPOSIT\_EXCEEDED | 422 | More taken from a deposit than is left on it |
+| PERIOD\_LOCKED | 409 | Commission period already closed or paid |
+| HAMPER\_NOT\_STOCKED | 422 | A hamper in a PO, stock-in, transfer, count or re-order (only its components are stocked) |
 
 **Security**
 

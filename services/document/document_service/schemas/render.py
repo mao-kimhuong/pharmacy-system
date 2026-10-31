@@ -96,6 +96,15 @@ class PurchaseOrderGroupRender(BaseModel):
     group_id: UUID
 
 
+class SaleOrderRender(BaseModel):
+    """Quote or sale order (A4, Khmer/English). Permission sales.orders or sales.view, own branches."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["sale_order"]
+    sale_order_id: UUID
+
+
 RenderRequest = Annotated[
     LabelRender
     | PurchaseOrderRender
@@ -104,6 +113,7 @@ RenderRequest = Annotated[
     | RxSummaryRender
     | RegisterRender
     | TransferNoteRender
-    | PurchaseOrderGroupRender,
+    | PurchaseOrderGroupRender
+    | SaleOrderRender,
     Field(discriminator="type"),
 ]

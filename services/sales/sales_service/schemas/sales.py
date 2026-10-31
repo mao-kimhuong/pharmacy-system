@@ -58,14 +58,21 @@ class LineIn(BaseModel):
         max_length=40,
         description="Controlled medicine: the patient's ID card / passport no.",
     )
+    discount_pct: Decimal | None = Field(default=None, gt=0, le=100, decimal_places=2,
+                                         description="Manual discount after promotions, % (capped per role)")  # fmt: skip
+    discount_amount: Decimal | None = Field(default=None, gt=0, max_digits=14, decimal_places=2,
+                                            description="Manual discount after promotions, USD")  # fmt: skip
 
 
 class PaymentIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    method: Literal["cash", "card", "ABA", "KHQR", "credit"]
+    method: Literal["cash", "card", "ABA", "KHQR", "credit", "deposit"]
     currency: Literal["USD", "KHR"] = "USD"
     amount: Amount = Field(description="In the currency; riel in whole hundreds")
+    deposit_id: UUID | None = Field(
+        default=None, description="method deposit: the customer's deposit (sale order)"
+    )
 
 
 class InvoiceCreate(BaseModel):
@@ -82,6 +89,10 @@ class InvoiceCreate(BaseModel):
     pin_token: str | None = Field(
         default=None, max_length=200,
         description="Controlled medicines: the pharmacist's PIN for controlled.dispense (auth /pin/verify)",
+    )  # fmt: skip
+    discount_approval_token: str | None = Field(
+        default=None, max_length=200,
+        description="A discount above your cap: a manager / the owner confirms (auth /pin/witness, action sales.discount)",
     )  # fmt: skip
 
 
@@ -134,6 +145,13 @@ class LineOut(BaseModel):
     is_controlled: bool = False
     patient_id_document: str | None = None
     pin_confirmed_by: UUID | None = None
+    promotion_ids: list[str] = []
+    promo_discount: Decimal = Decimal("0.00")
+    manual_discount: Decimal = Decimal("0.00")
+    manual_discount_by: UUID | None = None
+    net: Decimal | None = None
+    is_hamper: bool = False
+    order_line_id: UUID | None = None
 
 
 class InvoicePaymentOut(BaseModel):
@@ -143,6 +161,7 @@ class InvoicePaymentOut(BaseModel):
     currency: str
     amount: Decimal
     amount_usd: Decimal
+    deposit_id: UUID | None = None
 
 
 class InvoiceOut(BaseModel):
@@ -153,6 +172,7 @@ class InvoiceOut(BaseModel):
     branch_id: UUID
     customer_id: UUID | None
     patient_id: UUID | None
+    sale_order_id: UUID | None = None
     status: str
     created_by: UUID
     note: str

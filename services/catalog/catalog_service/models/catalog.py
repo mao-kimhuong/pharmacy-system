@@ -64,6 +64,7 @@ class Medicine(IdMixin, TimestampMixin, Base):
         CheckConstraint("controlled_schedule IS NULL OR is_rx_only", name="ck_medicines_controlled_rx"),
         CheckConstraint("storage IN ('room', 'cold')", name="ck_medicines_storage"),
         CheckConstraint("reorder_level >= 0", name="ck_medicines_reorder_level"),
+        CheckConstraint("kind IN ('medicine', 'hamper')", name="ck_medicines_kind"),
         Index("ix_medicines_brand_name_trgm", "brand_name", postgresql_using="gin",
               postgresql_ops={"brand_name": "gin_trgm_ops"}),
         Index("ix_medicines_generic_name_trgm", "generic_name", postgresql_using="gin",
@@ -90,6 +91,8 @@ class Medicine(IdMixin, TimestampMixin, Base):
     active_ingredients: Mapped[list[str]] = mapped_column(JSON, default=list, server_default="[]")
     drug_classes: Mapped[list[str]] = mapped_column(JSON, default=list, server_default="[]")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    # "hamper": a kit sold as one item, made of other medicines (no stock of its own) (S7)
+    kind: Mapped[str] = mapped_column(String(10), default="medicine", server_default="medicine")
     # Goes up on every change; event consumers ignore events older than their copy.
     version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
     created_by: Mapped[UUID | None] = mapped_column(Uuid)
@@ -98,6 +101,12 @@ class Medicine(IdMixin, TimestampMixin, Base):
     brand: Mapped[Brand | None] = relationship(lazy="selectin")
     pack_units: Mapped[list["PackUnit"]] = relationship(
         back_populates="medicine", lazy="selectin", order_by="(PackUnit.qty_in_base, PackUnit.name)"
+    )
+    components: Mapped[list["HamperComponent"]] = relationship(
+        lazy="selectin",
+        foreign_keys="HamperComponent.hamper_id",
+        order_by="HamperComponent.line_no",
+        cascade="all, delete-orphan",
     )
 
     @property
@@ -126,6 +135,8 @@ class Medicine(IdMixin, TimestampMixin, Base):
             "drug_classes": "; ".join(self.drug_classes or []),
             "is_active": self.is_active,
         }
+        if self.kind == "hamper":
+            fields["components"] = "; ".join(f"{c.qty_base} x {c.component_id}" for c in self.components)
         for p in self.pack_units:
             for key, value in p.safe_fields().items():
                 fields[f"pack_units.{p.name}.{key}"] = value
@@ -164,3 +175,16 @@ class PackUnit(IdMixin, TimestampMixin, Base):
             "sell_price": str(self.sell_price),
             "is_active": self.is_active,
         }
+
+
+class HamperComponent(Base):
+    """One medicine in a hamper, in its base unit. Replaced as a whole when the
+    hamper's contents change (the hamper's version goes up)."""
+
+    __tablename__ = "hamper_components"
+    __table_args__ = (CheckConstraint("qty_base > 0", name="ck_hamper_components_qty"),)
+
+    hamper_id: Mapped[UUID] = mapped_column(ForeignKey("medicines.id"), primary_key=True)
+    component_id: Mapped[UUID] = mapped_column(ForeignKey("medicines.id"), primary_key=True)
+    line_no: Mapped[int] = mapped_column(Integer)
+    qty_base: Mapped[int] = mapped_column(Integer)

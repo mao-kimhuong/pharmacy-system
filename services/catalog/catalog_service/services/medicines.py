@@ -1,3 +1,4 @@
+
 """Medicines and pack units. Rules:
 
 - A controlled medicine (schedule I-IV) is always prescription-only.
@@ -18,6 +19,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import case, func, or_, select
+from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -58,6 +60,11 @@ def price(value: Decimal | str | float) -> Decimal:
 # ---------------------------------------------------------------- events and audit
 
 
+def _components(m: Medicine) -> list:
+    """A medicine just made (not a hamper) has not loaded its components: none."""
+    return [] if "components" in sa_inspect(m).unloaded else list(m.components)
+
+
 def event_payload(m: Medicine) -> dict[str, Any]:
     """Everything other services need about a product (sales, inventory,
     prescription, document, reports). Prices are strings, in USD."""
@@ -85,6 +92,8 @@ def event_payload(m: Medicine) -> dict[str, Any]:
         "active_ingredients": list(m.active_ingredients or []),
         "drug_classes": list(m.drug_classes or []),
         "is_active": m.is_active,
+        "kind": m.kind,
+        "components": [{"medicine_id": str(c.component_id), "qty_base": c.qty_base} for c in _components(m)],
         "pack_units": [
             {
                 "id": str(p.id),
@@ -312,6 +321,7 @@ async def create_medicine(session: AsyncSession, actor: CurrentUser, data: dict[
         is_rx_only=False,
         version=0,
         created_by=actor.id,
+        components=[],
     )
     m.category = await _lookup(session, Category, data.get("category_id"))
     m.brand = await _lookup(session, Brand, data.get("brand_id"))
@@ -374,7 +384,14 @@ async def update_medicine(
     if data.get("drug_classes") is not None:
         m.drug_classes = terms(data["drug_classes"])
     apply_rx_rule(m, data.get("is_rx_only"))
+    if m.kind == "hamper" and m.controlled_schedule:
+        raise AppError(
+            ErrorCode.VALIDATION_ERROR, "A hamper cannot be a controlled medicine", status_code=422
+        )
     record_change(session, actor, m, "medicine.updated", before)
+    from .hampers import refresh_hampers_of  # hampers imports this module
+
+    await refresh_hampers_of(session, actor, m)
     await commit(session)
     return m
 
@@ -385,6 +402,13 @@ async def set_medicine_active(
     m = await get_medicine(session, medicine_id, lock=True)
     if m.is_active == active:
         return m
+    if not active:
+        from .hampers import hampers_using
+
+        used = [h.sku for h in await hampers_using(session, m.id) if h.is_active]
+        if used:
+            raise AppError(ErrorCode.VALIDATION_ERROR, f"{m.sku} is in active hampers ({', '.join(used)}): "
+                           "change or deactivate them first", status_code=409, details={"hampers": used})  # fmt: skip
     before = m.safe_fields()
     m.is_active = active
     action = "medicine.activated" if active else "medicine.deactivated"
@@ -402,6 +426,9 @@ async def add_pack_unit(
     session: AsyncSession, actor: CurrentUser, medicine_id: UUID, data: dict[str, Any]
 ) -> PackUnit:
     m = await get_medicine(session, medicine_id, lock=True)
+    if m.kind == "hamper":
+        raise AppError(ErrorCode.VALIDATION_ERROR, "A hamper is sold as one unit: no other pack units",
+                       status_code=422)  # fmt: skip
     before = m.safe_fields()
     name = clean(data["name"])
     check_pack_name_free(m, name)

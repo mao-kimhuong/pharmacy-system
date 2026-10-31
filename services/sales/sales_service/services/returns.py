@@ -4,9 +4,13 @@
   sold minus already returned (RETURN_EXCEEDS_SOLD).
 - Opened packs are refused (OPENED_PACK_RETURN) unless the branch allows it.
 - Refund in cash, or as a credit note to the invoice's customer (credit sales
-  are always refunded as a credit note). Amount = unit price × qty.
+  are always refunded as a credit note). Amount = the line's net price (after
+  promotions and discounts) for the quantity returned.
 - Stock goes back into the batches it was sold from (the last-used batch
-  first), or into quarantine until a pharmacist releases it.
+  first), or into quarantine until a pharmacist releases it. A hamper comes back
+  whole: each component into its own batches.
+- Commission is taken back for what was returned; a fully returned invoice gives
+  its promotion uses back.
 - Numbered PP1-RT-2026-000001 when complete; invoice.returned + User Log.
 - If inventory or customers cannot be reached after part of the work, the
   return is "needs_attention" and the recovery task finishes it (idempotent).
@@ -32,7 +36,7 @@ from ..models import (
     SaleReturn,
     SaleReturnLine,
 )
-from . import money
+from . import commission, money, promotions
 from .clients import Clients
 from .common import audit, clean
 from .queries import get_invoice, returns_of
@@ -58,6 +62,13 @@ async def return_steps(session: AsyncSession, ret: SaleReturn, inv: Invoice, act
     branch = await session.get(KnownBranch, ret.branch_id)
     ret.number = await next_number(session, DocSequence, ret.branch_id, branch.code if branch else "BR", "RT")
     ret.status = "completed"
+    returned: dict[UUID, int] = {}
+    for x in ret.lines:
+        line = by_id[x.invoice_line_id]
+        returned[line.id] = returned.get(line.id, 0) + (x.hamper_qty if line.is_hamper else x.qty_base)
+    await commission.take_back(session, inv, f"return:{ret.id}", returned)
+    if all(x.returned_qty_base >= x.qty_base for x in inv.lines):
+        await promotions.set_status(session, inv.id, "released")
     ret.failure_reason = None
     inv.version += 1
     await session.flush()
@@ -75,7 +86,22 @@ async def return_steps(session: AsyncSession, ret: SaleReturn, inv: Invoice, act
 
 
 def _allocate(line, qty_base: int) -> list[tuple[Any, int]]:  # noqa: ANN001
-    """Back into the batches the line was sold from, last-used first."""
+    """Back into the batches the line was sold from, last-used first. A hamper (qty in
+    hampers): each component its share, back into that component's batches."""
+    if line.is_hamper:
+        out = []
+        by_component: dict[Any, list] = {}
+        for b in line.batches:
+            by_component.setdefault(b.medicine_id, []).append(b)
+        for batches in by_component.values():
+            per_hamper = sum(b.qty_base for b in batches) // line.qty_base
+            need = per_hamper * qty_base
+            for b in sorted(batches, key=lambda b: -b.seq):
+                take = min(need, b.qty_base - b.returned_qty_base)
+                if take > 0:
+                    out.append((b, take))
+                    need -= take
+        return out
     out, need = [], qty_base
     for b in sorted(line.batches, key=lambda b: -b.seq):
         take = min(need, b.qty_base - b.returned_qty_base)
@@ -123,7 +149,7 @@ async def create_return(
             raise AppError(ErrorCode.RETURN_EXCEEDS_SOLD, f"Line {i}: only {left // line.qty_in_base} {line.pack_unit} "
                            "can still be returned", status_code=422,
                            details={"line": i, "returnable_base": left})  # fmt: skip
-        amount = money.usd(line.unit_price * item["qty"])
+        amount = money.usd(line.net * qty_base / line.qty_base)
         ret.refund_usd += amount
         line.returned_qty_base += qty_base
         allocations = _allocate(line, qty_base)
@@ -132,10 +158,12 @@ async def create_return(
             batch.returned_qty_base += qty
             seq += 1
             # each batch its share of the refund; the last one the rest, so cents add up
-            share = amount - given if n == len(allocations) - 1 else money.usd(amount * qty / qty_base)
+            parts = sum(q for _, q in allocations)
+            share = amount - given if n == len(allocations) - 1 else money.usd(amount * qty / parts)
             given += share
             ret.lines.append(SaleReturnLine(seq=seq, invoice_line_id=line.id, batch_id=batch.batch_id, qty_base=qty,
-                                            amount=share, opened=bool(item.get("opened"))))  # fmt: skip
+                                            amount=share, opened=bool(item.get("opened")),
+                                            hamper_qty=qty_base if line.is_hamper and n == 0 else 0))  # fmt: skip
     inv.returned_total += ret.refund_usd
     session.add(ret)
     await session.commit()  # holds the returned quantities: a second return cannot take them again

@@ -9,6 +9,7 @@ from pharmacy_shared.internal import InternalCaller, internal_caller
 
 from ..db import db
 from ..schemas.inventory import (
+    AvailableRequest,
     ControlledMovement,
     ControlledStockRequest,
     FromPurchaseRequest,
@@ -20,6 +21,7 @@ from ..schemas.inventory import (
     ReturnRequest,
     ReverseRequest,
     SnapshotRequest,
+    SplitRequest,
 )
 from ..services import counting, transfers
 from ..services import reservations as svc
@@ -129,3 +131,24 @@ async def transfer_from_purchase_request(
 ) -> dict:  # fmt: skip
     """A purchase request filled from another branch: approved request + transfer, once per source_ref."""
     return await transfers.from_purchase_request(session, caller, body.model_dump())
+
+
+# ---------------------------------------------------------------- sales extras (S7)
+
+
+@router.post("/reservations/{reservation_id}/split", response_model=ReservationOut)
+async def split(
+    reservation_id: UUID, body: SplitRequest, caller: InternalCaller = Depends(internal_caller),
+    session: AsyncSession = Depends(db.session),
+) -> dict:  # fmt: skip
+    """Part of a sale order's reservation becomes an invoice's (same batches). Once per invoice."""
+    return await svc.split(session, caller, reservation_id, body.model_dump())
+
+
+@router.post("/stock/available")
+async def stock_available(
+    body: AvailableRequest, caller: InternalCaller = Depends(internal_caller),
+    session: AsyncSession = Depends(db.session),
+) -> dict:  # fmt: skip
+    """Sellable now per item (hampers: whole hampers), nothing reserved (resuming a cart)."""
+    return {"items": await svc.availability(session, body.branch_id, [i.model_dump() for i in body.items])}

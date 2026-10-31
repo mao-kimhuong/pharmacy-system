@@ -191,3 +191,18 @@ async def test_reorder_settings_have_defaults_and_travel_in_events(client) -> No
     await client.put(f"{PREFIX}/branches/{branch['id']}/settings", headers=OWNER, json={"reorder_sales_days": 14})
     payload = [p for t, p in await outbox() if t == "branch.settings_updated"][-1]
     assert (payload["reorder_sales_days"], payload["near_expiry_transfer_days"]) == (14, 90)
+
+
+async def test_sales_extras_settings(client) -> None:
+    branch = await create(client)
+    s = (await client.get(f"{PREFIX}/branches/{branch['id']}/settings", headers=OWNER)).json()
+    assert s["order_deposit_on_cancel"] == "keep_as_credit"
+    assert s["max_discount_pct"] == {"cashier": 5, "pharmacist": 10, "branch_manager": 20}
+    r = await client.put(f"{PREFIX}/branches/{branch['id']}/settings", headers=OWNER,
+                         json={"order_deposit_on_cancel": "refund", "max_discount_pct": {"cashier": 3}})  # fmt: skip
+    assert r.status_code == 200, r.text
+    payload = [p for t, p in await outbox() if t == "branch.settings_updated"][-1]
+    assert (payload["order_deposit_on_cancel"], payload["max_discount_pct"]) == ("refund", {"cashier": 3})
+    bad = await client.put(f"{PREFIX}/branches/{branch['id']}/settings", headers=OWNER,
+                           json={"max_discount_pct": {"cashier": 150}})  # fmt: skip
+    assert bad.status_code == 422

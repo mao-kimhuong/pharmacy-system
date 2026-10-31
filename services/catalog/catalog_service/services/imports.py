@@ -592,7 +592,7 @@ async def _apply(
     is_new = m is None
     if m is None:
         m = Medicine(sku=plan.sku, base_unit=plan.fields["base_unit"], is_rx_only=False, version=0,
-                     storage="room", reorder_level=0, created_by=actor.id)  # fmt: skip
+                     storage="room", reorder_level=0, created_by=actor.id, components=[])  # fmt: skip
         for key in _TEXT_FIELDS:
             setattr(m, key, "")
         m.pack_units = []

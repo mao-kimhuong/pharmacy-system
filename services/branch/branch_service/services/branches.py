@@ -178,6 +178,8 @@ async def update_settings(
         "reorder_safety_days",
         "reorder_lead_days",
         "near_expiry_transfer_days",
+        "order_deposit_on_cancel",
+        "max_discount_pct",
     ):
         if field in data:
             setattr(settings, field, data[field])

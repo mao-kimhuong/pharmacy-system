@@ -4,7 +4,7 @@
 
 republish: writes a medicine.updated event (current state, current version) for
 every medicine, and category.updated / brand.updated for every category and
-brand, to the outbox. Use it when a service starts listening after products
+brand, and promotion.updated for every promotion, to the outbox. Use it when a service starts listening after products
 already exist (its queue did not exist yet, so it missed those events).
 Consumers ignore versions they already have, so running it twice is harmless.
 """
@@ -19,7 +19,7 @@ from pharmacy_shared.outbox import add_event
 
 from .db import db
 from .models import Brand, Category, Medicine, OutboxEvent
-from .services import lookups, medicines
+from .services import lookups, medicines, promotions
 
 
 async def republish() -> tuple[int, int]:
@@ -33,8 +33,12 @@ async def republish() -> tuple[int, int]:
                 lookup_count += 1
         count = 0
         for m in (await session.execute(select(Medicine).order_by(Medicine.sku))).scalars():
-            add_event(session, OutboxEvent, "medicine.updated", medicines.event_payload(m))
+            # resync: copies refresh even when they have this version (new fields in a later sprint)
+            add_event(
+                session, OutboxEvent, "medicine.updated", {**medicines.event_payload(m), "resync": True}
+            )
             count += 1
+        lookup_count += await promotions.republish(session)
         await session.commit()
     await db.dispose()
     return count, lookup_count

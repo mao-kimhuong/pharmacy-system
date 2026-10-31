@@ -16,6 +16,7 @@ from .customers import (
     CustomerPayment,
     LedgerEntry,
 )
+from .deposits import Deposit, DepositMovement
 
 
 class OutboxEvent(OutboxMixin, Base):
@@ -37,6 +38,8 @@ class KnownBranch(BranchCopyMixin, Base):
 
 
 __all__ = [
+    "Deposit",
+    "DepositMovement",
     "Base", "Customer", "CustomerAllocation", "CustomerDebt", "CustomerGroup", "CustomerPayment",
     "DocSequence", "KnownBranch", "LEDGER_KINDS", "LedgerEntry", "OutboxEvent", "ProcessedMessage",
 ]  # fmt: skip

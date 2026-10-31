@@ -57,10 +57,7 @@ async def handle_event(
         await session.execute(insert(BranchSettingsCopy).values(**values).on_conflict_do_update(
             index_elements=[BranchSettingsCopy.branch_id], set_={k: v for k, v in values.items() if k != "branch_id"}))  # fmt: skip
     elif event_type in copies.MEDICINE_EVENTS:
-        if await copies.upsert_product(session, Product, ProductPackUnit, payload):
-            category = payload.get("category") or {}
-            product = await session.get(Product, UUID(str(payload["medicine_id"])))
-            product.category_id = UUID(str(category["id"])) if category.get("id") else None
+        await copies.upsert_product(session, Product, ProductPackUnit, payload)
     elif event_type in SUPPLIER_EVENTS:
         values = {"id": UUID(payload["supplier_id"]), "code": payload["code"], "name": payload["name"],
                   "is_active": bool(payload["is_active"])}  # fmt: skip

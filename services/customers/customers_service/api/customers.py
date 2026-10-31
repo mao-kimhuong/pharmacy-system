@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pharmacy_shared.auth import CurrentUser, requires
+from pharmacy_shared.auth import CurrentUser, requires, requires_any
 from pharmacy_shared.idempotency import require_idempotency_key
 
 from ..db import db
@@ -15,6 +15,7 @@ from ..schemas.customers import (
     CustomerPage,
     CustomerUpdate,
     DebtOut,
+    DepositOut,
     GroupCreate,
     GroupOut,
     GroupUpdate,
@@ -25,7 +26,7 @@ from ..schemas.customers import (
     StatementOut,
 )
 from ..services import customers as svc
-from ..services import payments
+from ..services import deposits, payments
 from ..services.common import balance_of
 
 router = APIRouter()
@@ -183,3 +184,12 @@ async def cancel_payment(
     session: AsyncSession = Depends(db.session),
 ) -> CustomerPayment:  # fmt: skip
     return await payments.cancel_payment(session, user, payment_id, body.reason)
+
+
+@router.get("/customers/{customer_id}/deposits", response_model=list[DepositOut], tags=["customers"])
+async def list_deposits(
+    customer_id: UUID, _: CurrentUser = Depends(requires_any("contacts.customers", "pos.sell")),
+    session: AsyncSession = Depends(db.session),
+) -> list[dict]:  # fmt: skip
+    """Sale-order deposits and what is left (credit kept from a cancelled order can pay later sales)."""
+    return [deposits.out(d) for d in await deposits.of_customer(session, customer_id)]

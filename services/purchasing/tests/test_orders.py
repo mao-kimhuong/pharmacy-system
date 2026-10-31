@@ -12,6 +12,7 @@ from .conftest import (
     audits,
     create_po,
     create_supplier,
+    event,
     outbox,
 )
 
@@ -141,3 +142,19 @@ async def test_cashier_cannot_create_pos_and_sees_no_prices(client) -> None:
     assert (await client.get(f"{PREFIX}/purchase-orders/{po['id']}", headers=MANAGER)).json()[
         "total"
     ] == "40.00"
+
+
+async def test_a_hamper_cannot_be_ordered(client) -> None:
+    supplier = await create_supplier(client)
+    para = await add_product("PARA500")
+    hamper_id, pack = str(uuid4()), str(uuid4())
+    await event("medicine.created", {
+        "medicine_id": hamper_id, "version": 1, "sku": "KIT-FLU", "brand_name": "Flu kit", "generic_name": "Hamper",
+        "base_unit": "hamper", "is_rx_only": False, "controlled_schedule": None, "is_active": True, "kind": "hamper",
+        "components": [{"medicine_id": para["id"], "qty_base": 10}],
+        "pack_units": [{"id": pack, "name": "hamper", "qty_in_base": 1, "barcode": None, "sell_price": "5.00",
+                        "is_base": True, "is_active": True}]})  # fmt: skip
+    r = await client.post(f"{PREFIX}/purchase-orders", headers=OWNER, json={
+        "branch_id": str(PP1), "supplier_id": supplier["id"],
+        "lines": [{"medicine_id": hamper_id, "pack_unit_id": pack, "qty": 1, "unit_cost": "3.00"}]})  # fmt: skip
+    assert r.status_code == 422 and r.json()["code"] == "HAMPER_NOT_STOCKED"

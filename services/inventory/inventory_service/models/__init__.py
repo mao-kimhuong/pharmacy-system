@@ -3,7 +3,7 @@ Alembic autogenerate can see it."""
 
 from uuid import UUID
 
-from sqlalchemy import Boolean, String, Uuid
+from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from pharmacy_shared.consumer import ProcessedMessageMixin
@@ -72,8 +72,6 @@ class Product(ProductCopyMixin, Base):
     """Local copy of catalog medicines (medicine.* events)."""
 
     __tablename__ = "products"
-
-    category_id: Mapped[UUID | None] = mapped_column(Uuid, index=True)  # stock takes by category
 
     pack_units: Mapped[list["ProductPackUnit"]] = relationship(back_populates="product", lazy="selectin")
 

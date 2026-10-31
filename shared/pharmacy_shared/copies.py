@@ -31,7 +31,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, func, select
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, Numeric, String, Uuid, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
@@ -57,9 +57,18 @@ class ProductCopyMixin:
     is_rx_only: Mapped[bool] = mapped_column(Boolean, default=False)
     controlled_schedule: Mapped[str | None] = mapped_column(String(3))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # S7: hampers (a sellable kit of components, no stock of its own), promotion / commission scopes
+    kind: Mapped[str] = mapped_column(String(10), default="medicine", server_default="medicine")
+    components: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list, server_default="[]")
+    category_id: Mapped[UUID | None] = mapped_column(Uuid, index=True)
+    brand_id: Mapped[UUID | None] = mapped_column(Uuid)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    @property
+    def is_hamper(self) -> bool:
+        return self.kind == "hamper"
 
     @property
     def display_name(self) -> str:
@@ -97,7 +106,8 @@ class BranchCopyMixin:
 async def upsert_product(
     session: AsyncSession, product_model: type, pack_model: type, payload: dict[str, Any]
 ) -> bool:
-    """Store a medicine.* payload. Returns False when the stored copy is as new or newer."""
+    """Store a medicine.* payload. Returns False when the stored copy is as new or newer
+    (a re-send by `make resync` – payload "resync": true – also refreshes an equal version)."""
     product_id = UUID(str(payload["medicine_id"]))
     version = int(payload["version"])
     stored = (
@@ -105,7 +115,7 @@ async def upsert_product(
             select(product_model.version).where(product_model.id == product_id).with_for_update()
         )
     ).scalar_one_or_none()
-    if stored is not None and stored >= version:
+    if stored is not None and (stored > version or (stored == version and not payload.get("resync"))):
         return False
     values = {
         "id": product_id,
@@ -120,7 +130,12 @@ async def upsert_product(
         "is_rx_only": bool(payload["is_rx_only"]),
         "controlled_schedule": payload.get("controlled_schedule"),
         "is_active": bool(payload["is_active"]),
-    }
+        "kind": payload.get("kind") or "medicine",
+        "components": [{"medicine_id": str(c["medicine_id"]), "qty_base": int(c["qty_base"])}
+                       for c in payload.get("components") or []],
+        "category_id": UUID(str(payload["category"]["id"])) if (payload.get("category") or {}).get("id") else None,
+        "brand_id": UUID(str(payload["brand"]["id"])) if (payload.get("brand") or {}).get("id") else None,
+    }  # fmt: skip
     await session.execute(
         insert(product_model)
         .values(**values)

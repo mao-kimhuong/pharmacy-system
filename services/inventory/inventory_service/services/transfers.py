@@ -59,7 +59,7 @@ from ..models import (
     TransferRequest,
     TransferRequestLine,
 )
-from .common import audit, clean
+from .common import audit, clean, hamper_not_stocked
 from .movements import already_booked, apply_movement, lock_stock
 from .reservations import _fefo_rows, _override_row, available
 
@@ -242,6 +242,8 @@ async def _lines(
         if p is None or not p.is_active:
             raise AppError(ErrorCode.UNKNOWN_MEDICINE, f"Line {i}: unknown or inactive medicine", status_code=422,
                            details={"line": i})  # fmt: skip
+        if p.kind == "hamper":
+            raise hamper_not_stocked(p.sku)
         if p.id in seen:
             raise AppError(ErrorCode.VALIDATION_ERROR, f"Line {i}: {p.sku} is listed twice", status_code=422)
         seen.add(p.id)

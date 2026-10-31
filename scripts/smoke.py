@@ -53,7 +53,15 @@ transfer closes (stock and in transit add up), the transfer note prints with its
 QR code; a purchase request at A becomes a PO group with a PO for A (printout for
 the supplier); B's re-order list is run with a min/max for PARA500 and printed.
 
-Without prompts: SMOKE_PHONE, SMOKE_PASSWORD, SMOKE_S1=y ... SMOKE_S5=y, SMOKE_S6=y.
+S7 checks (optional, needs the S1b sample products): a test branch with stock; a
+cart suspended by the cashier is resumed by the owner (re-priced, no changes); a
+buy-2-get-1 promotion on ORS (this branch only) prices 3 sachets as 2 and the
+sale stores it; a hamper (10 PARA500 + 5 CETI10) is sold from its components'
+batches; a quote becomes an order with a deposit and a reservation, is partly
+invoiced with the deposit, printed, and the rest cancelled; a 5 % commission rule,
+a sale, the report and the cashier's own drill-down (not someone else's).
+
+Without prompts: SMOKE_PHONE, SMOKE_PASSWORD, SMOKE_S1=y ... SMOKE_S5=y, SMOKE_S6=y, SMOKE_S7=y.
 
 Uses only the Python standard library.
 """
@@ -1235,6 +1243,196 @@ def s6_checks(token: str) -> None:
         remove_test_cashier(token, b, cashier_b)
 
 
+def s7_checks(token: str) -> None:
+    cat, inv, sales, cust = "/api/catalog/v1", "/api/inventory/v1", "/api/sales/v1", "/api/customers/v1"
+    docs = "/api/documents/v1/render"
+    products = {}
+    for sku in ("PARA500", "CETI10", "ORS"):
+        _, found = call("GET", f"{cat}/medicines/search?q={sku}", token=token)
+        m = next((x for x in found.get("items", []) if x["sku"] == sku), None)
+        if m is None:
+            check(False, f"sample product {sku} exists (run the S1b step first)")
+            return
+        products[sku] = (m, {p["name"]: p for p in m["pack_units"]})
+    made = make_test_cashier(token)
+    if made is None:
+        return
+    bid, cashier, phone, password = made
+    today = date.today()
+    promo: dict = {}
+    hamper: dict = {}
+    customer: dict = {}
+
+    def key() -> dict:
+        return {"Idempotency-Key": str(uuid.uuid4())}
+
+    def line(sku: str, pack: str, qty: int) -> dict:
+        m, packs = products[sku]
+        return {"medicine_id": m["id"], "pack_unit_id": packs[pack]["id"], "qty": qty}
+
+    def reserved(sku: str) -> int:
+        _, out = call("GET", f"{inv}/stock?branch_id={bid}&q={sku}", token=token)
+        return sum(i["qty_reserved"] for i in out.get("items", []))
+
+    def stock_in_line(sku: str, pack: str, qty: int) -> dict:
+        return {**line(sku, pack, qty), "lot_no": f"S7{sku}", "unit_cost": "0.05",
+                "expiry_date": (today + timedelta(days=400)).isoformat()}  # fmt: skip
+
+    try:
+        body = {"branch_id": bid, "reason": "Smoke test S7", "lines": [stock_in_line("PARA500", "box", 2),
+                stock_in_line("CETI10", "box", 2), stock_in_line("ORS", "box", 1)]}  # fmt: skip
+
+        def stock_in():
+            st, out = call("POST", f"{inv}/stock-in", body, token=token, headers=key())
+            return (st, out) if out.get("code") not in ("UNKNOWN_BRANCH", "UNKNOWN_MEDICINE") else None
+
+        status, _ = wait_for(stock_in, tries=30) or (0, {})
+        if not check(status == 201, f"stock-in for the test branch -> 201 (got {status})"):
+            return
+        call("PUT", f"{sales}/exchange-rates/{bid}", {"khr_per_usd": 4100}, token=token)
+        ctoken = call("POST", "/api/auth/v1/login", {"phone": phone, "password": password})[1].get("access_token", "")
+        para_strip = Decimal(products["PARA500"][1]["strip"]["sell_price"])
+
+        # 1. suspend on one till, resume on another (another user of the branch)
+        def suspend():
+            st, out = call("POST", f"{sales}/carts/suspend", {"branch_id": bid, "note": "customer went to the ATM",
+                           "lines": [line("PARA500", "strip", 2)]}, token=ctoken, headers=key())  # fmt: skip
+            return (st, out) if out.get("code") not in ("UNKNOWN_BRANCH", "UNKNOWN_MEDICINE") else None
+
+        status, cart = wait_for(suspend, tries=30) or (0, {})
+        check(status == 201 and cart.get("status") == "suspended", f"cashier suspends a cart -> {cart.get('number')}")
+        _, carts = call("GET", f"{sales}/carts?branch_id={bid}", token=token)
+        check(any(c["id"] == cart.get("id") for c in carts) if isinstance(carts, list) else False,
+              "the owner sees it in the branch's suspended carts")  # fmt: skip
+        status, resumed = call("POST", f"{sales}/carts/{cart.get('id')}/resume", token=token, headers=key())
+        check(status == 200 and Decimal(resumed.get("total", "0")) == 2 * para_strip and resumed.get("changes") == [],
+              f"resumed on another till: re-priced {resumed.get('total')}, changes {resumed.get('changes')}")  # fmt: skip
+
+        # 2. buy 2 get 1 on ORS sachets (this branch only)
+        code = f"S7B2G1{random.randint(1000, 9999)}"
+        ors = products["ORS"][0]
+        status, promo = call("POST", f"{cat}/promotions", {"code": code, "name": "Smoke ORS buy 2 get 1",
+                             "type": "buy_x_get_y", "buy_qty": 2, "get_qty": 1, "medicine_ids": [ors["id"]],
+                             "branch_ids": [bid]}, token=token)  # fmt: skip
+        check(status == 201, f"promotion {code} buy 2 get 1 on ORS -> 201 (got {status} {promo.get('code', '')})")
+        sachet = Decimal(products["ORS"][1]["sachet"]["sell_price"])
+
+        def priced():
+            _, out = call("POST", f"{sales}/carts/price", {"branch_id": bid, "lines": [line("ORS", "sachet", 3)]},
+                          token=ctoken)  # fmt: skip
+            return out if Decimal(out.get("discount", "0")) > 0 else None
+
+        cart_price = wait_for(priced, tries=30) or {}
+        check(Decimal(cart_price.get("total", "-1")) == 2 * sachet, f"3 sachets cost 2: {cart_price.get('total')}")
+        status, b2g1 = call("POST", f"{sales}/invoices", {"branch_id": bid, "lines": [line("ORS", "sachet", 3)],
+                            "payments": [{"method": "cash", "amount": str(2 * sachet)}]}, token=ctoken, headers=key())  # fmt: skip
+        first = (b2g1.get("lines") or [{}])[0]
+        check(status == 201 and Decimal(first.get("promo_discount", "0")) == sachet and first.get("promotion_ids"),
+              f"buy 2 get 1 sale {b2g1.get('number')}: discount {first.get('promo_discount')} stored on the line")  # fmt: skip
+
+        # 3. a hamper: no stock of its own, its components FEFO
+        para, ceti = products["PARA500"][0], products["CETI10"][0]
+        hsku = f"S7KIT{random.randint(1000, 9999)}"
+        status, hamper = call("POST", f"{cat}/hampers", {"sku": hsku, "name": "Smoke cold kit", "price": "3.00",
+                              "components": [{"medicine_id": para["id"], "qty_base": 10},
+                                             {"medicine_id": ceti["id"], "qty_base": 5}]}, token=token)  # fmt: skip
+        check(status == 201 and hamper.get("kind") == "hamper", f"hamper {hsku} (10 PARA500 + 5 CETI10) -> {status}")
+        hpack = (hamper.get("pack_units") or [{}])[0].get("id")
+
+        def available():
+            _, out = call("GET", f"{inv}/hampers/{hamper.get('id')}/availability?branch_id={bid}", token=token)
+            return out if out.get("available") else None
+
+        avail = wait_for(available, tries=30) or {}
+        check(avail.get("available", 0) > 0, f"hampers available = lowest component: {avail.get('available')}")
+
+        def sell_hamper():
+            st, out = call("POST", f"{sales}/invoices", {"branch_id": bid, "lines": [{"medicine_id": hamper.get("id"),
+                           "pack_unit_id": hpack, "qty": 1}], "payments": [{"method": "cash", "amount": "3.00"}]},
+                           token=ctoken, headers=key())  # fmt: skip
+            return (st, out) if out.get("code") != "UNKNOWN_MEDICINE" else None
+
+        status, kit = wait_for(sell_hamper, tries=30) or (0, {})
+        batches = {b.get("lot_no"): b["qty_base"] for b in (kit.get("lines") or [{}])[0].get("batches", [])}
+        check(status == 201 and batches == {"S7PARA500": 10, "S7CETI10": 5},
+              f"hamper sold {kit.get('number')}: components taken from their batches {batches}")  # fmt: skip
+
+        # 4. sale order: quote → order with reservation + deposit → partly invoiced → PDF
+        status, customer = call("POST", f"{cust}/customers", {"phone": f"097{random.randint(1000000, 9999999)}",
+                                "name": "Smoke S7 clinic"}, token=token)  # fmt: skip
+
+        def make_quote():
+            st, out = call("POST", f"{sales}/sale-orders", {"branch_id": bid, "customer_id": customer.get("id"),
+                           "lines": [line("PARA500", "strip", 2)]}, token=ctoken)  # fmt: skip
+            return (st, out) if out.get("code") != "CUSTOMER_REQUIRED" else None
+
+        status, order = wait_for(make_quote, tries=30) or (0, {})
+        check(status == 201 and order.get("status") == "quote", f"quote {order.get('number')} -> {status}")
+        before = reserved("PARA500")
+        status, order = call("POST", f"{sales}/sale-orders/{order.get('id')}/confirm", {"reserve": True,
+                             "deposit": {"method": "cash", "amount": str(para_strip)}}, token=ctoken, headers=key())  # fmt: skip
+        strip = products["PARA500"][1]["strip"]["qty_in_base"]
+        check(status == 200 and order.get("status") == "ordered" and reserved("PARA500") == before + 2 * strip,
+              f"ordered with a {order.get('deposit_usd')} deposit, 2 strips reserved")  # fmt: skip
+        status, part = call("POST", f"{sales}/sale-orders/{order.get('id')}/invoice", {
+            "lines": [{"order_line_id": order["lines"][0]["id"], "qty": 1}],
+            "payments": [{"method": "deposit", "amount": str(para_strip), "deposit_id": order.get("deposit_id")}]},
+            token=ctoken, headers=key())  # fmt: skip
+        _, order = call("GET", f"{sales}/sale-orders/{order.get('id')}", token=ctoken)
+        check(status == 201 and order.get("status") == "partly_fulfilled" and reserved("PARA500") == before + strip,
+              f"1 strip invoiced {part.get('number')} paid by the deposit; 1 strip still reserved")  # fmt: skip
+        pdf_body = json.dumps({"type": "sale_order", "sale_order_id": order.get("id")}).encode()
+        status, pdf, _ = call_raw("POST", docs, pdf_body, ctoken, {"Content-Type": "application/json"})
+        if check(status == 200 and pdf.startswith(b"%PDF"), f"sale order PDF ({status})"):
+            out = Path(tempfile.gettempdir()) / "pharmacy-smoke-sale-order.pdf"
+            out.write_bytes(pdf)
+            print(f"        open {out}")
+        status, order = call("POST", f"{sales}/sale-orders/{order.get('id')}/cancel", {"reason": "smoke test"},
+                             token=ctoken)  # fmt: skip
+        check(status == 200 and reserved("PARA500") == before, "rest of the order cancelled, reservation released")
+
+        # 5. commission: a 5 % rule, a sale, the report and its drill-down
+        status, rule = call("POST", f"{sales}/commission/rules", {"name": "Smoke 5 %", "kind": "percent",
+                            "value": "5", "scope": "all", "branch_id": bid, "starts_on": today.replace(day=1).isoformat()},
+                            token=token)  # fmt: skip
+        check(status == 201, f"commission rule 5 % for the test branch -> {status}")
+        status, sale = call("POST", f"{sales}/invoices", {"branch_id": bid, "lines": [line("CETI10", "strip", 1)],
+                            "payments": [{"method": "cash", "amount": "10.00"}]}, token=ctoken, headers=key())  # fmt: skip
+        month = today.replace(day=1).isoformat()
+        _, report = call("GET", f"{sales}/commission/report?branch_id={bid}&month={month}", token=token)
+        mine = next((s for s in report.get("staff", []) if s["staff_id"] == cashier["id"]), {})
+        check(Decimal(mine.get("commission", "0")) > 0, f"commission report: cashier earned {mine.get('commission')}")
+        print(f"        commission {month} for the test branch ({report.get('status')}):")
+        for s in report.get("staff", []):
+            print(f"          staff {s['staff_id'][:8]}…  net {s['net_usd']:>8}  commission {s['commission']:>6}"
+                  f"  ({s['lines']} lines)")
+        _, drill = call("GET", f"{sales}/commission/report/{cashier['id']}?branch_id={bid}&month={month}", token=ctoken)
+        check(isinstance(drill, list) and any(x["invoice_number"] == sale.get("number") for x in drill),
+              "the cashier sees their own lines (drill-down)")  # fmt: skip
+        status, _ = call("GET", f"{sales}/commission/report?branch_id={bid}&month={month}&staff_id={uuid.uuid4()}",
+                         token=ctoken)  # fmt: skip
+        check(status == 403, f"…but not someone else's -> 403 (got {status})")
+        if rule.get("id"):
+            call("POST", f"{sales}/commission/rules/{rule['id']}/deactivate", token=token)
+
+        for action in ("cart.suspended", "cart.resumed", "promotion.created", "sale_order.ordered",
+                       "sale_order.invoiced", "commission_rule.created"):  # fmt: skip
+
+            def logged(action=action):
+                _, log = call("GET", f"/api/auth/v1/audit-logs?action={action}&size=1", token=token)
+                return log.get("total")
+
+            check(bool(wait_for(logged)), f"User Log shows {action}")
+    finally:
+        if promo.get("id"):
+            call("POST", f"{cat}/promotions/{promo['id']}/deactivate", token=token)
+        if hamper.get("id"):
+            call("POST", f"{cat}/medicines/{hamper['id']}/deactivate", {"reason": "smoke test"}, token=token)
+        if customer.get("id"):
+            call("POST", f"{cust}/customers/{customer['id']}/deactivate", {"reason": "smoke test"}, token=token)
+        remove_test_cashier(token, bid, cashier)
+
+
 def main() -> int:
     print(f"Smoke test against {BASE}\n")
     tokens = s0_checks()
@@ -1288,6 +1486,13 @@ def main() -> int:
     if run_s6.strip().lower() in ("y", "yes", "1"):
         print()
         s6_checks(tokens["access_token"])
+    run_s7 = os.environ.get("SMOKE_S7") or input(
+        "\nAlso run the S7 checks? It creates a test branch, a promotion and a hamper (deactivated afterwards),\n"
+        "a suspended cart, a sale order with a deposit and a commission rule. [y/N] "
+    )
+    if run_s7.strip().lower() in ("y", "yes", "1"):
+        print()
+        s7_checks(tokens["access_token"])
 
     status, _ = call(
         "POST",

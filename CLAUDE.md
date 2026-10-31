@@ -290,7 +290,7 @@ Traefik v3.6. Python 3.12. Lint with ruff.
 
 - **Scheduled jobs:** all in Asia/Phnom_Penh time (`clock.TIMEZONE`), each once at start-up too, one replica
   at a time (advisory lock): inventory expiry 00:05, prescription expiry 00:10, register check 00:20,
-  re-order lists + alerts 00:30.
+  re-order lists + alerts 00:30, sales: suspended carts expire 00:01, order reservations every 10 min.
 - **Transfers (inventory, from S6):** request (`transfers.request`, destination) → approve / reject
   (`transfers.approve`, source) → transfer `PP1-TR-…`: approved → picked → dispatched → received → closed, or
   cancelled (reason, only before dispatch, reservations released → TRANSFER_STATE after). Push without a
@@ -321,6 +321,37 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   near-expiry stock (within its `near_expiry_transfer_days` 90, more than it will sell in time, we sell faster).
   Lists (`POST /reorder-lists/run`, daily job) → purchase request or transfer requests in one step. Events
   `stock.low` and `batch.expiring` (branch `expiry_alert_days`) at most once a day (`alerts_sent`).
+- **Promotions (catalog rules → sales, from S7):** catalog `promotions` (`catalog.promotions`): percent_off,
+  amount_off, buy_x_get_y, bundle_price, qty_tiers, group_price; targets, window, days, branches, customer
+  groups, max uses total / per customer, stackable, include_rx (Rx-only + controlled excluded otherwise);
+  `promotion.*` events (whole rule + version). Sales copy + `promotion_uses` (held at save, released on fail,
+  cancel, full return). Pricing engine `sales_service/services/pricing.py` (pure): best deal = each exclusive
+  alone vs all stackable together, tie keeps the exclusive. Invoice lines store `promotion_ids`,
+  `promo_discount`, `manual_discount`, `net`. Manual discount (`discount_pct` / `discount_amount`) capped per
+  role by branch setting `max_discount_pct` (cashier 5, pharmacist 10, manager 20, owner none); above it
+  `discount_approval_token` = `/pin/witness` (action `sales.discount`) of another user: manager or owner, and
+  only the owner above a manager's own cap (DISCOUNT_APPROVAL_REQUIRED). After the reservation, net < batch
+  cost → BELOW_COST unless `sales.below_cost` (owner by default).
+- **Hampers (from S7):** a catalog medicine with `kind="hamper"` + `hamper_components` (`catalog.hampers`,
+  `/hampers`); Rx-only if a component is; no pack units added, components cannot be deactivated while used.
+  No stock of its own: inventory expands a hamper line into its components (FEFO, all or nothing); POs,
+  receiving, stock-in, transfers, counts, re-order refuse it (HAMPER_NOT_STOCKED). `GET
+  /api/inventory/v1/hampers/{id}/availability` = lowest component. Invoice batches carry the component
+  `medicine_id`; returns are whole hampers only (no part returns).
+- **Suspend / templates / sale orders (sales, from S7):** `/carts/suspend` → `PP1-SP-…` (no reservation),
+  `/carts/{id}/resume` re-prices + checks stock (`changes[]`), job expires yesterday's. `/sale-templates`
+  (+ `/load`). Sale orders `PP1-SO-…`: quote → `/confirm` (ordered; optional FEFO reservation `ref_type
+  sale_order`, 1–14 days, and a deposit = customers `deposits`, KHR at the branch rate) → `/invoice` (lines of
+  the order, normal saga; the order's reservation is split onto the invoice via inventory `/reservations/{id}/
+  split`; payment method `deposit`) → partly_fulfilled / fulfilled; cancel / close release the reservation and
+  settle the deposit per branch setting `order_deposit_on_cancel` (keep_as_credit | refund | forfeit; forfeit
+  only manager / owner). Invoice cancel gives the qty and deposit back to the order. PDF `{"type":
+  "sale_order","sale_order_id"}`.
+- **Commission (sales, from S7):** rules (`commission.manage`) % of net or USD per base unit; scope medicine >
+  category > brand > all, a staff override first; earned by the user who completed the sale on the line's
+  USD net; returns / cancels → negative lines. Periods per branch + month open → closed → paid; locked
+  periods get nothing new (reversals go to the next open period). `/commission/report` (+ `/{staff_id}`
+  drill-down): `commission.view_own` = self only, `commission.manage` = the branch.
 
 ## Definition of done
 API matches the spec, migration included, tests pass (`make test` and `make test-docker`),
@@ -336,7 +367,7 @@ API matches the spec, migration included, tests pass (`make test` and `make test
 - [x] S4 Prescriptions – patients, doctors, Rx, dispensing, allergy warnings, labels
 - [x] S5 Controlled + counts – register, PIN + witness, stock take, shrinkage
 - [x] S6 Branches – transfer requests, transfers, purchase requests, re-order
-- [ ] S7 Sales extras – sale order, suspend, templates, promotions, hampers, commission
+- [x] S7 Sales extras – sale order, suspend, templates, promotions, hampers, commission
 - [ ] S8 Reports – dashboard, all reports, Telegram 20:00
 - [ ] S9 Hardening – performance, security, offline POS, UAT fixes; per-service tokens for
   internal calls (today one shared SERVICE_TOKEN: a service could call any other's /internal);

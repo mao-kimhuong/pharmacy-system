@@ -92,6 +92,13 @@ class PackUnitUpdate(BaseModel):
 # ---------------------------------------------------------------- medicines
 
 
+class ComponentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    component_id: UUID
+    qty_base: int
+
+
 class MedicineOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -114,6 +121,8 @@ class MedicineOut(BaseModel):
     drug_classes: list[str]
     is_active: bool
     version: int
+    kind: str = "medicine"
+    components: list["ComponentOut"] = []
     pack_units: list[PackUnitOut]
     created_at: datetime
     updated_at: datetime
@@ -184,3 +193,136 @@ class MedicineUpdate(BaseModel):
     reorder_level: int | None = Field(default=None, ge=0, le=10_000_000)
     active_ingredients: list[Term] | None = Field(default=None, max_length=10)
     drug_classes: list[Term] | None = Field(default=None, max_length=10)
+
+
+# ---------------------------------------------------------------- hampers (S7)
+
+
+class ComponentIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    medicine_id: UUID
+    qty_base: int = Field(ge=1, le=100_000, description="In the component's base unit")
+
+
+class HamperCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    sku: str = Field(min_length=1, max_length=40, examples=["KIT-FLU"])
+    name: str = Field(min_length=1, max_length=160, examples=["Flu care kit"])
+    name_km: str = Field(default="", max_length=160)
+    category_id: UUID | None = None
+    brand_id: UUID | None = None
+    price: Price
+    barcode: Barcode | None = None
+    components: list[ComponentIn] = Field(min_length=1, max_length=30)
+
+
+class HamperComponentsIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    components: list[ComponentIn] = Field(min_length=1, max_length=30)
+
+
+# ---------------------------------------------------------------- promotions (S7)
+
+PromoType = Literal["percent_off", "amount_off", "buy_x_get_y", "bundle_price", "qty_tiers", "group_price"]
+
+
+class Tier(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    min_qty: int = Field(ge=1, description="Base units of one medicine")
+    percent: Decimal = Field(gt=0, le=100)
+
+
+class BundleItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    medicine_id: UUID
+    qty_base: int = Field(ge=1)
+
+
+class PromotionFields(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=160)
+    name_km: str = Field(default="", max_length=160)
+    value: Decimal | None = Field(default=None, ge=0, max_digits=14, decimal_places=4,
+                                  description="% (percent_off), USD per unit sold (amount_off), bundle or group price")  # fmt: skip
+    buy_qty: int | None = Field(default=None, ge=1, description="buy_x_get_y, base units")
+    get_qty: int | None = Field(default=None, ge=1)
+    tiers: list[Tier] = Field(default_factory=list, max_length=10)
+    bundle_items: list[BundleItem] = Field(default_factory=list, max_length=10)
+    medicine_ids: list[UUID] = Field(default_factory=list, max_length=500)
+    category_ids: list[UUID] = Field(default_factory=list, max_length=100)
+    brand_ids: list[UUID] = Field(default_factory=list, max_length=100)
+    starts_at: datetime | None = None
+    ends_at: datetime | None = None
+    days_of_week: list[Annotated[int, Field(ge=0, le=6)]] = Field(
+        default_factory=list, description="0 = Monday"
+    )
+    branch_ids: list[UUID] = Field(default_factory=list, description="Empty = every branch")
+    customer_group_ids: list[UUID] = Field(default_factory=list, description="Empty = every customer")
+    max_uses_total: int | None = Field(default=None, ge=1)
+    max_uses_per_customer: int | None = Field(default=None, ge=1)
+    stackable: bool = False
+    include_rx: bool = Field(default=False, description="Also Rx-only and controlled medicines")
+
+
+class PromotionCreate(PromotionFields):
+    code: str = Field(min_length=1, max_length=30, examples=["B2G1-PARA"])
+    type: PromoType
+
+
+class PromotionUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = Field(default=None, min_length=1, max_length=160)
+    name_km: str | None = Field(default=None, max_length=160)
+    value: Decimal | None = Field(default=None, ge=0, max_digits=14, decimal_places=4)
+    buy_qty: int | None = Field(default=None, ge=1)
+    get_qty: int | None = Field(default=None, ge=1)
+    tiers: list[Tier] | None = None
+    bundle_items: list[BundleItem] | None = None
+    medicine_ids: list[UUID] | None = None
+    category_ids: list[UUID] | None = None
+    brand_ids: list[UUID] | None = None
+    starts_at: datetime | None = None
+    ends_at: datetime | None = None
+    days_of_week: list[Annotated[int, Field(ge=0, le=6)]] | None = None
+    branch_ids: list[UUID] | None = None
+    customer_group_ids: list[UUID] | None = None
+    max_uses_total: int | None = Field(default=None, ge=1)
+    max_uses_per_customer: int | None = Field(default=None, ge=1)
+    stackable: bool | None = None
+    include_rx: bool | None = None
+
+
+class PromotionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    code: str
+    name: str
+    name_km: str
+    type: str
+    value: Decimal | None
+    buy_qty: int | None
+    get_qty: int | None
+    tiers: list[dict]
+    bundle_items: list[dict]
+    medicine_ids: list[str]
+    category_ids: list[str]
+    brand_ids: list[str]
+    starts_at: datetime | None
+    ends_at: datetime | None
+    days_of_week: list[int]
+    branch_ids: list[str]
+    customer_group_ids: list[str]
+    max_uses_total: int | None
+    max_uses_per_customer: int | None
+    stackable: bool
+    include_rx: bool
+    is_active: bool
+    version: int

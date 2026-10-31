@@ -106,7 +106,9 @@ async def clean(monkeypatch) -> AsyncIterator[None]:
         await conn.execute(text(
             "TRUNCATE sale_return_lines, sale_returns, invoice_line_batches, invoice_payments, invoice_lines, invoices,"
             " exchange_rates, doc_sequences, branch_settings, known_customers, product_pack_units, products,"
-            " known_branches, processed_messages, outbox CASCADE"))  # fmt: skip
+            " known_branches, processed_messages, outbox, promotion_uses, promotions, suspended_carts,"
+            " sale_template_lines, sale_templates, sale_order_lines, sale_orders, commission_lines,"
+            " commission_periods, commission_rules CASCADE"))  # fmt: skip
     async with inventory_db.engine.begin() as conn:
         await conn.execute(text(
             "TRUNCATE reservation_lines, reservations, quarantine_entries, movements, stock, batches, stock_ins,"
@@ -114,7 +116,8 @@ async def clean(monkeypatch) -> AsyncIterator[None]:
     async with customers_db.engine.begin() as conn:
         await conn.execute(text(
             "TRUNCATE customer_allocations, customer_payments, customer_debts, ledger_entries, customers,"
-            " customer_groups, doc_sequences, known_branches, processed_messages, outbox CASCADE"))  # fmt: skip
+            " customer_groups, doc_sequences, known_branches, processed_messages, outbox, deposit_movements,"
+            " deposits CASCADE"))  # fmt: skip
     async with prescription_db.engine.begin() as conn:
         await conn.execute(text(
             "TRUNCATE rx_holds, rx_attachments, rx_items, prescriptions, patient_branches, patient_allergies,"
@@ -199,7 +202,7 @@ def idem() -> dict[str, str]:
 
 async def add_product(sku: str = "PARA500", *, rx: bool = False, controlled: str | None = None,
                       prices=("0.10", "0.90", "8.00"), ingredients: tuple[str, ...] = (),
-                      classes: tuple[str, ...] = ()) -> dict:  # fmt: skip
+                      classes: tuple[str, ...] = (), category: str | None = None) -> dict:  # fmt: skip
     """tablet / strip (10) / box (100) with sell prices; known to sales and inventory."""
     medicine_id = uuid4()
     units = [("tablet", 1, prices[0]), ("strip", 10, prices[1]), ("box", 100, prices[2])]
@@ -209,6 +212,7 @@ async def add_product(sku: str = "PARA500", *, rx: bool = False, controlled: str
         "generic_name": "Generic", "strength": "500mg", "dosage_form": "tablet", "name_km": "ថ្នាំ",
         "base_unit": "tablet", "is_rx_only": rx or bool(controlled), "controlled_schedule": controlled,
         "is_active": True, "active_ingredients": list(ingredients), "drug_classes": list(classes),
+        "category": {"id": category, "name_en": "Cat", "name_km": ""} if category else None,
         "pack_units": [{"id": str(ids[n]), "name": n, "qty_in_base": q, "barcode": None, "sell_price": p,
                         "is_base": q == 1, "is_active": True} for n, q, p in units],
     })  # fmt: skip

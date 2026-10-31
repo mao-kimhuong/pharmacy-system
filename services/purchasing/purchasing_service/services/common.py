@@ -77,6 +77,11 @@ async def pack_unit_for(
             ErrorCode.UNKNOWN_MEDICINE, f"{pack.product.sku} ({pack.name}) is deactivated", status_code=422,
             details=details,
         )  # fmt: skip
+    if pack.product.kind == "hamper":
+        raise AppError(
+            ErrorCode.HAMPER_NOT_STOCKED, f"{pack.product.sku} is a hamper: order its components instead",
+            status_code=422, details=details,
+        )  # fmt: skip
     return pack
 
 

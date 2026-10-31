@@ -5,8 +5,10 @@ from .api.router import router
 from .config import get_settings
 from .db import db
 from .models import OutboxEvent, ProcessedMessage
+from .services.carts import run_scheduler as run_cart_expiry
 from .services.clients import get_clients
 from .services.events import ROUTING_KEYS, handle_event
+from .services.orders import run_scheduler as run_order_expiry
 from .services.recovery import run_recovery
 
 settings = get_settings()
@@ -27,11 +29,21 @@ async def recovery_task(stop) -> None:  # noqa: ANN001
     )
 
 
+async def cart_expiry(stop) -> None:  # noqa: ANN001
+    await run_cart_expiry(db, stop)
+
+
+async def order_expiry(stop) -> None:  # noqa: ANN001
+    await run_order_expiry(db, get_clients, stop, settings.order_expiry_every_seconds)
+
+
 background = []
 if settings.event_consumer_enabled:
     background.append(consumer.run)
 if settings.recovery_enabled:
     background.append(recovery_task)
+if settings.jobs_enabled:
+    background += [cart_expiry, order_expiry]
 
 app = create_service_app(
     settings,

@@ -27,7 +27,7 @@ stored on the invoice).
 """
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 from typing import Any
@@ -55,7 +55,7 @@ from ..models import (
     OutboxEvent,
     ProductPackUnit,
 )
-from . import money, rates
+from . import cart, commission, money, promotions, rates
 from .clients import Clients
 from .common import audit, branch_for, clean
 from .snapshot import invoice_payload
@@ -67,6 +67,8 @@ CLIENT_STATUS = {
     ErrorCode.OUT_OF_STOCK: 409, ErrorCode.BATCH_EXPIRED: 409, ErrorCode.BATCH_BLOCKED: 409,
     ErrorCode.TEMPORARILY_UNAVAILABLE: 503, ErrorCode.PHARMACIST_REQUIRED: 403,
     ErrorCode.ALLERGY_WARNING: 409, ErrorCode.DUPLICATE_THERAPY_WARNING: 409, ErrorCode.PRESCRIPTION_STATE: 409,
+    ErrorCode.BELOW_COST: 422, ErrorCode.DISCOUNT_APPROVAL_REQUIRED: 403, ErrorCode.PROMOTION_LIMIT: 409,
+    ErrorCode.DEPOSIT_EXCEEDED: 409,
 }  # fmt: skip
 
 
@@ -85,6 +87,14 @@ class LinePlan:
     acknowledge_warnings: bool = False
     controlled: bool = False
     patient_id_document: str | None = None
+    promo_discount: Decimal = Decimal("0.00")
+    promotion_ids: list[str] = field(default_factory=list)
+    manual_discount: Decimal = Decimal("0.00")
+    order_line: Any = None
+
+    @property
+    def net(self) -> Decimal:
+        return self.line_total - self.promo_discount - self.manual_discount
 
 
 # ---------------------------------------------------------------- 1. validate
@@ -195,6 +205,10 @@ async def compensate(inv: Invoice, actor: CurrentUser | None, clients: Clients) 
     problems.append(await _undo("release stock", lambda: clients.inventory.post(
         "/reservations/release-by-ref", {"ref_type": "invoice", "ref_id": str(inv.id)},
         actor=actor, branch_id=inv.branch_id)))  # fmt: skip
+    for pay in [p for p in inv.payments if p.method == "deposit" and p.deposit_id]:
+        problems.append(await _undo("give back the deposit", lambda pay=pay: clients.customers.post(
+            f"/deposits/{pay.deposit_id}/unuse", {"invoice_id": str(inv.id), "reason": "sale not completed"},
+            actor=actor, branch_id=inv.branch_id)))  # fmt: skip
     return [p for p in problems if p]
 
 
@@ -205,6 +219,7 @@ async def _fail(
     inv = await session.get(Invoice, inv_id, populate_existing=True)
     problems = await compensate(inv, actor, clients)
     inv.status = "needs_attention" if problems else "failed"
+    await promotions.set_status(session, inv.id, "released")
     inv.failure_code = err.code.value if isinstance(err.code, ErrorCode) else str(err.code)
     inv.failure_reason = (err.message + (" | not undone yet: " + "; ".join(problems) if problems else ""))[
         :500
@@ -233,7 +248,13 @@ async def _replay(inv: Invoice) -> Invoice:
 
 
 async def create_invoice(
-    session: AsyncSession, actor: CurrentUser, data: dict[str, Any], idempotency_key: str, clients: Clients
+    session: AsyncSession,
+    actor: CurrentUser,
+    data: dict[str, Any],
+    idempotency_key: str,
+    clients: Clients,
+    *,
+    order: Any = None,
 ) -> Invoice:
     existing = (await session.execute(select(Invoice).where(
         Invoice.created_by == actor.id, Invoice.idempotency_key == idempotency_key))).scalar_one_or_none()  # fmt: skip
@@ -248,19 +269,26 @@ async def create_invoice(
     if any(x.controlled for x in lines):  # the PIN typed for this sale; one-time
         pharmacist = await consume_pin(clients.auth, data.get("pin_token"), "controlled.dispense", user=actor,
                                        branch_id=branch.id)  # fmt: skip
+    approver = await _price(session, actor, clients, branch.id, customer, lines, data, order)
     payments = [
         money.PaymentIn(p["method"], p["currency"], Decimal(str(p["amount"]))) for p in data["payments"]
     ]
-    if any(p.method == "credit" for p in payments) and customer is None:
-        raise AppError(ErrorCode.CUSTOMER_REQUIRED, "Choose the customer for a credit sale", status_code=422)
-    total = sum((x.line_total for x in lines), Decimal("0.00"))
+    if any(p.method in ("credit", "deposit") for p in payments) and customer is None:
+        raise AppError(ErrorCode.CUSTOMER_REQUIRED, "Choose the customer for a credit or deposit payment",
+                       status_code=422)  # fmt: skip
+    if any(p["method"] == "deposit" and not p.get("deposit_id") for p in data["payments"]):
+        raise AppError(ErrorCode.VALIDATION_ERROR, "Say which deposit pays (deposit_id)", status_code=422)
+    subtotal = sum((x.line_total for x in lines), Decimal("0.00"))
+    discount = sum((x.promo_discount + x.manual_discount for x in lines), Decimal("0.00"))
+    total = subtotal - discount
     rate = await rates.current(session, branch.id)
     s = money.settle(total, payments, rate.khr_per_usd if rate else None, data.get("change_in") or "USD_KHR")
 
     inv = Invoice(
         branch_id=branch.id, customer_id=customer.id if customer else None, status="pending",
         created_by=actor.id, idempotency_key=idempotency_key, note=clean(data.get("note")),
-        subtotal=total, discount=Decimal("0.00"), total=total, paid=s.paid, credit_amount=s.credit,
+        subtotal=subtotal, discount=discount, total=total, paid=s.paid, credit_amount=s.credit,
+        sale_order_id=order.id if order else None,
         change_usd=s.change_usd, khr_per_usd=rate.khr_per_usd if rate else None, total_khr=s.total_khr,
         change_in=data.get("change_in") or "USD_KHR", change_given_usd=s.change_given_usd,
         change_given_khr=s.change_given_khr, change_rounding_khr=s.change_rounding_khr, version=1,
@@ -271,17 +299,28 @@ async def create_invoice(
             batch_override_id=x.batch_id, override_reason=x.override_reason, rx_item_id=x.rx_item_id,
             allergy_override_reason=x.allergy_override_reason, is_controlled=x.controlled,
             patient_id_document=x.patient_id_document, pin_confirmed_by=actor.id if x.controlled else None,
+            promotion_ids=x.promotion_ids, promo_discount=x.promo_discount, manual_discount=x.manual_discount,
+            manual_discount_by=approver if x.manual_discount > 0 else None, is_hamper=x.pack.product.is_hamper,
+            order_line_id=x.order_line.id if x.order_line else None,
         ) for x in lines],
-        payments=[InvoicePayment(seq=i, method=p.method, currency=p.currency, amount=p.amount, amount_usd=u)
-                  for i, (p, u) in enumerate(s.payments, start=1)],
+        payments=[InvoicePayment(seq=i, method=p.method, currency=p.currency, amount=p.amount, amount_usd=u,
+                                 deposit_id=raw.get("deposit_id") if p.method == "deposit" else None)
+                  for i, ((p, u), raw) in enumerate(zip(s.payments, data["payments"], strict=True), start=1)],
     )  # fmt: skip
     session.add(inv)
     try:
+        await session.flush()
+        await promotions.hold(
+            session, inv.id, inv.customer_id, {UUID(p) for x in lines for p in x.promotion_ids}
+        )
         await session.commit()
     except IntegrityError as exc:  # the same key sent twice at the same moment
         await session.rollback()
         raise AppError(ErrorCode.IDEMPOTENCY_IN_PROGRESS, "This sale is already being processed",
                        status_code=409) from exc  # fmt: skip
+    except AppError:
+        await session.rollback()
+        raise
     inv_id = inv.id
 
     try:
@@ -297,15 +336,28 @@ async def create_invoice(
             _apply_rx(inv, actor, held["lines"])
             await session.commit()
         # 2. reserve stock (FEFO) – undone by release-by-ref, registered in compensate()
-        reservation = await clients.inventory.post("/reservations", {
-            "ref_type": "invoice", "ref_id": str(inv_id), "branch_id": str(branch.id),
-            "lines": [{"line_no": x.line_no, "medicine_id": str(x.pack.product_id), "qty_base": x.qty_base,
-                       **({"batch_id": str(x.batch_id)} if x.batch_id else {}),
-                       **({"meta": controlled_meta(inv, x.line_no, pharmacist)} if x.controlled else {})}
-                      for x in lines],
-        }, actor=actor, branch_id=branch.id, idempotency_key=f"{idempotency_key}:reserve")  # fmt: skip
+        if order is not None and order.reservation_id and order.reservation_released_at is None:
+            # the order's reserved batches move to this invoice (nothing released in between)
+            reservation = await clients.inventory.post(f"/reservations/{order.reservation_id}/split", {
+                "ref_id": str(inv_id), "lines": [{"from_line_no": x.order_line.line_no, "to_line_no": x.line_no,
+                                                  "qty_base": x.qty_base} for x in lines]},
+                actor=actor, branch_id=branch.id)  # fmt: skip
+        else:
+            reservation = await clients.inventory.post("/reservations", {
+                "ref_type": "invoice", "ref_id": str(inv_id), "branch_id": str(branch.id),
+                "lines": [{"line_no": x.line_no, "medicine_id": str(x.pack.product_id), "qty_base": x.qty_base,
+                           **({"batch_id": str(x.batch_id)} if x.batch_id else {}),
+                           **({"meta": controlled_meta(inv, x.line_no, pharmacist)} if x.controlled else {})}
+                          for x in lines],
+            }, actor=actor, branch_id=branch.id, idempotency_key=f"{idempotency_key}:reserve")  # fmt: skip
         inv.reservation_id = UUID(str(reservation["id"]))
         await session.commit()
+        below = _below_cost(actor, lines, reservation)
+        # 3b. pay with a sale order's deposit – undone by deposits/{id}/unuse
+        for pay in [p for p in inv.payments if p.method == "deposit"]:
+            await clients.customers.post(f"/deposits/{pay.deposit_id}/use", {
+                "invoice_id": str(inv_id), "customer_id": str(inv.customer_id), "amount": str(pay.amount_usd),
+            }, actor=actor, branch_id=branch.id)  # fmt: skip
         # 3. charge credit – undone by credit/reverse
         if s.credit > 0:
             await clients.customers.post("/credit/charge", {
@@ -316,7 +368,7 @@ async def create_invoice(
         confirmed = await clients.inventory.post(f"/reservations/{inv.reservation_id}/confirm", {},
                                                  actor=actor, branch_id=branch.id)  # fmt: skip
         # 5. finish
-        await _finish(session, actor, inv, branch, confirmed)
+        await _finish(session, actor, inv, branch, confirmed, below)
     except AppError as err:
         await _fail(session, inv_id, actor, err, clients)
         raise
@@ -336,6 +388,52 @@ async def create_invoice(
         except AppError:
             log.warning("could not send the number of %s to customers; invoice.created will", inv.number)
     return inv
+
+
+async def _price(session: AsyncSession, actor: CurrentUser, clients: Clients, branch_id: UUID, customer: Any,
+                 lines: list[LinePlan], data: dict[str, Any], order: Any) -> UUID | None:  # fmt: skip
+    """Promotions (best deal; an order keeps its quoted prices), manual discounts and
+    their approval. Returns who approved a discount above the seller's cap."""
+    order_lines = {ol.id: ol for ol in order.lines} if order is not None else {}
+    priced = []
+    for x, item in zip(lines, data["lines"], strict=True):
+        ol = order_lines.get(item.get("order_line_id"))
+        p = cart.PricedLine(x.line_no, x.pack, x.qty, x.unit_price, x.line_total)
+        if ol is not None:
+            x.order_line = ol
+            p.unit_price, p.line_total = ol.unit_price, money.usd(ol.unit_price * x.qty)
+            p.promo_discount = money.usd(ol.promo_discount * x.qty / ol.qty)
+            p.promotion_ids = list(ol.promotion_ids)
+        priced.append(p)
+    await cart.apply_promotions(session, branch_id, customer, [p for p, x in zip(priced, lines, strict=True)
+                                                              if x.order_line is None])  # fmt: skip
+    cart.apply_manual(priced, data["lines"])
+    approver = await cart.approve_discount(session, actor, clients.auth, branch_id, priced,
+                                           data.get("discount_approval_token"))  # fmt: skip
+    for x, p in zip(lines, priced, strict=True):
+        x.unit_price, x.line_total = p.unit_price, p.line_total
+        x.promo_discount, x.promotion_ids, x.manual_discount = (
+            p.promo_discount,
+            p.promotion_ids,
+            p.manual_discount,
+        )
+    return approver
+
+
+def _below_cost(actor: CurrentUser, lines: list[LinePlan], reservation: dict[str, Any]) -> list[str]:
+    """After the FEFO reservation (cost known per batch): no line may sell below cost
+    without sales.below_cost (BELOW_COST; the saga undoes the reservation)."""
+    cost: dict[int, Decimal] = {}
+    for r in reservation["lines"]:
+        cost[r["line_no"]] = (
+            cost.get(r["line_no"], Decimal("0")) + Decimal(str(r["cost_per_base"])) * r["qty_base"]
+        )
+    below = [x for x in lines if x.net < cost.get(x.line_no, Decimal("0")).quantize(Decimal("0.01"))]
+    if below and not actor.has("sales.below_cost"):
+        x = below[0]
+        raise AppError(ErrorCode.BELOW_COST, f"Line {x.line_no}: {x.pack.product.sku} would sell below cost",
+                       status_code=422, details={"lines": [b.line_no for b in below]})  # fmt: skip
+    return [f"line {x.line_no}: {x.pack.product.sku} net {x.net} below cost" for x in below]
 
 
 def controlled_meta(inv: Invoice, line_no: int, pharmacist: Any = None) -> dict[str, Any]:
@@ -379,7 +477,12 @@ def _apply_rx(inv: Invoice, actor: CurrentUser, held: list[dict[str, Any]]) -> N
 
 
 async def _finish(
-    session: AsyncSession, actor: CurrentUser, inv: Invoice, branch: KnownBranch, confirmed: dict
+    session: AsyncSession,
+    actor: CurrentUser,
+    inv: Invoice,
+    branch: KnownBranch,
+    confirmed: dict,
+    below: list[str] | None = None,
 ) -> None:
     by_line: dict[int, list[dict]] = {}
     for x in confirmed["lines"]:
@@ -390,6 +493,7 @@ async def _finish(
             line_id=line.id, seq=i, batch_id=UUID(str(b["batch_id"])), lot_no=b["lot_no"],
             expiry_date=date.fromisoformat(str(b["expiry_date"])), qty_base=b["qty_base"],
             cost_per_base=Decimal(str(b["cost_per_base"])),
+            medicine_id=UUID(str(b["medicine_id"])) if line.is_hamper else None,
         ) for i, b in enumerate(used, start=1))  # fmt: skip
         line.cost = sum((Decimal(str(b["cost_per_base"])) * b["qty_base"] for b in used), Decimal("0"))
     await session.flush()
@@ -399,6 +503,12 @@ async def _finish(
     inv.status = "completed"
     inv.completed_at = clock.now()
     await session.flush()
+    await promotions.set_status(session, inv.id, "used")
+    await commission.record_sale(session, inv)
+    if inv.sale_order_id:
+        from .orders import after_invoice  # orders imports this module
+
+        await after_invoice(session, actor, inv)
     add_event(session, OutboxEvent, "invoice.created", await invoice_payload(session, inv))
     audit(session, actor, "invoice.created", "invoice", inv.id, branch_id=inv.branch_id, after={
         "number": inv.number, "total": str(inv.total), "credit": str(inv.credit_amount),
@@ -407,6 +517,11 @@ async def _finish(
         "batch_overrides": [f"line {x.line_no}: {x.override_reason}" for x in inv.lines if x.batch_override_id],
         "khr_per_usd": inv.khr_per_usd, "change_given": f"{inv.change_given_usd} USD + {inv.change_given_khr} KHR",
         "prescriptions": [f"line {x.line_no}: {x.prescription_number}" for x in inv.lines if x.rx_item_id],
+        "discount": str(inv.discount),
+        "promotions": sorted({p for x in inv.lines for p in x.promotion_ids}),
+        "manual_discounts": [f"line {x.line_no}: {x.manual_discount}" for x in inv.lines if x.manual_discount],
+        "discount_approved_by": next((str(x.manual_discount_by) for x in inv.lines if x.manual_discount_by), None),
+        "below_cost": below or None,
     })  # fmt: skip
     for x in inv.lines:
         if x.allergy_override_by:

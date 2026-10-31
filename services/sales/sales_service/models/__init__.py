@@ -4,7 +4,7 @@ Alembic autogenerate can see it."""
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import Boolean, Numeric, String, Text
+from sqlalchemy import JSON, Boolean, Numeric, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from pharmacy_shared.consumer import ProcessedMessageMixin
@@ -13,6 +13,19 @@ from pharmacy_shared.numbering import DocSequenceMixin
 from pharmacy_shared.outbox import OutboxMixin
 
 from .base import Base
+from .extras import (
+    ORDER_STATUSES,
+    CommissionLine,
+    CommissionPeriod,
+    CommissionRule,
+    PromotionCopy,
+    PromotionUse,
+    SaleOrder,
+    SaleOrderLine,
+    SaleTemplate,
+    SaleTemplateLine,
+    SuspendedCart,
+)  # fmt: skip
 from .sales import (
     INVOICE_STATUSES,
     PAY_METHODS,
@@ -55,6 +68,13 @@ class BranchSettingsCopy(Base):
     receipt_footer: Mapped[str] = mapped_column(Text, default="")
     allow_opened_pack_returns: Mapped[bool] = mapped_column(Boolean, default=False)
     dispensing_label_size: Mapped[str] = mapped_column(String(10), default="70x40", server_default="70x40")
+    order_deposit_on_cancel: Mapped[str] = mapped_column(String(16), default="keep_as_credit",
+                                                         server_default="keep_as_credit")  # fmt: skip
+    max_discount_pct: Mapped[dict[str, int]] = mapped_column(
+        JSON,
+        default=lambda: {"cashier": 5, "pharmacist": 10, "branch_manager": 20},
+        server_default='{"cashier": 5, "pharmacist": 10, "branch_manager": 20}',
+    )
 
 
 class KnownCustomer(Base):
@@ -67,6 +87,7 @@ class KnownCustomer(Base):
     name: Mapped[str] = mapped_column(String(160))
     name_km: Mapped[str] = mapped_column(String(160), default="")
     credit_limit: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0"))
+    group_id: Mapped[UUID | None] = mapped_column(Uuid)  # customer-group prices (S7)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
@@ -87,5 +108,7 @@ class ProductPackUnit(PackUnitCopyMixin, Base):
 __all__ = [
     "Base", "BranchSettingsCopy", "DocSequence", "ExchangeRate", "INVOICE_STATUSES", "Invoice", "InvoiceLine",
     "InvoiceLineBatch", "InvoicePayment", "KnownBranch", "KnownCustomer", "OutboxEvent", "PAY_METHODS",
-    "ProcessedMessage", "Product", "ProductPackUnit", "SaleReturn", "SaleReturnLine",
+    "ProcessedMessage", "Product", "ProductPackUnit", "SaleReturn", "SaleReturnLine", "ORDER_STATUSES",
+    "CommissionLine", "CommissionPeriod", "CommissionRule", "PromotionCopy", "PromotionUse", "SaleOrder",
+    "SaleOrderLine", "SaleTemplate", "SaleTemplateLine", "SuspendedCart",
 ]  # fmt: skip

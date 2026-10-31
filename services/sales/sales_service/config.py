@@ -21,6 +21,9 @@ class Settings(BaseServiceSettings):
     recovery_enabled: bool = True
     recovery_every_seconds: int = 60
     pending_timeout_seconds: int = 120
+    # S7 jobs (Asia/Phnom_Penh): suspended carts expire at 00:01; order reservations every 10 minutes
+    jobs_enabled: bool = True
+    order_expiry_every_seconds: int = 600
 
 
 @lru_cache

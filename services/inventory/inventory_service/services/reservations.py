@@ -36,7 +36,7 @@ from pharmacy_shared.auth import CurrentUser
 from pharmacy_shared.errors import AppError, ErrorCode
 from pharmacy_shared.internal import InternalCaller
 
-from ..models import Batch, QuarantineEntry, Reservation, ReservationLine, Stock
+from ..models import Batch, Product, QuarantineEntry, Reservation, ReservationLine, Stock
 from .common import audit, branch_for, clean
 from .movements import already_booked, apply_movement, lock_stock
 
@@ -57,7 +57,7 @@ def to_dict(r: Reservation) -> dict[str, Any]:
         "lines": [{
             "line_no": x.line_no, "medicine_id": x.medicine_id, "batch_id": x.batch_id, "lot_no": x.batch.lot_no,
             "expiry_date": x.batch.expiry_date, "qty_base": x.qty_base, "cost_per_base": x.batch.cost_per_base,
-            "overridden": x.overridden,
+            "overridden": x.overridden, "hamper_id": (x.meta or {}).get("hamper_id"),
         } for x in r.lines],
     }  # fmt: skip
 
@@ -71,15 +71,19 @@ async def _get(session: AsyncSession, reservation_id: UUID) -> Reservation:
     return r
 
 
-async def _fefo_rows(session: AsyncSession, branch_id: UUID, medicine_id: UUID) -> list[Stock]:
+async def _fefo_rows(
+    session: AsyncSession, branch_id: UUID, medicine_id: UUID, *, lock: bool = True
+) -> list[Stock]:
     today = clock.today()
     query = (
         select(Stock).join(Batch, Batch.id == Stock.batch_id)
         .where(Stock.branch_id == branch_id, Batch.medicine_id == medicine_id, Batch.status == "active",
                Batch.expiry_date >= today,
                Stock.qty_on_hand - Stock.qty_reserved - Stock.qty_quarantined > 0)
-        .order_by(*FEFO).with_for_update(of=Stock).execution_options(populate_existing=True)
+        .order_by(*FEFO).execution_options(populate_existing=True)
     )  # fmt: skip
+    if lock:
+        query = query.with_for_update(of=Stock)
     return list((await session.execute(query)).scalars())
 
 
@@ -106,6 +110,45 @@ async def _override_row(
     return stock
 
 
+async def _expand_hampers(session: AsyncSession, lines: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """A hamper line becomes one line per component (same line_no), all or nothing:
+    a hamper has no stock of its own."""
+    out = []
+    for line in lines:
+        product = await session.get(Product, line["medicine_id"])
+        if product is None or product.kind != "hamper":
+            out.append(line)
+            continue
+        if line.get("batch_id"):
+            raise AppError(ErrorCode.VALIDATION_ERROR, f"Line {line['line_no']}: a hamper's batches cannot be chosen",
+                           status_code=422)  # fmt: skip
+        for c in product.components:
+            out.append({**line, "medicine_id": UUID(c["medicine_id"]), "qty_base": line["qty_base"] * c["qty_base"],
+                        "meta": {**(line.get("meta") or {}), "hamper_id": str(product.id),
+                                 "hamper_qty": line["qty_base"]}})  # fmt: skip
+    return out
+
+
+async def availability(
+    session: AsyncSession, branch_id: UUID, items: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Sellable now (active, unexpired, not reserved / quarantined) per item; a hamper =
+    the lowest of floor(component available / qty per hamper)."""
+    out = []
+    for item in items:
+        product = await session.get(Product, item["medicine_id"])
+        parts = ([(UUID(c["medicine_id"]), c["qty_base"]) for c in product.components]
+                 if product and product.kind == "hamper" else [(item["medicine_id"], 1)])  # fmt: skip
+        free = []
+        for medicine_id, per in parts:
+            rows = await _fefo_rows(session, branch_id, medicine_id, lock=False)
+            free.append(sum(available(s) for s in rows) // per)
+        have = min(free) if free else 0
+        out.append({"medicine_id": item["medicine_id"], "available": have, "requested": item.get("qty_base", 0),
+                    "enough": have >= item.get("qty_base", 0)})  # fmt: skip
+    return out
+
+
 async def reserve(session: AsyncSession, caller: InternalCaller, data: dict[str, Any]) -> dict[str, Any]:
     ref_type, ref_id = data["ref_type"], str(data["ref_id"])
     existing = (
@@ -116,7 +159,8 @@ async def reserve(session: AsyncSession, caller: InternalCaller, data: dict[str,
     if existing is not None:
         return to_dict(existing)  # the same invoice asked again: same answer
     branch_id = data["branch_id"]
-    lines = sorted(data["lines"], key=lambda x: (str(x["medicine_id"]), x["line_no"]))  # fixed lock order
+    expanded = await _expand_hampers(session, data["lines"])
+    lines = sorted(expanded, key=lambda x: (str(x["medicine_id"]), x["line_no"]))  # fixed lock order
 
     rows_by_medicine: dict[UUID, list[Stock]] = {}
     left: dict[UUID, int] = {}  # stock id → still free in this request
@@ -169,6 +213,67 @@ async def reserve(session: AsyncSession, caller: InternalCaller, data: dict[str,
     session.add(reservation)
     await session.commit()
     return to_dict(reservation)
+
+
+async def split(session: AsyncSession, caller: InternalCaller, reservation_id: UUID, data: dict[str, Any]
+                ) -> dict[str, Any]:  # fmt: skip
+    """Part of a sale order's reservation becomes an invoice's (same batches, nothing
+    released in between, so no other sale can take it). Once per invoice.
+    lines: [{from_line_no, to_line_no, qty_base}] – qty in the order line's units
+    (hampers: whole hampers)."""
+    existing = (await session.execute(select(Reservation).where(
+        Reservation.ref_type == "invoice", Reservation.ref_id == str(data["ref_id"])))).scalar_one_or_none()  # fmt: skip
+    if existing is not None:
+        return to_dict(existing)
+    r = await _get(session, reservation_id)
+    if r.status != "reserved":
+        raise state_error(f"A {r.status} reservation cannot be split", r.status)
+    new = Reservation(ref_type="invoice", ref_id=str(data["ref_id"]), branch_id=r.branch_id, status="reserved",
+                      created_by=caller.user_id, lines=[])  # fmt: skip
+    for want in data["lines"]:
+        rows = [x for x in r.lines if x.line_no == want["from_line_no"]]
+        by_medicine: dict[UUID, list[ReservationLine]] = defaultdict(list)
+        for x in rows:
+            by_medicine[x.medicine_id].append(x)
+        if not by_medicine:
+            raise AppError(ErrorCode.OUT_OF_STOCK, f"Order line {want['from_line_no']} has nothing reserved",
+                           status_code=409, details={"line_no": want["from_line_no"]})  # fmt: skip
+        seq = 0
+        for medicine_id, parts in by_medicine.items():
+            meta = parts[0].meta or {}
+            total = sum(x.qty_base for x in parts)
+            per_unit = (
+                total // int(meta["hamper_qty"]) if meta.get("hamper_id") and meta.get("hamper_qty") else 1
+            )
+            need = int(want["qty_base"]) * per_unit
+            if need > total:
+                raise AppError(ErrorCode.OUT_OF_STOCK, f"Order line {want['from_line_no']}: only {total} reserved",
+                               status_code=409, details={"line_no": want["from_line_no"], "reserved": total})  # fmt: skip
+            for x in sorted(parts, key=lambda x: x.seq):  # earliest expiry first
+                take = min(need, x.qty_base)
+                if take <= 0:
+                    continue
+                seq += 1
+                new_meta = dict(meta)
+                if meta.get("hamper_id"):
+                    new_meta["hamper_qty"] = int(want["qty_base"])
+                    x.meta = {**meta, "hamper_qty": int(meta["hamper_qty"]) - int(want["qty_base"])}
+                new.lines.append(ReservationLine(line_no=want["to_line_no"], seq=seq, medicine_id=medicine_id,
+                                                 batch_id=x.batch_id, qty_base=take, overridden=x.overridden,
+                                                 batch=x.batch, meta=new_meta))  # fmt: skip
+                x.qty_base -= take
+                need -= take
+                if x.qty_base == 0:
+                    await session.delete(x)
+                if need == 0:
+                    break
+    session.add(new)
+    await session.flush()
+    await session.refresh(r, attribute_names=["lines"])
+    if not r.lines:
+        r.status = "released"
+    await session.commit()
+    return to_dict(new)
 
 
 async def confirm(session: AsyncSession, caller: InternalCaller, reservation_id: UUID) -> dict[str, Any]:

@@ -66,7 +66,15 @@ async def find_pack_unit(
     ).scalar_one_or_none()
     if pack is None or pack.product_id != medicine_id:
         return None
+    if pack.product.kind == "hamper":
+        raise hamper_not_stocked(pack.product.sku)
     return pack
+
+
+def hamper_not_stocked(sku: str) -> AppError:
+    """A hamper has no stock or batches of its own: only its components do."""
+    return AppError(ErrorCode.HAMPER_NOT_STOCKED, f"{sku} is a hamper: it has no stock of its own, only its components "
+                    "are received, counted and transferred", status_code=422)  # fmt: skip
 
 
 def expiry_problem(expiry: date, today: date | None = None) -> str | None:

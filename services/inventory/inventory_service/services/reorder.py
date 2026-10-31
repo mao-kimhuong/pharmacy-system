@@ -63,7 +63,7 @@ from ..models import (
     TransferPick,
 )
 from . import transfers
-from .common import audit, branch_for
+from .common import audit, branch_for, hamper_not_stocked
 
 log = logging.getLogger(__name__)
 LOCK_KEY = 7_202_660
@@ -80,6 +80,8 @@ async def set_setting(session: AsyncSession, actor: CurrentUser, data: dict[str,
     product = await session.get(Product, data["medicine_id"])
     if product is None:
         raise AppError(ErrorCode.UNKNOWN_MEDICINE, "Unknown medicine", status_code=422)
+    if product.kind == "hamper":
+        raise hamper_not_stocked(product.sku)
     await _save(session, actor, branch.id, [product.id], data)
     audit(session, actor, "reorder_setting.set", "medicine", product.id, branch_id=branch.id,
           after={k: (str(v) if isinstance(v, UUID) else v) for k, v in data.items() if k not in ("branch_id", "medicine_id")})  # fmt: skip
@@ -110,7 +112,8 @@ async def _save(session: AsyncSession, actor: CurrentUser, branch_id: UUID, medi
 async def set_bulk(session: AsyncSession, actor: CurrentUser, data: dict[str, Any]) -> int:
     branch = await branch_for(session, actor, data["branch_id"])
     ids = list((await session.execute(select(Product.id).where(Product.category_id == data["category_id"],
-                                                               Product.is_active.is_(True)))).scalars())  # fmt: skip
+                                                               Product.is_active.is_(True),
+                                                               Product.kind == "medicine"))).scalars())  # fmt: skip
     await _save(session, actor, branch.id, ids, data)
     audit(session, actor, "reorder_setting.bulk", "category", data["category_id"], branch_id=branch.id,
           after={"medicines": len(ids), **{k: data.get(k) for k in ("min_qty", "max_qty", "lead_time_days")}})  # fmt: skip

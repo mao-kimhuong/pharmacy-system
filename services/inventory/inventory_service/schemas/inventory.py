@@ -250,10 +250,39 @@ class ReserveLine(BaseModel):
     meta: dict[str, Any] | None = Field(default=None, description="Controlled lines: Rx, patient, pharmacist")
 
 
+class SplitLine(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    from_line_no: int = Field(ge=1)
+    to_line_no: int = Field(ge=1)
+    qty_base: int = Field(ge=1, description="In the order line's units (hampers: whole hampers)")
+
+
+class SplitRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ref_id: str = Field(min_length=1, max_length=80, description="The invoice")
+    lines: list[SplitLine] = Field(min_length=1, max_length=200)
+
+
+class AvailableItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    medicine_id: UUID
+    qty_base: int = Field(default=0, ge=0)
+
+
+class AvailableRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    branch_id: UUID
+    items: list[AvailableItem] = Field(min_length=1, max_length=500)
+
+
 class ReserveRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    ref_type: Literal["invoice"] = "invoice"
+    ref_type: Literal["invoice", "sale_order"] = "invoice"
     ref_id: str = Field(min_length=1, max_length=80)
     branch_id: UUID
     lines: list[ReserveLine] = Field(min_length=1, max_length=200)
@@ -268,6 +297,7 @@ class ReservedBatch(BaseModel):
     qty_base: int
     cost_per_base: Decimal
     overridden: bool
+    hamper_id: UUID | None = None
 
 
 class ReservationOut(BaseModel):
@@ -288,7 +318,7 @@ class ReverseRequest(BaseModel):
 class ReleaseByRef(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    ref_type: Literal["invoice"] = "invoice"
+    ref_type: Literal["invoice", "sale_order"] = "invoice"
     ref_id: str = Field(min_length=1, max_length=80)
 
 

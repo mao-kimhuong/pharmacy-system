@@ -117,3 +117,18 @@ async def read_photo(
         "Content-Disposition": f'inline; filename="{s.number}.{EXTENSIONS.get(s.photo_type, "bin")}"',
         "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store",
     })  # fmt: skip
+
+
+@router.get("/hampers/{hamper_id}/availability", tags=["hampers"])
+async def hamper_availability(
+    hamper_id: UUID, branch_id: UUID, user: CurrentUser = Depends(requires_any("inventory.view", "pos.sell")),
+    session: AsyncSession = Depends(db.session),
+) -> dict:  # fmt: skip
+    """How many hampers can be sold now: the lowest component availability (a hamper has no stock of its own)."""
+    from ..services import reservations
+
+    user.require_branch(branch_id)
+    row = (await reservations.availability(session, branch_id, [{"medicine_id": hamper_id, "qty_base": 0}]))[
+        0
+    ]
+    return {"hamper_id": hamper_id, "branch_id": branch_id, "available": row["available"]}

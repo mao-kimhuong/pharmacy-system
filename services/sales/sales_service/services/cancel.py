@@ -7,6 +7,9 @@
 - Credit is reversed first (if that fails, nothing has changed), then the stock
   goes back into the same batches ("sale_cancel" movements). The invoice is
   "cancelling" in between; if the stock step fails the recovery task finishes it.
+- A deposit that paid it goes back on the deposit; promotion uses are given
+  back; commission is taken back (negative lines in the open period); an
+  invoice made from a sale order puts its quantities back on the order.
 - invoice.cancelled event + User Log. Cashiers have no sales.cancel: 403.
 """
 
@@ -20,6 +23,7 @@ from pharmacy_shared.errors import AppError, ErrorCode
 from pharmacy_shared.outbox import add_event
 
 from ..models import Invoice, OutboxEvent
+from . import commission, promotions
 from .clients import Clients
 from .common import audit, clean
 from .queries import get_invoice
@@ -35,12 +39,21 @@ async def cancel_steps(
             "invoice_id": str(inv.id), "customer_id": str(inv.customer_id), "branch_id": str(inv.branch_id),
             "kind": "cancel", "document_no": inv.number or "", "reason": inv.cancel_reason or "",
         }, actor=actor, branch_id=inv.branch_id)  # fmt: skip
+    for pay in [p for p in inv.payments if p.method == "deposit" and p.deposit_id]:
+        await clients.customers.post(f"/deposits/{pay.deposit_id}/unuse", {
+            "invoice_id": str(inv.id), "reason": f"{inv.number} cancelled"}, actor=actor, branch_id=inv.branch_id)  # fmt: skip
     if inv.reservation_id is not None:
         await clients.inventory.post(f"/reservations/{inv.reservation_id}/reverse",
                                      {"reason": f"{inv.number} cancelled: {inv.cancel_reason}"[:255]},
                                      actor=actor, branch_id=inv.branch_id)  # fmt: skip
     inv.status = "cancelled"
     inv.version += 1
+    await promotions.set_status(session, inv.id, "released")
+    await commission.take_back(session, inv, "cancel")
+    if inv.sale_order_id:
+        from .orders import after_cancel
+
+        await after_cancel(session, actor, inv)
     add_event(session, OutboxEvent, "invoice.cancelled", await invoice_payload(session, inv))
     audit(session, actor, "invoice.cancelled", "invoice", inv.id, branch_id=inv.branch_id,
           before={"status": "completed"}, after={"status": "cancelled", "number": inv.number,

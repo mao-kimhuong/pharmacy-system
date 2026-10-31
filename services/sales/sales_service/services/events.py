@@ -3,7 +3,8 @@
 - branch.*                → local copy of branches (codes for invoice numbers)
 - branch.settings_updated → receipt header / footer, opened-pack returns, dispensing label size
 - medicine.*              → products, pack units and sell prices (older versions ignored)
-- customer.*              → customers (credit sales, names on invoices)
+- customer.*              → customers (credit sales, names on invoices, customer group)
+- promotion.*             → promotion rules (older versions ignored)
 """
 
 from decimal import Decimal
@@ -16,8 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pharmacy_shared import copies
 
 from ..models import BranchSettingsCopy, KnownBranch, KnownCustomer, Product, ProductPackUnit
+from . import promotions
 
-ROUTING_KEYS = ("branch.*", "medicine.*", "customer.*")
+ROUTING_KEYS = ("branch.*", "medicine.*", "customer.*", "promotion.*")
 CUSTOMER_EVENTS = frozenset(
     {"customer.created", "customer.updated", "customer.activated", "customer.deactivated"}
 )
@@ -38,11 +40,17 @@ async def handle_event(
             "branch_id": UUID(payload["branch_id"]), "receipt_header": payload.get("receipt_header") or "",
             "receipt_footer": payload.get("receipt_footer") or "",
             "allow_opened_pack_returns": bool(payload.get("allow_opened_pack_returns", False)),
-            "dispensing_label_size": payload.get("dispensing_label_size") or "70x40"})  # fmt: skip
+            "dispensing_label_size": payload.get("dispensing_label_size") or "70x40",
+            "order_deposit_on_cancel": payload.get("order_deposit_on_cancel") or "keep_as_credit",
+            "max_discount_pct": payload.get("max_discount_pct") or {"cashier": 5, "pharmacist": 10,
+                                                                    "branch_manager": 20}})  # fmt: skip
     elif event_type in copies.MEDICINE_EVENTS:
         await copies.upsert_product(session, Product, ProductPackUnit, payload)
+    elif event_type.startswith("promotion."):
+        await promotions.upsert(session, payload)
     elif event_type in CUSTOMER_EVENTS:
         await _upsert(session, KnownCustomer, "id", {
             "id": UUID(payload["customer_id"]), "phone": payload["phone"], "name": payload["name"],
             "name_km": payload.get("name_km") or "", "credit_limit": Decimal(str(payload.get("credit_limit") or 0)),
+            "group_id": UUID(payload["group_id"]) if payload.get("group_id") else None,
             "is_active": bool(payload["is_active"])})  # fmt: skip

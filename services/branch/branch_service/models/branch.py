@@ -13,6 +13,10 @@ from .base import Base
 DEFAULT_EXPIRY_ALERT_DAYS = [180, 90, 30]
 
 
+# Manual discount caps (%) per role; the owner has none (S7).
+DEFAULT_DISCOUNT_CAPS = {"cashier": 5, "pharmacist": 10, "branch_manager": 20}
+
+
 class Branch(IdMixin, TimestampMixin, Base):
     """A pharmacy location. Never deleted: deactivate. The code is fixed after
     creation because it prefixes invoice and PO numbers (PP1-INV-2026-000123)."""
@@ -76,6 +80,14 @@ class BranchSettings(Base):
     reorder_safety_days: Mapped[int] = mapped_column(Integer, default=3, server_default="3")
     reorder_lead_days: Mapped[int] = mapped_column(Integer, default=7, server_default="7")
     near_expiry_transfer_days: Mapped[int] = mapped_column(Integer, default=90, server_default="90")
+    # Sales extras (S7): a cancelled order's deposit, manual discount caps per role (%), hamper returns
+    order_deposit_on_cancel: Mapped[str] = mapped_column(String(16), default="keep_as_credit",
+                                                         server_default="keep_as_credit")  # fmt: skip
+    max_discount_pct: Mapped[dict[str, int]] = mapped_column(
+        JSON,
+        default=lambda: dict(DEFAULT_DISCOUNT_CAPS),
+        server_default='{"cashier": 5, "pharmacist": 10, "branch_manager": 20}',
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -99,6 +111,8 @@ class BranchSettings(Base):
             "reorder_safety_days": self.reorder_safety_days,
             "reorder_lead_days": self.reorder_lead_days,
             "near_expiry_transfer_days": self.near_expiry_transfer_days,
+            "order_deposit_on_cancel": self.order_deposit_on_cancel,
+            "max_discount_pct": dict(self.max_discount_pct or {}),
         }
 
 

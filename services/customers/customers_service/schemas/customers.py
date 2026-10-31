@@ -202,3 +202,47 @@ class NumberRequest(BaseModel):
 
     invoice_id: UUID
     invoice_no: str = Field(min_length=1, max_length=40)
+
+
+# ---------------------------------------------------------------- deposits (S7)
+
+
+class DepositTake(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ref: str = Field(min_length=1, max_length=80)
+    document_no: str = Field(default="", max_length=40)
+    customer_id: UUID
+    branch_id: UUID
+    method: Literal["cash", "card", "ABA", "KHQR"]
+    currency: Literal["USD", "KHR"] = "USD"
+    amount: Decimal = Field(gt=0, max_digits=14, decimal_places=2, description="USD")
+
+
+class DepositUse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    invoice_id: UUID
+    invoice_no: str = Field(default="", max_length=40)
+    customer_id: UUID | None = None
+    amount: Decimal = Field(default=Decimal("0"), ge=0, max_digits=14, decimal_places=2)
+    reason: str = Field(default="", max_length=255)
+
+
+class DepositSettle(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal["keep_as_credit", "refund", "forfeit"]
+    reason: str = Field(default="", max_length=255)
+
+
+class DepositOut(BaseModel):
+    deposit_id: UUID
+    ref: str
+    document_no: str
+    amount: Decimal
+    used: Decimal
+    remaining: Decimal
+    status: str
+    method: str
+    currency: str

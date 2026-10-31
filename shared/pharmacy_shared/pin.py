@@ -68,7 +68,7 @@ DESTRUCTION_WITNESS_ROLES = ("branch_manager", "owner")
 
 async def consume_witness(
     auth: InternalClient, token: str | None, action: str, *, actor: CurrentUser, branch_id: UUID,
-    roles: tuple[str, ...] | None = None,
+    roles: tuple[str, ...] | None = None, permission: str = "controlled.witness",
 ) -> PinPerson:  # fmt: skip
     """A second staff member's PIN: not the actor, works at the branch, may witness
     (and, when `roles` is given, has one of those roles)."""
@@ -78,10 +78,11 @@ async def consume_witness(
     person = await _consume(auth, token, action, "witness", actor)
     if person.user_id == actor.id:
         raise AppError(ErrorCode.WITNESS_INVALID, "The witness must be another person", status_code=422)
-    if not person.works_at(branch_id) or not person.has("controlled.witness"):
+    if not person.works_at(branch_id) or not person.has(permission):
         raise AppError(ErrorCode.WITNESS_INVALID, f"{person.name or 'This person'} cannot witness at this branch",
                        status_code=422)  # fmt: skip
     if roles and person.role not in roles:
-        raise AppError(ErrorCode.WITNESS_INVALID, "Destroying controlled stock needs a branch manager or the owner "
-                       "as witness", status_code=422, details={"witness_roles": list(roles)})  # fmt: skip
+        who = " or ".join({"branch_manager": "a branch manager", "owner": "the owner"}.get(r, r) for r in roles)
+        raise AppError(ErrorCode.WITNESS_INVALID, f"This needs {who} to confirm with their PIN", status_code=422,
+                       details={"witness_roles": list(roles)})  # fmt: skip
     return person

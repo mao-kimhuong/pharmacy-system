@@ -24,7 +24,7 @@ from pharmacy_shared.db import IdMixin, TimestampMixin
 from .base import Base
 
 INVOICE_STATUSES = ("pending", "completed", "failed", "cancelling", "cancelled", "needs_attention")
-PAY_METHODS = ("cash", "card", "ABA", "KHQR", "credit")
+PAY_METHODS = ("cash", "card", "ABA", "KHQR", "credit", "deposit")
 
 
 class ExchangeRate(IdMixin, Base):
@@ -85,6 +85,7 @@ class Invoice(IdMixin, TimestampMixin, Base):
     change_rounding_khr: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"))
     returned_total: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
     # saga
+    sale_order_id: Mapped[UUID | None] = mapped_column(Uuid, index=True)  # S7: invoiced from an order
     reservation_id: Mapped[UUID | None] = mapped_column(Uuid)
     failure_code: Mapped[str | None] = mapped_column(String(40))
     failure_reason: Mapped[str | None] = mapped_column(String(500))
@@ -150,9 +151,29 @@ class InvoiceLine(IdMixin, Base):
     is_controlled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     patient_id_document: Mapped[str | None] = mapped_column(String(40))
     pin_confirmed_by: Mapped[UUID | None] = mapped_column(Uuid)
+    # S7: promotions and manual discounts as at sale time; hamper; from a sale order
+    promotion_ids: Mapped[list[str]] = mapped_column(JSON, default=list, server_default="[]")
+    promo_discount: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2), default=Decimal("0.00"), server_default="0"
+    )
+    manual_discount: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2), default=Decimal("0.00"), server_default="0"
+    )
+    manual_discount_by: Mapped[UUID | None] = mapped_column(Uuid)  # who approved it above the cap
+    is_hamper: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    order_line_id: Mapped[UUID | None] = mapped_column(Uuid)
 
     invoice: Mapped[Invoice] = relationship(back_populates="lines")
     batches: Mapped[list["InvoiceLineBatch"]] = relationship(lazy="selectin", order_by="InvoiceLineBatch.seq")
+
+    @property
+    def discount(self) -> Decimal:
+        return self.promo_discount + self.manual_discount
+
+    @property
+    def net(self) -> Decimal:
+        """What the customer pays for the line, USD (commission and refunds are based on it)."""
+        return self.line_total - self.discount
 
 
 class InvoiceLineBatch(IdMixin, Base):
@@ -168,13 +189,15 @@ class InvoiceLineBatch(IdMixin, Base):
     qty_base: Mapped[int] = mapped_column(Integer)
     cost_per_base: Mapped[Decimal] = mapped_column(Numeric(14, 4))
     returned_qty_base: Mapped[int] = mapped_column(Integer, default=0)
+    medicine_id: Mapped[UUID | None] = mapped_column(Uuid)  # hampers: the component
 
 
 class InvoicePayment(IdMixin, Base):
     __tablename__ = "invoice_payments"
     __table_args__ = (
         CheckConstraint(
-            "method IN ('cash', 'card', 'ABA', 'KHQR', 'credit')", name="ck_invoice_payments_method"
+            "method IN ('cash', 'card', 'ABA', 'KHQR', 'credit', 'deposit')",
+            name="ck_invoice_payments_method",
         ),
         CheckConstraint("currency IN ('USD', 'KHR')", name="ck_invoice_payments_currency"),
         CheckConstraint("amount > 0", name="ck_invoice_payments_amount"),
@@ -186,6 +209,7 @@ class InvoicePayment(IdMixin, Base):
     currency: Mapped[str] = mapped_column(String(3))
     amount: Mapped[Decimal] = mapped_column(Numeric(16, 2))  # in `currency` (riel: whole hundreds)
     amount_usd: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    deposit_id: Mapped[UUID | None] = mapped_column(Uuid)  # method "deposit": a sale order's deposit
 
 
 class SaleReturn(IdMixin, Base):
@@ -226,3 +250,6 @@ class SaleReturnLine(IdMixin, Base):
     qty_base: Mapped[int] = mapped_column(Integer)
     amount: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     opened: Mapped[bool] = mapped_column(Boolean, default=False)
+    hamper_qty: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0"
+    )  # hampers returned (first row)

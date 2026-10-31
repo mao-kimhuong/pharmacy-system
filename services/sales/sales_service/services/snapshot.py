@@ -44,6 +44,10 @@ async def invoice_payload(
                    "warnings_acknowledged_at": x.warnings_acknowledged_at.isoformat()
                    if x.warnings_acknowledged_at else None} if x.rx_item_id else None,
             "rx_item_id": str(x.rx_item_id) if x.rx_item_id else None,
+            "promotion_ids": list(x.promotion_ids or []), "promo_discount": str(x.promo_discount),
+            "manual_discount": str(x.manual_discount), "net": str(x.net), "is_hamper": x.is_hamper,
+            "order_line_id": str(x.order_line_id) if x.order_line_id else None,
+            "staff_id": str(inv.created_by),
             "batch_override": {"batch_id": str(x.batch_override_id), "reason": x.override_reason}
             if x.batch_override_id else None,
             "batches": [{"batch_id": str(b.batch_id), "lot_no": b.lot_no, "expiry_date": b.expiry_date.isoformat(),
@@ -51,6 +55,7 @@ async def invoice_payload(
         } for x in inv.lines],
         "subtotal": str(inv.subtotal), "discount": str(inv.discount), "total": str(inv.total),
         "khr_per_usd": inv.khr_per_usd, "total_khr": inv.total_khr,
+        "sale_order_id": str(inv.sale_order_id) if inv.sale_order_id else None,
         "payments": [{"method": p.method, "currency": p.currency, "amount": str(p.amount),
                       "amount_usd": str(p.amount_usd)} for p in inv.payments],
         "paid": str(inv.paid), "credit_amount": str(inv.credit_amount), "change_usd": str(inv.change_usd),
