@@ -17,6 +17,7 @@ from .conftest import (
     inventory_stock,
     line,
     make_customer,
+    outbox,
     pay,
     real_clients,
     receive,
@@ -152,6 +153,8 @@ async def test_commission_earned_overridden_and_reversed(client) -> None:
                                 "refund_method": "cash", "reason": "x"})  # fmt: skip
     assert r.status_code == 201
     assert ("return", "-0.10") in await lines_of(inv["id"])
+    sent = [(p["source"].split(":")[0], p["amount"], p["month"]) for t, p in await outbox() if t == "commission.recorded"]
+    assert sorted(sent) == [("return", "-0.10", "2026-10-01"), ("sale", "0.20", "2026-10-01"), ("sale", "0.80", "2026-10-01")]
     # someone else selling PARA: the general 5 %
     other = user("cashier", "pos.sell,sales.view")
     r = await sell(client, [line(para, "box", 1)], [pay("8.00")], other)

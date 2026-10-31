@@ -93,11 +93,13 @@ CATALOG: tuple[PermissionDef, ...] = (
     P("reports.sales", "Reports", "Sales reports"),
     P("reports.stock", "Reports", "Stock and expiry reports"),
     P("reports.purchases", "Reports", "Purchase and transfer reports"),
+    P("reports.customers", "Reports", "Customer reports (receivables aging, top customers)"),
     P("finance.cost_profit", "Reports", "See cost and profit"),
     # Settings
     P("settings.users", "Settings", "Manage staff"),
     P("settings.roles", "Settings", "Manage roles and permissions"),
     P("settings.audit_log", "Settings", "See the User Log"),
+    P("notifications.manage", "Settings", "Telegram chats and alerts"),
     P("settings.branches", "Settings", "Create and edit branches"),
     P("settings.branch_settings", "Settings", "Edit settings of own branches"),
     P("settings.features", "Settings", "Turn features on or off"),
@@ -212,11 +214,13 @@ MENU: tuple[MenuItem, ...] = (
     M("reports", "sale_margin_by_item", "Sale Margin By Item", ("finance.cost_profit",)),
     M("reports", "stock_reports", "Stock reports", ("reports.stock",)),
     M("reports", "purchase_reports", "Purchase & transfer reports", ("reports.purchases",)),
+    M("reports", "customer_reports", "Customer reports", ("reports.customers",)),
     M("settings", "user", "User", ("settings.users",)),
     M("settings", "role", "Role", ("settings.roles",)),
     M("settings", "user_log", "User Log", ("settings.audit_log",)),
     M("settings", "branches", "Branches", ("settings.branches", "settings.branch_settings")),
     M("settings", "features", "Features", ("settings.features",)),
+    M("settings", "notifications", "Telegram", ("notifications.manage",)),
     M("settings", "initialize", "Initialize", ("inventory.initialize",)),
 )
 

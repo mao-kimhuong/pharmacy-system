@@ -65,6 +65,7 @@ async def invoice_payload(
         "cancel_reason": inv.cancel_reason, "cancelled_at": inv.cancelled_at.isoformat() if inv.cancelled_at else None,
         "returns": [{"return_id": str(r.id), "number": r.number, "refund_method": r.refund_method,
                      "refund_usd": str(r.refund_usd), "to_quarantine": r.to_quarantine, "reason": r.reason,
+                     "created_at": r.created_at.isoformat() if r.created_at else None,
                      "lines": [{"line_id": str(x.invoice_line_id), "batch_id": str(x.batch_id),
                                 "qty_base": x.qty_base, "amount": str(x.amount)} for x in r.lines]}
                     for r in (returns or [])],

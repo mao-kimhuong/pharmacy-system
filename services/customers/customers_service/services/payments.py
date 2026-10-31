@@ -31,6 +31,7 @@ from .customers import get_customer
 def _payload(p: CustomerPayment) -> dict[str, Any]:
     return {"payment_id": str(p.id), "number": p.number, "customer_id": str(p.customer_id),
             "branch_id": str(p.branch_id), "method": p.method, "amount": str(p.amount), "status": p.status,
+            "paid_on": p.paid_on.isoformat(), "occurred_at": (p.cancelled_at or clock.now()).isoformat(),
             "allocations": [{"invoice_no": a.invoice_no, "amount": str(a.amount), "reversed": a.reversed}
                             for a in p.allocations]}  # fmt: skip
 

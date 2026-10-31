@@ -54,6 +54,7 @@ from ..models import (
     KnownCustomer,
     OutboxEvent,
     ProductPackUnit,
+    SaleOrder,
 )
 from . import cart, commission, money, promotions, rates
 from .clients import Clients
@@ -187,9 +188,25 @@ async def _undo(step: str, call) -> str | None:  # noqa: ANN001
         return f"{step}: {err.code} {err.message}"
 
 
-async def compensate(inv: Invoice, actor: CurrentUser | None, clients: Clients) -> list[str]:
+async def order_hold(session: AsyncSession, inv: Invoice) -> UUID | None:
+    """The reservation of the sale order this invoice came from, while the order
+    still holds stock (open, reservation not released, reserve_until not passed)."""
+    if inv.sale_order_id is None:
+        return None
+    order = await session.get(SaleOrder, inv.sale_order_id, populate_existing=True)
+    if (order is None or order.status not in ("ordered", "partly_fulfilled") or order.reservation_id is None
+            or order.reservation_released_at is not None or order.reserve_until is None
+            or order.reserve_until <= clock.now()):  # fmt: skip
+        return None
+    return order.reservation_id
+
+
+async def compensate(
+    inv: Invoice, actor: CurrentUser | None, clients: Clients, back_to: UUID | None = None
+) -> list[str]:
     """Undo whatever reached inventory and customers for this invoice. Safe to
-    repeat. Returns the problems (empty = all undone)."""
+    repeat. Returns the problems (empty = all undone). back_to: the sale order's
+    reservation, which gets the held stock back instead of releasing it."""
     problems = []
     if any(x.rx_item_id for x in inv.lines):
         problems.append(await _undo("release prescription", lambda: clients.prescription.post(
@@ -202,6 +219,10 @@ async def compensate(inv: Invoice, actor: CurrentUser | None, clients: Clients) 
         problems.append(await _undo("reverse credit", lambda: clients.customers.post("/credit/reverse", {
             "invoice_id": str(inv.id), "customer_id": str(inv.customer_id), "branch_id": str(inv.branch_id),
             "kind": "cancel", "reason": "sale not completed"}, actor=actor, branch_id=inv.branch_id)))  # fmt: skip
+    if back_to is not None:
+        problems.append(await _undo("give the stock back to the order", lambda: clients.inventory.post(
+            f"/reservations/{back_to}/merge-back", {"ref_id": str(inv.id)}, actor=actor,
+            branch_id=inv.branch_id)))  # fmt: skip
     problems.append(await _undo("release stock", lambda: clients.inventory.post(
         "/reservations/release-by-ref", {"ref_type": "invoice", "ref_id": str(inv.id)},
         actor=actor, branch_id=inv.branch_id)))  # fmt: skip
@@ -217,7 +238,7 @@ async def _fail(
 ) -> None:
     await session.rollback()
     inv = await session.get(Invoice, inv_id, populate_existing=True)
-    problems = await compensate(inv, actor, clients)
+    problems = await compensate(inv, actor, clients, await order_hold(session, inv))
     inv.status = "needs_attention" if problems else "failed"
     await promotions.set_status(session, inv.id, "released")
     inv.failure_code = err.code.value if isinstance(err.code, ErrorCode) else str(err.code)

@@ -47,7 +47,8 @@ async def reconcile(session: AsyncSession, clients: Clients) -> dict[str, Any] |
     for c in broken:
         add_event(session, OutboxEvent, "register.chain_broken", {
             "branch_id": str(c.branch_id), "medicine_id": str(c.medicine_id),
-            "first_bad_entry_id": str(c.first_bad_entry_id), "problem": c.problem})  # fmt: skip
+            "first_bad_entry_id": str(c.first_bad_entry_id), "problem": c.problem,
+            "occurred_at": clock.now().isoformat()})  # fmt: skip
         audit(session, None, "register.chain_broken", "register_entry", c.first_bad_entry_id, branch_id=c.branch_id,
               after={"medicine_id": str(c.medicine_id), "problem": c.problem})  # fmt: skip
     stock = (await clients.inventory.post("/stock/controlled", {}))["items"]
@@ -80,6 +81,7 @@ async def reconcile(session: AsyncSession, clients: Clients) -> dict[str, Any] |
             if current:
                 current.status, current.resolved_at = "cleared", clock.now()
                 current.note = "Register and stock agree again"
+                _closed(session, current)
                 cleared += 1
             continue
         if row["behind"]:
@@ -95,11 +97,18 @@ async def reconcile(session: AsyncSession, clients: Clients) -> dict[str, Any] |
         add_event(session, OutboxEvent, "register.discrepancy", {
             "discrepancy_id": str(d.id), "branch_id": str(branch_id), "medicine_id": str(d.medicine_id),
             "batch_id": str(batch_id), "lot_no": d.lot_no, "register_qty": d.register_qty,
-            "stock_qty": d.stock_qty})  # fmt: skip
+            "stock_qty": d.stock_qty, "occurred_at": d.found_at.isoformat()})  # fmt: skip
         audit(session, None, "register.discrepancy", "batch", batch_id, branch_id=branch_id,
               after={"lot_no": d.lot_no, "register": d.register_qty, "stock": d.stock_qty})  # fmt: skip
     await session.commit()
     return {"chains_broken": len(broken), "opened": opened, "cleared": cleared}
+
+
+def _closed(session: AsyncSession, d: Discrepancy) -> None:
+    """register.discrepancy_resolved: resolved by someone, or cleared (agree again)."""
+    add_event(session, OutboxEvent, "register.discrepancy_resolved", {
+        "discrepancy_id": str(d.id), "branch_id": str(d.branch_id), "batch_id": str(d.batch_id),
+        "status": d.status, "occurred_at": (d.resolved_at or clock.now()).isoformat()})  # fmt: skip
 
 
 async def resolve(session: AsyncSession, actor: CurrentUser, clients: Clients, discrepancy_id: UUID,
@@ -128,6 +137,7 @@ async def resolve(session: AsyncSession, actor: CurrentUser, clients: Clients, d
         d.correction_entry_id = entry.id
     d.status, d.resolved_at, d.resolved_by, d.witness_id = "resolved", clock.now(), actor.id, witness.user_id
     d.reason, d.note = clean(data["reason"]), clean(data.get("note"))
+    _closed(session, d)
     audit(session, actor, "register.discrepancy_resolved", "batch", d.batch_id, branch_id=d.branch_id, after={
         "lot_no": d.lot_no, "register": d.register_qty, "stock": d.stock_qty, "reason": d.reason,
         "correction": bool(d.correction_entry_id), "witness": witness.name})  # fmt: skip

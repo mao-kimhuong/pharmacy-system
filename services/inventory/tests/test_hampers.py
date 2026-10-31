@@ -91,3 +91,48 @@ async def test_order_reservation_split_to_an_invoice(client) -> None:
     too_much = {"ref_id": str(uuid4()), "lines": [{"from_line_no": 1, "to_line_no": 1, "qty_base": 11}]}
     r2 = await client.post(f"/internal/v1/reservations/{r['id']}/split", json=too_much, headers=INTERNAL)
     assert r2.status_code == 409  # only 10 of line 1 left on the order
+
+
+async def reserved_of(client) -> dict[str, int]:  # noqa: ANN001
+    items = (await client.get(f"{PREFIX}/stock", params={"branch_id": str(PP1)}, headers=OWNER)).json()["items"]
+    return {i["sku"]: i["qty_reserved"] for i in items if i["qty_reserved"]}
+
+
+async def test_a_failed_sale_gives_the_split_stock_back_to_the_order(client) -> None:
+    para, ors, kit = await stocked()
+    order = {"ref_type": "sale_order", "ref_id": str(uuid4()), "branch_id": str(PP1),
+             "lines": [{"line_no": 1, "medicine_id": para["id"], "qty_base": 40},
+                       {"line_no": 2, "medicine_id": kit["id"], "qty_base": 2}]}  # fmt: skip
+    r = (await client.post("/internal/v1/reservations", json=order, headers=INTERNAL)).json()
+    assert await reserved_of(client) == {"PARA500": 60, "ORS": 4}
+    inv = str(uuid4())
+    body = {"ref_id": inv, "lines": [{"from_line_no": 1, "to_line_no": 1, "qty_base": 40},
+                                     {"from_line_no": 2, "to_line_no": 2, "qty_base": 1}]}  # fmt: skip
+    await client.post(f"/internal/v1/reservations/{r['id']}/split", json=body, headers=INTERNAL)
+    back = await client.post(f"/internal/v1/reservations/{r['id']}/merge-back", json={"ref_id": inv}, headers=INTERNAL)
+    assert back.status_code == 200 and back.json()["status"] == "merged", back.text
+    assert await reserved_of(client) == {"PARA500": 60, "ORS": 4}  # still held, now by the order again
+    again = await client.post(f"/internal/v1/reservations/{r['id']}/merge-back", json={"ref_id": inv},
+                              headers=INTERNAL)  # fmt: skip
+    assert again.json()["status"] == "merged" and await reserved_of(client) == {"PARA500": 60, "ORS": 4}
+    # the order holds 40 PARA and 2 whole hampers again: a new invoice can take all of it
+    whole = {"ref_id": str(uuid4()), "lines": [{"from_line_no": 1, "to_line_no": 1, "qty_base": 40},
+                                               {"from_line_no": 2, "to_line_no": 2, "qty_base": 2}]}  # fmt: skip
+    split = await client.post(f"/internal/v1/reservations/{r['id']}/split", json=whole, headers=INTERNAL)
+    assert split.status_code == 200, split.text
+    assert sum(x["qty_base"] for x in split.json()["lines"]) == 40 + 2 * 12
+
+
+async def test_merge_back_releases_when_the_order_no_longer_holds_stock(client) -> None:
+    para, _, _ = await stocked()
+    order = {"ref_type": "sale_order", "ref_id": str(uuid4()), "branch_id": str(PP1),
+             "lines": [{"line_no": 1, "medicine_id": para["id"], "qty_base": 40}]}  # fmt: skip
+    r = (await client.post("/internal/v1/reservations", json=order, headers=INTERNAL)).json()
+    inv = str(uuid4())
+    await client.post(f"/internal/v1/reservations/{r['id']}/split", headers=INTERNAL,
+                      json={"ref_id": inv, "lines": [{"from_line_no": 1, "to_line_no": 1, "qty_base": 10}]})  # fmt: skip
+    await client.post("/internal/v1/reservations/release-by-ref", headers=INTERNAL,
+                      json={"ref_type": "sale_order", "ref_id": order["ref_id"]})  # the order's hold expired
+    assert await reserved_of(client) == {"PARA500": 10}
+    back = await client.post(f"/internal/v1/reservations/{r['id']}/merge-back", json={"ref_id": inv}, headers=INTERNAL)
+    assert back.json()["status"] == "released" and await reserved_of(client) == {}

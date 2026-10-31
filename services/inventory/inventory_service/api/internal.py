@@ -13,6 +13,7 @@ from ..schemas.inventory import (
     ControlledMovement,
     ControlledStockRequest,
     FromPurchaseRequest,
+    MergeBackRequest,
     MovementsSince,
     ReleaseByRef,
     ReservationOut,
@@ -143,6 +144,15 @@ async def split(
 ) -> dict:  # fmt: skip
     """Part of a sale order's reservation becomes an invoice's (same batches). Once per invoice."""
     return await svc.split(session, caller, reservation_id, body.model_dump())
+
+
+@router.post("/reservations/{reservation_id}/merge-back", response_model=ReservationOut | None)
+async def merge_back(
+    reservation_id: UUID, body: MergeBackRequest, caller: InternalCaller = Depends(internal_caller),
+    session: AsyncSession = Depends(db.session),
+) -> dict | None:  # fmt: skip
+    """A failed sale from an order: its invoice reservation goes back onto the order's. Once per invoice."""
+    return await svc.merge_back(session, caller, reservation_id, body.ref_id)
 
 
 @router.post("/stock/available")

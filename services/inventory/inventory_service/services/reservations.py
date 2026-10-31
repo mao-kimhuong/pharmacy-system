@@ -254,10 +254,9 @@ async def split(session: AsyncSession, caller: InternalCaller, reservation_id: U
                 if take <= 0:
                     continue
                 seq += 1
-                new_meta = dict(meta)
+                new_meta = {**meta, "order_line_no": want["from_line_no"]}
                 if meta.get("hamper_id"):
                     new_meta["hamper_qty"] = int(want["qty_base"])
-                    x.meta = {**meta, "hamper_qty": int(meta["hamper_qty"]) - int(want["qty_base"])}
                 new.lines.append(ReservationLine(line_no=want["to_line_no"], seq=seq, medicine_id=medicine_id,
                                                  batch_id=x.batch_id, qty_base=take, overridden=x.overridden,
                                                  batch=x.batch, meta=new_meta))  # fmt: skip
@@ -267,13 +266,57 @@ async def split(session: AsyncSession, caller: InternalCaller, reservation_id: U
                     await session.delete(x)
                 if need == 0:
                     break
+        hamper = next((x.meta for x in rows if (x.meta or {}).get("hamper_id")), None)
+        if hamper:  # every row of the order line holds that many fewer whole hampers
+            for x in rows:
+                x.meta = {**(x.meta or {}), "hamper_qty": int(hamper["hamper_qty"]) - int(want["qty_base"])}
     session.add(new)
-    await session.flush()
-    await session.refresh(r, attribute_names=["lines"])
-    if not r.lines:
-        r.status = "released"
-    await session.commit()
+    await session.commit()  # an emptied order reservation stays open: a failed sale may give it back
     return to_dict(new)
+
+
+async def merge_back(session: AsyncSession, caller: InternalCaller, reservation_id: UUID, ref_id: str
+                     ) -> dict[str, Any] | None:  # fmt: skip
+    """A sale from an order failed: what was split onto its invoice goes back to
+    the order's reservation (same batches, still reserved, nothing free in between).
+    When the order's reservation is no longer open, the invoice's is released.
+    Once per invoice: a merged (or released) one is left alone."""
+    inv = (await session.execute(select(Reservation).where(
+        Reservation.ref_type == "invoice", Reservation.ref_id == str(ref_id)).with_for_update())).scalar_one_or_none()  # fmt: skip
+    if inv is None or inv.status != "reserved":
+        return to_dict(inv) if inv else None
+    order = (await session.execute(select(Reservation).where(Reservation.id == reservation_id).with_for_update()
+                                   )).scalar_one_or_none()  # fmt: skip
+    if order is None or order.status != "reserved" or order.ref_type != "sale_order":
+        return await release(session, caller, inv.id)
+    seq = defaultdict(int, {})
+    for x in order.lines:
+        seq[x.line_no] = max(seq[x.line_no], x.seq)
+    moved_hampers: dict[int, int] = {}
+    for x in inv.lines:
+        meta = dict(x.meta or {})
+        line_no = int(meta.pop("order_line_no", x.line_no))
+        if meta.get("hamper_id"):
+            moved_hampers[line_no] = int(meta["hamper_qty"])
+        same = next((o for o in order.lines if o.line_no == line_no and o.batch_id == x.batch_id
+                     and o.medicine_id == x.medicine_id), None)  # fmt: skip
+        if same is not None:
+            same.qty_base += x.qty_base
+        else:
+            seq[line_no] += 1
+            order.lines.append(ReservationLine(line_no=line_no, seq=seq[line_no], medicine_id=x.medicine_id,
+                                               batch_id=x.batch_id, qty_base=x.qty_base, overridden=x.overridden,
+                                               batch=x.batch, meta=meta))  # fmt: skip
+        await session.delete(x)
+    for line_no, qty in moved_hampers.items():  # the order holds that many more whole hampers again
+        rows = [o for o in order.lines if o.line_no == line_no]
+        kept = [int((o.meta or {}).get("hamper_qty", 0)) for o in rows if o.id is not None and o.qty_base > 0]
+        before = min(kept, default=0)
+        for o in rows:
+            o.meta = {**(o.meta or {}), "hamper_qty": before + qty}
+    inv.status = "merged"
+    await session.commit()
+    return to_dict(inv)
 
 
 async def confirm(session: AsyncSession, caller: InternalCaller, reservation_id: UUID) -> dict[str, Any]:
@@ -296,7 +339,7 @@ async def confirm(session: AsyncSession, caller: InternalCaller, reservation_id:
 
 async def release(session: AsyncSession, caller: InternalCaller, reservation_id: UUID) -> dict[str, Any]:
     r = await _get(session, reservation_id)
-    if r.status == "released":
+    if r.status in ("released", "merged"):
         return to_dict(r)
     if r.status != "reserved":
         raise state_error(f"A {r.status} reservation cannot be released", r.status)

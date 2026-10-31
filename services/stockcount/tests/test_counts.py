@@ -13,6 +13,7 @@ from .conftest import (
     add_product,
     event,
     on_hand,
+    outbox,
     receive,
     relay_approved,
     sell_now,
@@ -95,6 +96,9 @@ async def test_approve_posts_variances_once_and_cost_is_hidden(client) -> None:
     r = await client.post(f"{PREFIX}/counts/{count['id']}/approve", json={},
                           headers={**APPROVER, "Idempotency-Key": "approve-0001"})  # fmt: skip
     assert r.status_code == 200 and r.json()["status"] == "approved"
+    sent = {t: p for t, p in await outbox()}
+    assert sent["count.submitted"]["lines"][0]["variance"] == -4 and sent["count.submitted"]["variance_value"] == "0.20"
+    assert sent["count.approved"]["lines"][0]["value"] == "-0.20"  # reports: stock take variances
     await relay_approved()
     await relay_approved()
     assert await on_hand(para) == 96

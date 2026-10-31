@@ -1,6 +1,6 @@
 SERVICES := auth branch catalog inventory stockcount prescription controlled sales customers purchasing reports notification document ai
 
-.PHONY: help env up down logs ps owner smoke test test-docker test-db test-db-down lint migrate revision resync
+.PHONY: help env up down logs ps owner smoke test test-docker test-db test-db-down lint migrate revision resync backfill seed-demo bench-reports
 
 help:
 	@echo "make env       copy .env.example to .env (first time)"
@@ -14,6 +14,9 @@ help:
 	@echo "make test-docker   the same, inside a python:3.12 container (no local Python needed)"
 	@echo "make migrate s=auth             run alembic upgrade head in a service"
 	@echo "make revision s=auth m='add users'   create a migration"
+	@echo "make backfill  rebuild the reports' read models from every service's outbox (safe to repeat)"
+	@echo "make seed-demo a year of demo data in the reports (APP_ENV=development, DEMO branches)"
+	@echo "make bench-reports  time every report over the demo year"
 
 env:
 	@test -f .env || cp .env.example .env && echo ".env ready - change the passwords"
@@ -44,6 +47,16 @@ resync:
 	docker compose exec catalog python -m catalog_service.cli republish
 	docker compose exec customers python -m customers_service.cli republish
 	docker compose exec purchasing python -m purchasing_service.cli republish
+	docker compose exec sales python -m sales_service.cli republish
+
+backfill:
+	docker compose exec reports python -m reports_service.cli backfill
+
+seed-demo:
+	docker compose exec reports python -m reports_service.cli seed-demo
+
+bench-reports:
+	docker compose exec reports python -m reports_service.cli bench
 
 test-db:
 	docker compose -f docker-compose.test.yml up -d --wait

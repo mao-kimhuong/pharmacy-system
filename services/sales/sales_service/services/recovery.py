@@ -24,7 +24,7 @@ from .cancel import cancel_steps
 from .clients import Clients
 from .common import audit
 from .returns import return_steps
-from .sale_saga import compensate
+from .sale_saga import compensate, order_hold
 
 log = logging.getLogger(__name__)
 LOCK_KEY = 7_202_610
@@ -49,7 +49,7 @@ async def recover(db: Database, clients: Clients, pending_timeout_seconds: int) 
                         await cancel_steps(session, inv, None, clients)
                         done["cancelled"] += 1
                         continue
-                    problems = await compensate(inv, None, clients)
+                    problems = await compensate(inv, None, clients, await order_hold(session, inv))
                     if problems:
                         inv.failure_reason = ("not undone yet: " + "; ".join(problems))[:500]
                         inv.status = "needs_attention"

@@ -152,7 +152,8 @@ async def _failed_attempt(
     if user.failed_attempts >= settings.lockout_threshold:
         user.failed_attempts = 0
         user.locked_until = _now() + timedelta(minutes=settings.lockout_minutes)
-        add_event(session, OutboxEvent, "user.locked", {"user_id": str(user.id), "ip": client.ip})
+        add_event(session, OutboxEvent, "user.locked", {"user_id": str(user.id), "ip": client.ip,
+                                                         "occurred_at": _now().isoformat()})  # fmt: skip
         _login_audit(session, user, "user.locked", client, reason=reason)
         await session.commit()
         return _locked(user)

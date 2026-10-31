@@ -18,6 +18,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pharmacy_shared import clock
 from pharmacy_shared.errors import AppError, ErrorCode
 from pharmacy_shared.internal import InternalCaller
 from pharmacy_shared.outbox import add_event
@@ -32,7 +33,9 @@ CENT = Decimal("0.01")
 def out(d: Deposit) -> dict[str, Any]:
     return {"deposit_id": str(d.id), "customer_id": str(d.customer_id), "branch_id": str(d.branch_id), "ref": d.ref,
             "document_no": d.document_no, "amount": str(d.amount), "used": str(d.used), "remaining": str(d.remaining),
-            "status": d.status, "method": d.method, "currency": d.currency}  # fmt: skip
+            "status": d.status, "method": d.method, "currency": d.currency,
+            "created_at": d.created_at.isoformat() if d.created_at else clock.now().isoformat(),
+            "occurred_at": clock.now().isoformat()}  # fmt: skip
 
 
 async def _lock(session: AsyncSession, deposit_id: UUID) -> Deposit:

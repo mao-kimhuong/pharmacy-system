@@ -170,3 +170,10 @@ async def sell_now(medicine_id: str, qty: int) -> None:
         await apply_movement(s, branch_id=PP1, batch=batch, type="out", qty_base=-qty, ref_type="test",
                              ref_id=str(uuid4()))  # fmt: skip
         await s.commit()
+
+
+async def outbox() -> list[tuple[str, dict]]:
+    """Events the stockcount service wrote, oldest first."""
+    async with db.sessionmaker() as session:
+        rows = (await session.execute(select(OutboxEvent).order_by(OutboxEvent.seq))).scalars().all()
+        return [(r.event_type, r.payload) for r in rows]

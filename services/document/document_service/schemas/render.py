@@ -117,3 +117,22 @@ RenderRequest = Annotated[
     | SaleOrderRender,
     Field(discriminator="type"),
 ]
+
+
+class TableColumn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    label: str = Field(max_length=80)
+    kind: str = Field(default="text", max_length=10)
+
+
+class TableRender(BaseModel):
+    """A report as a PDF (internal: the reports service)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(max_length=160)
+    filters: dict[str, str] = Field(default_factory=dict)
+    columns: list[TableColumn] = Field(min_length=1, max_length=40)
+    rows: list[list[str]] = Field(max_length=5000)
+    summary: dict[str, str] = Field(default_factory=dict)

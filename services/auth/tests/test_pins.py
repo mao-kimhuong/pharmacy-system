@@ -7,7 +7,7 @@ from auth_service.models import Permission, RolePermission
 from auth_service.services.catalog_sync import sync_catalog
 from auth_service.services.passwords import hash_password
 
-from .conftest import B1, B2, PREFIX, add_branch, as_user, audit_actions, make_user
+from .conftest import B1, B2, PREFIX, add_branch, as_user, audit_actions, make_user, outbox_types
 
 TOKEN = "test-service-token-0123456789abcdef"
 
@@ -67,6 +67,7 @@ async def test_five_wrong_pins_lock_the_pin(client) -> None:
                           headers=headers)  # fmt: skip
     assert r.status_code == 423  # the right PIN does not help while locked
     assert "user.pin_locked" in await audit_actions()
+    assert "user.pin_locked" in await outbox_types()  # alert for the notification service
 
 
 async def test_no_pin_set(client) -> None:

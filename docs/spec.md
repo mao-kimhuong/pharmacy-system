@@ -265,6 +265,8 @@ Pick is FEFO unless a line names batches with a reason. Receive takes `{"lines":
 
 **POST /api/sales/v1/sale-orders** (quote) → **/{id}/confirm** `{"reserve": true, "reserve_days": 3, "deposit": {"method": "cash", "currency": "USD", "amount": 5}}` → **/{id}/invoice** `{"lines": [{"order_line_id": "…", "qty": 1}], "payments": [{"method": "deposit", "deposit_id": "…", "amount": 5}]}` → **/cancel** or **/close**. Also **/carts/suspend**, **/carts/{id}/resume**, **/sale-templates/{id}/load**, **/carts/price**, **/commission/rules**, **/commission/periods/{branch}/{month}/close|paid**, **/commission/report**; catalog **/promotions** and **/hampers**; inventory **GET /hampers/{id}/availability**.
 
+**Reports (S8):** **GET /api/reports/v1/dashboard?branch_id=** and **GET /api/reports/v1/catalog** (the reports this user may open); every report **GET /api/reports/v1/{key}** with `date_from`, `date_to`, `branch_id`, `staff_id`, `category_id`, `supplier_id`, `customer_id`, `medicine_id`, `page`, `size` (≤ 100) and `format=json|csv|xlsx|pdf`. Keys: sales/detail, sales/summary (`by=day|branch|staff|medicine|category|payment_method`), sales/margin-by-item, sales/profit, sales/by-package, returns/detail, sales/cancellations, sales/discounts, payments, stock, expiry (`within=` or `status=expired`), stock/slow-moving (`days=`), stock/abc, movements (`batch_id`, `type`), shrinkage, counts/variances, modifications, purchases/by-item, purchases/by-supplier, purchases/cost-changes (`changed_only`), payables/aging, receivables/aging, customers/top, transfers, transfers/in-transit, commission, rx/dispensing, controlled/summary. **Telegram:** GET /api/notifications/v1/chats, PUT /chats/{owner|branch_id}, POST /test, GET /messages, GET/PUT /settings, POST /daily-summary/run.
+
 **GET /api/inventory/v1/batches?branch\_id=&expiring\_within=90&status=active** — near-expiry list, sorted by expiry.
 
 **POST /api/prescription/v1/prescriptions** — patient, doctor, `rx_no`, `issued_on`, `valid_until`, and `items[]` (`medicine_id`, `qty_base` = one fill, `dosage`, `frequency`, `duration_days`, `repeats_allowed`). The photo is uploaded after: **POST /prescriptions/{id}/attachments** (JPEG/PNG/PDF ≤ 10 MB) and read back only through **GET /prescriptions/{id}/attachments/{att_id}** (checked and logged on every request).
@@ -309,6 +311,8 @@ Pick is FEFO unless a line names batches with a reason. Receive takes `{"lines":
 | DEPOSIT\_EXCEEDED | 422 | More taken from a deposit than is left on it |
 | PERIOD\_LOCKED | 409 | Commission period already closed or paid |
 | HAMPER\_NOT\_STOCKED | 422 | A hamper in a PO, stock-in, transfer, count or re-order (only its components are stocked) |
+| EXPORT\_TOO\_LARGE | 422 | A report export above 100 000 rows (PDF 5 000): narrow the dates or filters |
+| TELEGRAM\_NOT\_CONFIGURED | 503 | No TELEGRAM\_BOT\_TOKEN: messages are kept as skipped |
 
 **Security**
 

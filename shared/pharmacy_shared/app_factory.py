@@ -17,6 +17,7 @@ from .logging import setup_logging
 from .outbox_relay import RabbitPublisher, run_relay
 from .rate_limit import RateLimitMiddleware
 from .redis import RedisProvider
+from .replay import replay_router
 
 log = logging.getLogger(__name__)
 
@@ -131,6 +132,8 @@ def create_service_app(
     app.include_router(router, prefix=prefix)
     if internal_router is not None:
         app.include_router(internal_router, prefix=INTERNAL_PREFIX, include_in_schema=False)
+    if outbox_model is not None:
+        app.include_router(replay_router(outbox_model), prefix=INTERNAL_PREFIX, include_in_schema=False)
     _add_bearer_auth_to_docs(app, title)
     return app
 

@@ -65,8 +65,11 @@ Traefik v3.6. Python 3.12. Lint with ruff.
 - `docker compose exec controlled python -m controlled_service.cli open-balances` – once after installing S5:
   controlled stock from before the register gets "opening" entries (`check` runs the 00:20 register check now)
 - `python -m sales_service.cli recover` – finish sales/returns left half-way (also runs every minute)
-- `make resync` – re-send staff, branches, branch settings, products, customers and open POs as events (needed once when a service starts
-  listening after the data exists: RabbitMQ drops events for queues that did not exist yet)
+- `make resync` – re-send staff, branches, branch settings, products, customers, open POs and commission lines as events (needed
+  once when a service starts listening after the data exists: RabbitMQ drops events for queues that did not exist yet)
+- `make backfill` – rebuild the reports' read models by replaying every service's outbox (safe to repeat; `--rebuild` empties first)
+- `make seed-demo` / `make bench-reports` – a year of demo data in the reports (APP_ENV=development, DEMO branches only) and
+  the timing of every report (target < 2 s)
 
 ## How things work (from S0)
 - **Who is calling:** `user: CurrentUser = Depends(current_user)`; then `user.require_branch(branch_id)`.
@@ -290,7 +293,8 @@ Traefik v3.6. Python 3.12. Lint with ruff.
 
 - **Scheduled jobs:** all in Asia/Phnom_Penh time (`clock.TIMEZONE`), each once at start-up too, one replica
   at a time (advisory lock): inventory expiry 00:05, prescription expiry 00:10, register check 00:20,
-  re-order lists + alerts 00:30, sales: suspended carts expire 00:01, order reservations every 10 min.
+  re-order lists + alerts 00:30, sales: suspended carts expire 00:01, order reservations every 10 min; notification:
+  stock digest 07:30, daily Telegram summary 20:00 (both also catch up at start-up), the sender every 10 s.
 - **Transfers (inventory, from S6):** request (`transfers.request`, destination) → approve / reject
   (`transfers.approve`, source) → transfer `PP1-TR-…`: approved → picked → dispatched → received → closed, or
   cancelled (reason, only before dispatch, reservations released → TRANSFER_STATE after). Push without a
@@ -353,6 +357,31 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   periods get nothing new (reversals go to the next open period). `/commission/report` (+ `/{staff_id}`
   drill-down): `commission.view_own` = self only, `commission.manage` = the branch.
 
+- **Outbox replay (from S8):** outbox rows are never deleted (the relay only sets `published_at`).
+  `create_service_app` adds `GET /internal/v1/outbox?after_seq=&limit=` to every service with an outbox (service
+  token, only the callers in `OUTBOX_REPLAY_CALLERS`, default `reports`; never routed by Traefik).
+- **Reports (from S8):** read models built ONLY from events (`reports_service/services/events.py`): idempotent upserts by
+  source id, versioned snapshots ignore older versions, same handlers for live events and the backfill (same message id =
+  outbox id, so they never double count). Days in Asia/Phnom_Penh: a sale on the day it completed; a cancel removes it
+  from that day; a return counts on its own day. KHR = each invoice's own KHR total. `sales_daily` rollup rebuilt per
+  branch + day after each invoice event. Reports registry `services/reports.py` (`@report(key, title, *permissions)`,
+  "a|b" = either); every report: `GET /api/reports/v1/<key>` with date_from/date_to/branch/staff/category/supplier/
+  customer/medicine, `?format=csv|xlsx|pdf` (10 a minute per user, User Log `report.exported`, ≤ 100 000 rows, PDF ≤ 5 000
+  via document `/internal/v1/render/table`, else EXPORT_TOO_LARGE). Columns marked `secret` ("cost": finance.cost_profit;
+  "purchase": purchasing.order/pay/finance.cost_profit) are dropped from columns, rows AND summary before any format
+  (`common.drop_hidden`). Branch scope: the user's branches, owner all, another branch → BRANCH_FORBIDDEN. Dashboard
+  `GET /dashboard` (today / yesterday / same weekday last week). Rx report needs prescriptions.view and has no patient.
+  Re-order stays in inventory. New events for it: `commission.recorded`, `commission_period.updated`, `shrinkage.*`,
+  `count.submitted` (+ lines on approved), `user.pin_locked`, `register.discrepancy_resolved`; goods.received has
+  `total` + `due_on`; credit/payment/deposit events carry `occurred_at`; invoice returns carry `created_at`.
+- **Telegram (notification, from S8):** chats per branch + "owner" (`PUT /chats/{target}`, `notifications.manage`;
+  managers only their branches), `messages` outbox with a unique `dedupe_key` (a job run twice adds nothing; a sent summary
+  is never changed), status queued → sent | failed | skipped (no token / no chat), backoff 30 s × 2ⁿ ≤ 1 h, Telegram's
+  429 retry_after, 8 tries; other 4xx fail at once. Texts only from allow-listed fields (`services/texts.py`): never
+  patient, Rx, doctor or customer data; cost and profit only in the owner's chat. Alerts at once: register discrepancy /
+  chain broken, account or PIN lockout, below-cost sale, large manual discount (alert settings, 20 % / 10 USD); low stock
+  and near expiry in the 07:30 digest. `POST /test` (503 TELEGRAM_NOT_CONFIGURED without a token).
+
 ## Definition of done
 API matches the spec, migration included, tests pass (`make test` and `make test-docker`),
 `docker compose up` works, permissions checked per role, audit log written.
@@ -368,7 +397,7 @@ API matches the spec, migration included, tests pass (`make test` and `make test
 - [x] S5 Controlled + counts – register, PIN + witness, stock take, shrinkage
 - [x] S6 Branches – transfer requests, transfers, purchase requests, re-order
 - [x] S7 Sales extras – sale order, suspend, templates, promotions, hampers, commission
-- [ ] S8 Reports – dashboard, all reports, Telegram 20:00
+- [x] S8 Reports – dashboard, all reports, Telegram 20:00
 - [ ] S9 Hardening – performance, security, offline POS, UAT fixes; per-service tokens for
   internal calls (today one shared SERVICE_TOKEN: a service could call any other's /internal);
   SeaweedFS: lock down its IAM gRPC port and use a non-admin S3 identity per service; register table owned by a

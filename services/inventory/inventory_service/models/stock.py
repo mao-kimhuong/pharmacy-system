@@ -218,7 +218,7 @@ class Reservation(IdMixin, Base):
     __table_args__ = (
         UniqueConstraint("ref_type", "ref_id", name="uq_reservations_ref"),
         CheckConstraint(
-            "status IN ('reserved', 'confirmed', 'released', 'reversed')", name="ck_reservations_status"
+            "status IN ('reserved', 'confirmed', 'released', 'reversed', 'merged')", name="ck_reservations_status"
         ),
     )
 

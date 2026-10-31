@@ -61,7 +61,14 @@ batches; a quote becomes an order with a deposit and a reservation, is partly
 invoiced with the deposit, printed, and the rest cancelled; a 5 % commission rule,
 a sale, the report and the cashier's own drill-down (not someone else's).
 
-Without prompts: SMOKE_PHONE, SMOKE_PASSWORD, SMOKE_S1=y ... SMOKE_S5=y, SMOKE_S6=y, SMOKE_S7=y.
+S8 checks (optional, needs the S1b sample products): a test branch with two sales
+(USD and KHR) and a return; the dashboard shows them (profit for the owner, not
+the cashier); Sale Detail totals equal the invoices; CSV, XLSX and PDF exports;
+the cashier gets 403 on Sale Margin By Item; /internal/v1/outbox is not routed;
+Telegram: the test message (503 without a bot token), the daily summary queued
+once when run twice, the User Log.
+
+Without prompts: SMOKE_PHONE, SMOKE_PASSWORD, SMOKE_S1=y ... SMOKE_S5=y, SMOKE_S6=y, SMOKE_S7=y, SMOKE_S8=y.
 
 Uses only the Python standard library.
 """
@@ -1433,6 +1440,102 @@ def s7_checks(token: str) -> None:
         remove_test_cashier(token, bid, cashier)
 
 
+def s8_checks(token: str) -> None:
+    cat, inv, sales, rep, notif = ("/api/catalog/v1", "/api/inventory/v1", "/api/sales/v1", "/api/reports/v1",
+                                   "/api/notifications/v1")  # fmt: skip
+    _, found = call("GET", f"{cat}/medicines/search?q=PARA500", token=token)
+    para = next((x for x in found.get("items", []) if x["sku"] == "PARA500"), None)
+    if para is None:
+        check(False, "sample product PARA500 exists (run the S1b step first)")
+        return
+    packs = {p["name"]: p for p in para["pack_units"]}
+    made = make_test_cashier(token)
+    if made is None:
+        return
+    bid, cashier, phone, password = made
+    today = date.today()
+
+    def key() -> dict:
+        return {"Idempotency-Key": str(uuid.uuid4())}
+
+    try:
+        body = {"branch_id": bid, "reason": "Smoke test S8", "lines": [
+            {"medicine_id": para["id"], "pack_unit_id": packs["box"]["id"], "lot_no": "S8A", "unit_cost": "2.00",
+             "expiry_date": (today + timedelta(days=400)).isoformat(), "qty": 2}]}  # fmt: skip
+
+        def stock_in():
+            st, out = call("POST", f"{inv}/stock-in", body, token=token, headers=key())
+            return (st, out) if out.get("code") not in ("UNKNOWN_BRANCH", "UNKNOWN_MEDICINE") else None
+
+        status, _ = wait_for(stock_in, tries=30) or (0, {})
+        if not check(status == 201, f"stock-in for the test branch -> 201 (got {status})"):
+            return
+        call("PUT", f"{sales}/exchange-rates/{bid}", {"khr_per_usd": 4100}, token=token)
+        ctoken = call("POST", "/api/auth/v1/login", {"phone": phone, "password": password})[1].get("access_token", "")
+        strip = Decimal(packs["strip"]["sell_price"])
+        line = {"medicine_id": para["id"], "pack_unit_id": packs["strip"]["id"], "qty": 2}
+        _, usd = call("POST", f"{sales}/invoices", {"branch_id": bid, "lines": [line],
+                      "payments": [{"method": "cash", "amount": str(2 * strip)}]}, token=ctoken, headers=key())  # fmt: skip
+        riel = int((2 * strip * 4100 / 100).to_integral_value(rounding="ROUND_CEILING")) * 100
+        _, khr = call("POST", f"{sales}/invoices", {"branch_id": bid, "lines": [line],
+                      "payments": [{"method": "cash", "currency": "KHR", "amount": str(riel)}]},
+                      token=ctoken, headers=key())  # fmt: skip
+        check(bool(usd.get("number") and khr.get("number")), f"two sales, USD and KHR: {usd.get('number')}, {khr.get('number')}")
+        status, ret = call("POST", f"{sales}/invoices/{usd.get('id')}/returns", {
+            "lines": [{"invoice_line_id": usd["lines"][0]["id"], "qty": 1}], "refund_method": "cash",
+            "reason": "smoke test"}, token=token, headers=key())  # fmt: skip
+        check(status == 201, f"one strip returned ({ret.get('number')})")
+        total = Decimal(usd["total"]) + Decimal(khr["total"])
+
+        def dashboard():
+            _, d = call("GET", f"{rep}/dashboard?branch_id={bid}", token=token)
+            today_ = d.get("today", {})
+            return d if Decimal(today_.get("sales", "0")) == total and Decimal(today_.get("returns", "0")) > 0 else None
+
+        dash = wait_for(dashboard, tries=40) or {}
+        t = dash.get("today", {})
+        check(bool(dash) and "gross_profit" in t,
+              f"dashboard (owner): sales {t.get('sales')} USD / {t.get('sales_khr')} KHR, {t.get('invoices')} invoices, "
+              f"returns {t.get('returns')}, gross profit {t.get('gross_profit')}")  # fmt: skip
+        _, cd = call("GET", f"{rep}/dashboard?branch_id={bid}", token=ctoken)
+        check("today" in cd and "gross_profit" not in cd["today"], "the cashier's dashboard has no profit")
+        _, detail = call("GET", f"{rep}/sales/detail?branch_id={bid}&date_from={today}&date_to={today}", token=token)
+        check(Decimal(detail.get("summary", {}).get("net", "-1")) == total and detail.get("summary", {}).get("invoices") == 2,
+              f"Sale Detail totals = the invoices ({detail.get('summary', {}).get('net')} = {total})")  # fmt: skip
+        for fmt, magic in (("csv", b"\xef\xbb\xbf"), ("xlsx", b"PK"), ("pdf", b"%PDF")):
+            status, data, _ = call_raw("GET", f"{rep}/sales/detail?branch_id={bid}&format={fmt}", None, token)
+            if check(status == 200 and data.startswith(magic), f"Sale Detail as {fmt.upper()} ({status})") and fmt == "pdf":
+                out = Path(tempfile.gettempdir()) / "pharmacy-smoke-sale-detail.pdf"
+                out.write_bytes(data)
+                print(f"        open {out}")
+        status, _ = call("GET", f"{rep}/sales/margin-by-item?branch_id={bid}", token=ctoken)
+        check(status == 403, f"cashier asks for Sale Margin By Item -> 403 (got {status})")
+        status, _ = call("GET", "/internal/v1/outbox", token=token)
+        check(status == 404, f"/internal/v1/outbox not routed by Traefik -> 404 (got {status})")
+
+        # Telegram: without a bot token nothing is sent, but every message is kept with its status
+        call("PUT", f"{notif}/chats/owner", {"chat_id": "-1000000000001"}, token=token)
+        status, r = call("POST", f"{notif}/test", {"target": "owner"}, token=token)
+        check(status == 503 and r.get("code") == "TELEGRAM_NOT_CONFIGURED" or status == 200,
+              f"test message -> {status} {r.get('code') or r.get('status')}")  # fmt: skip
+        _, first = call("POST", f"{notif}/daily-summary/run", {}, token=token)
+        _, second = call("POST", f"{notif}/daily-summary/run", {}, token=token)
+        check(first.get("queued", 0) >= 1 and second.get("queued") == 0,
+              f"daily summary run twice: {first.get('queued')} then {second.get('queued')} new")  # fmt: skip
+        _, msgs = call("GET", f"{notif}/messages?kind=daily_summary&limit=1", token=token)
+        if check(isinstance(msgs, list) and msgs, f"summary stored ({msgs[0]['status'] if msgs else '?'})"):
+            print("        " + msgs[0]["text"].replace("\n", "\n        "))
+        for action in ("report.exported", "telegram_chat.set"):
+
+            def logged(action=action):
+                _, log = call("GET", f"/api/auth/v1/audit-logs?action={action}&size=1", token=token)
+                return log.get("total")
+
+            check(bool(wait_for(logged)), f"User Log shows {action}")
+    finally:
+        remove_test_cashier(token, bid, cashier)
+
+
 def main() -> int:
     print(f"Smoke test against {BASE}\n")
     tokens = s0_checks()
@@ -1493,6 +1596,13 @@ def main() -> int:
     if run_s7.strip().lower() in ("y", "yes", "1"):
         print()
         s7_checks(tokens["access_token"])
+    run_s8 = os.environ.get("SMOKE_S8") or input(
+        "\nAlso run the S8 checks? It creates a test branch with two sales and a return, exports reports and\n"
+        "queues the daily Telegram summary (sent only with TELEGRAM_BOT_TOKEN). [y/N] "
+    )
+    if run_s8.strip().lower() in ("y", "yes", "1"):
+        print()
+        s8_checks(tokens["access_token"])
 
     status, _ = call(
         "POST",

@@ -114,15 +114,29 @@ class InternalClient:
         branch_id: UUID | None = None,
         idempotency_key: str | None = None,
     ) -> dict[str, Any]:
+        return await self._request("POST", path, body or {}, None, self._headers(actor, branch_id, idempotency_key))
+
+    async def get(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+        *,
+        actor: CurrentUser | None = None,
+        branch_id: UUID | None = None,
+    ) -> dict[str, Any]:
+        """Reads are safe to repeat: any transport error is retried."""
+        return await self._request("GET", path, None, params, self._headers(actor, branch_id, None))
+
+    async def _request(self, method: str, path: str, body: dict[str, Any] | None,
+                       params: dict[str, Any] | None, headers: dict) -> dict[str, Any]:  # fmt: skip
         url = f"/internal/v1{path}"
-        headers = self._headers(actor, branch_id, idempotency_key)
         attempt = 0
         async with httpx.AsyncClient(
             base_url=self.base_url, timeout=self.timeout, transport=self.transport
         ) as client:
             while True:
                 try:
-                    response = await client.post(url, json=body or {}, headers=headers)
+                    response = await client.request(method, url, json=body, params=params, headers=headers)
                     break
                 except (httpx.ConnectError, httpx.ConnectTimeout) as exc:
                     if attempt >= self.retries:
@@ -130,6 +144,10 @@ class InternalClient:
                     attempt += 1
                     await asyncio.sleep(0.2 * 2**attempt)
                 except httpx.HTTPError as exc:  # sent, but no answer: outcome unknown
+                    if method == "GET" and attempt < self.retries:
+                        attempt += 1
+                        await asyncio.sleep(0.2 * 2**attempt)
+                        continue
                     raise self._unavailable(str(exc)) from exc
         return self._result(response)
 

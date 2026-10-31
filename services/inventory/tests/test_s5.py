@@ -112,6 +112,9 @@ async def test_big_shrinkage_waits_for_someone_else_to_approve(client) -> None:
     second = (await client.post(f"{PREFIX}/shrinkages", json=body, headers={**MANAGER, **idem()})).json()
     r = await client.post(f"{PREFIX}/shrinkages/{second['id']}/reject", json={"reason": "found them"}, headers=other)
     assert r.json()["status"] == "rejected" and await on_hand(client, product) == 700
+    events = [(t, p["status"], p["value"]) for t, p in await outbox() if t.startswith("shrinkage.")]
+    assert events == [("shrinkage.created", "pending_approval", "60.00"), ("shrinkage.approved", "posted", "60.00"),
+                      ("shrinkage.created", "pending_approval", "60.00"), ("shrinkage.rejected", "rejected", "60.00")]
 
 
 async def test_branch_limit_comes_from_branch_settings(client) -> None:

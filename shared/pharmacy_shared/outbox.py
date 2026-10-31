@@ -11,7 +11,10 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 
 class OutboxMixin:
-    """Use as: class OutboxEvent(OutboxMixin, Base): __tablename__ = "outbox" """
+    """Use as: class OutboxEvent(OutboxMixin, Base): __tablename__ = "outbox"
+
+    Rows are never deleted (the relay only sets published_at): the reports
+    backfill replays them through /internal/v1/outbox (pharmacy_shared.replay)."""
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     # Strict publish order, also for several events written in one transaction

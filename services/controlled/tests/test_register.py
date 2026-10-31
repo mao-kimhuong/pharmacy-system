@@ -209,6 +209,9 @@ async def test_open_discrepancy_clears_when_stock_and_register_agree(client) -> 
         assert (await reconcile(s, clients()))["cleared"] == 1
     async with db.sessionmaker() as s:
         assert (await s.execute(select(Discrepancy.status))).scalar_one() == "cleared"
+        closed = (await s.execute(text("SELECT payload FROM outbox WHERE event_type = 'register.discrepancy_resolved'"))
+                  ).scalars().all()  # fmt: skip
+    assert [c["status"] if isinstance(c, dict) else c for c in closed] == ["cleared"]
 
 
 async def test_correction_is_a_new_row_and_old_stays(client) -> None:

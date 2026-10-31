@@ -44,8 +44,9 @@ async def test_two_lots_of_one_line_create_a_bill_and_goods_received(client) -> 
     assert goods["lines"][0] == {
         "receipt_line_id": receipt["lines"][0]["id"], "medicine_id": para["id"], "pack_unit_id": para["box"],
         "qty_base": 600, "lot_no": "A1", "expiry_date": "2028-03-31", "cost_per_base": "0.0425",
-        "controlled_schedule": None, "is_controlled": False,
+        "line_total": "25.50", "controlled_schedule": None, "is_controlled": False,
     }  # fmt: skip
+    assert (goods["total"], goods["due_on"]) == ("42.50", "2026-11-26")  # the bill, for payables aging
     assert (await audits())[-1]["action"] == "goods.received"
 
 

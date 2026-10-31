@@ -43,10 +43,12 @@ def goods_received_payload(r: Receipt) -> dict[str, Any]:
         "receipt_id": str(r.id), "number": r.number, "po_id": str(r.po_id), "po_number": r.po.number,
         "branch_id": str(r.branch_id), "supplier_id": str(r.supplier_id),
         "received_at": r.received_at.isoformat(), "received_by": str(r.received_by) if r.received_by else None,
+        "total": str(r.total), "due_on": r.due_on.isoformat(), "supplier_invoice_no": r.supplier_invoice_no,
         "lines": [{
             "receipt_line_id": str(line.id), "medicine_id": str(line.medicine_id),
             "pack_unit_id": str(line.pack_unit_id), "qty_base": line.qty_base, "lot_no": line.lot_no,
             "expiry_date": line.expiry_date.isoformat(), "cost_per_base": str(line.cost_per_base),
+            "line_total": str(line.line_total),
             "controlled_schedule": line.controlled_schedule, "is_controlled": bool(line.controlled_schedule),
         } for line in r.lines],
     }  # fmt: skip

@@ -22,6 +22,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pharmacy_shared import clock
 from pharmacy_shared.auth import CurrentUser
 from pharmacy_shared.errors import AppError, ErrorCode
 from pharmacy_shared.numbering import next_number
@@ -130,7 +131,7 @@ async def create_return(
                        details={"field": "refund_method"})  # fmt: skip
     settings = await session.get(BranchSettingsCopy, inv.branch_id)
     lines = {x.id: x for x in inv.lines}
-    ret = SaleReturn(invoice_id=inv.id, branch_id=inv.branch_id, refund_method=refund, refund_usd=Decimal("0.00"),
+    ret = SaleReturn(invoice_id=inv.id, branch_id=inv.branch_id, created_at=clock.now(), refund_method=refund, refund_usd=Decimal("0.00"),
                      to_quarantine=data["to"] == "quarantine", reason=clean(data["reason"]), status="pending",
                      created_by=actor.id, lines=[])  # fmt: skip
     seq = 0

@@ -28,11 +28,12 @@ from pharmacy_shared.auth import CurrentUser
 from pharmacy_shared.errors import AppError, ErrorCode
 from pharmacy_shared.internal import InternalClient
 from pharmacy_shared.numbering import next_number
+from pharmacy_shared.outbox import add_event
 from pharmacy_shared.pin import DESTRUCTION_WITNESS_ROLES, consume_pin, consume_witness
 from pharmacy_shared.storage import Storage
 from pharmacy_shared.uploads import check_upload
 
-from ..models import Batch, BranchSettingsCopy, DocSequence, Product, Shrinkage, Stock
+from ..models import Batch, BranchSettingsCopy, DocSequence, OutboxEvent, Product, Shrinkage, Stock
 from .common import audit, branch_for, clean
 from .movements import apply_movement, lock_stock
 
@@ -79,6 +80,16 @@ async def list_shrinkages(
     rows = await session.execute(query.order_by(Shrinkage.created_at.desc(), Shrinkage.id)
                                  .offset((page - 1) * size).limit(size))  # fmt: skip
     return list(rows.scalars()), int(total)
+
+
+def _event(session: AsyncSession, s: Shrinkage, name: str) -> None:
+    """shrinkage.created|approved|rejected (reports: pending approvals, shrinkage)."""
+    add_event(session, OutboxEvent, name, {
+        "shrinkage_id": str(s.id), "number": s.number, "branch_id": str(s.branch_id), "batch_id": str(s.batch_id),
+        "medicine_id": str(s.medicine_id), "lot_no": s.batch.lot_no if s.batch else "", "qty_base": s.qty_base,
+        "reason": s.reason, "value": str(s.value), "status": s.status, "is_controlled": s.is_controlled,
+        "created_by": str(s.created_by) if s.created_by else None,
+        "decided_by": str(s.decided_by) if s.decided_by else None, "occurred_at": clock.now().isoformat()})  # fmt: skip
 
 
 async def _post(session: AsyncSession, actor: CurrentUser, s: Shrinkage) -> None:
@@ -135,6 +146,7 @@ async def create(
     s.meta = dict(meta)
     if value <= limit:
         await _post(session, actor, s)
+    _event(session, s, "shrinkage.created")
     audit(session, actor, "shrinkage.created", "shrinkage", s.id, branch_id=branch.id, after={
         "number": s.number, "lot_no": batch.lot_no, "qty_base": s.qty_base, "reason": s.reason, "value": str(value),
         "status": s.status, "witness": s.witness_name or None})  # fmt: skip
@@ -151,6 +163,7 @@ async def approve(session: AsyncSession, actor: CurrentUser, shrinkage_id: UUID)
     await lock_stock(session, s.branch_id, s.batch_id)
     s.decided_by, s.decided_at = actor.id, clock.now()
     await _post(session, actor, s)
+    _event(session, s, "shrinkage.approved")
     audit(session, actor, "shrinkage.approved", "shrinkage", s.id, branch_id=s.branch_id,
           after={"number": s.number, "value": str(s.value)})  # fmt: skip
     await session.commit()
@@ -162,6 +175,7 @@ async def reject(session: AsyncSession, actor: CurrentUser, shrinkage_id: UUID, 
     if s.status != "pending_approval":
         raise _state(f"This shrinkage is {s.status.replace('_', ' ')}", s.status)
     s.status, s.reject_reason, s.decided_by, s.decided_at = "rejected", clean(reason), actor.id, clock.now()
+    _event(session, s, "shrinkage.rejected")
     audit(session, actor, "shrinkage.rejected", "shrinkage", s.id, branch_id=s.branch_id,
           after={"number": s.number, "reason": s.reject_reason})  # fmt: skip
     await session.commit()

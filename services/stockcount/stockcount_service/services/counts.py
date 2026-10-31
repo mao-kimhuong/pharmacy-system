@@ -59,6 +59,14 @@ def _event(session: AsyncSession, name: str, count: Count, **extra: Any) -> None
         "scope": count.scope, "version": count.version, **extra})  # fmt: skip
 
 
+def _variance_lines(count: Count) -> list[dict[str, Any]]:
+    """Lines with a variance (reports: stock take variances)."""
+    return [{"count_line_id": str(x.id), "batch_id": str(x.batch_id), "medicine_id": str(x.medicine_id),
+             "sku": x.sku, "lot_no": x.lot_no, "expected_qty": x.expected_qty, "counted_qty": x.counted_qty,
+             "variance": x.variance, "cost_per_base": str(x.cost_per_base), "value": str(x.variance_value),
+             "is_controlled": x.is_controlled} for x in count.lines if x.variance]  # fmt: skip
+
+
 async def get_count(
     session: AsyncSession, actor: CurrentUser, count_id: UUID, *, lock: bool = False
 ) -> Count:
@@ -189,6 +197,8 @@ async def submit(session: AsyncSession, actor: CurrentUser, clients: Clients, co
     count.status, count.submitted_by, count.submitted_at = "review", actor.id, clock.now()
     count.variance_value = total
     count.version += 1
+    _event(session, "count.submitted", count, submitted_by=str(actor.id), occurred_at=clock.now().isoformat(),
+           variance_value=str(total), lines=_variance_lines(count))
     _audit(session, actor, "stock_count.submitted", count, variance_value=str(total),
            lines_with_variance=sum(1 for x in count.lines if x.variance))  # fmt: skip
     await session.commit()
@@ -243,7 +253,8 @@ async def approve(session: AsyncSession, actor: CurrentUser, clients: Clients, c
         "qty_base": x.variance, "is_controlled": x.is_controlled, "cost_per_base": str(x.cost_per_base),
         "counted_by": sorted({str(e.user_id) for e in x.entries if e.round == x.round and e.qty == x.counted_qty}),
     } for x in count.lines if x.variance]  # fmt: skip
-    _event(session, "count.approved", count, approved_by=str(actor.id), adjustments=adjustments)
+    _event(session, "count.approved", count, approved_by=str(actor.id), adjustments=adjustments,
+           occurred_at=clock.now().isoformat(), variance_value=str(count.variance_value), lines=_variance_lines(count))
     _audit(session, actor, "stock_count.approved", count, variance_value=str(count.variance_value),
            adjustments=len(adjustments))  # fmt: skip
     await session.commit()

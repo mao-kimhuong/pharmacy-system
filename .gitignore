@@ -30,3 +30,4 @@ dist/
 
 # Redis data files
 *.rdb
+openapi/

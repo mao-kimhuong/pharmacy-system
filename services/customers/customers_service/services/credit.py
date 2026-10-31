@@ -18,6 +18,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pharmacy_shared import clock
 from pharmacy_shared.errors import AppError, ErrorCode
 from pharmacy_shared.internal import InternalCaller
 from pharmacy_shared.outbox import add_event
@@ -72,7 +73,7 @@ async def charge(session: AsyncSession, caller: InternalCaller, data: dict[str, 
     after = balance + amount
     add_event(session, OutboxEvent, "credit.charged", {
         "customer_id": str(customer.id), "invoice_id": ref_id, "branch_id": str(data["branch_id"]),
-        "amount": str(amount), "balance_after": str(after)})  # fmt: skip
+        "amount": str(amount), "balance_after": str(after), "occurred_at": clock.now().isoformat()})  # fmt: skip
     audit(session, acting_user(caller), "credit.charged", "customer", customer.id, branch_id=data["branch_id"],
           after={"invoice": entry.document_no or ref_id, "amount": str(amount), "balance": str(after)})  # fmt: skip
     await session.commit()
@@ -115,7 +116,8 @@ async def reverse(session: AsyncSession, caller: InternalCaller, data: dict[str,
     after = await balance_of(session, customer.id)
     add_event(session, OutboxEvent, "credit.reversed", {
         "customer_id": str(customer.id), "invoice_id": invoice_id, "kind": data["kind"], "amount": str(amount),
-        "balance_after": str(after)})  # fmt: skip
+        "branch_id": str(data["branch_id"]) if data.get("branch_id") else None, "balance_after": str(after),
+        "occurred_at": clock.now().isoformat()})  # fmt: skip
     audit(session, acting_user(caller), f"credit.{'reversed' if is_cancel else 'credit_note'}", "customer",
           customer.id, branch_id=data.get("branch_id"),
           after={"invoice": entry.document_no or invoice_id, "amount": str(-amount), "reason": entry.reason,

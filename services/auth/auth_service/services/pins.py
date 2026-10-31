@@ -25,8 +25,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from pharmacy_shared.auth import CurrentUser
 from pharmacy_shared.errors import AppError, ErrorCode
+from pharmacy_shared.outbox import add_event
 
-from ..models import User
+from ..models import OutboxEvent, User
 from .access import load_permissions
 from .audit import write_audit
 from .passwords import verify_password
@@ -61,6 +62,9 @@ async def _check_pin(session: AsyncSession, user: User, pin: str, action: str, i
     locked = user.pin_failed_count >= MAX_FAILURES
     if locked:
         user.pin_failed_count, user.pin_locked_until = 0, now + timedelta(minutes=LOCK_MINUTES)
+        add_event(session, OutboxEvent, "user.pin_locked", {  # alerts (notification); no PIN data
+            "user_id": str(user.id), "branch_id": str(_branch(user)) if _branch(user) else None,
+            "locked_until": user.pin_locked_until.isoformat(), "occurred_at": now.isoformat()})  # fmt: skip
         write_audit(session, action="user.pin_locked", entity_type="user", entity_id=user.id, actor_id=user.id,
                     actor_role=user.role, branch_id=_branch(user), after={"action": action}, ip=ip,
                     only_changes=False)  # fmt: skip

@@ -13,6 +13,8 @@
   or paid period is locked: lines go to the next open period (made when needed).
 - Report per staff and period with drill-down to the invoice lines:
   commission.view_own sees only themselves, commission.manage the branch.
+- Every line → commission.recorded, every period change → commission_period.updated
+  (the reports service builds its commission report from them).
 """
 
 from datetime import date
@@ -27,12 +29,33 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pharmacy_shared import clock
 from pharmacy_shared.auth import CurrentUser
 from pharmacy_shared.errors import AppError, ErrorCode
+from pharmacy_shared.outbox import add_event
 
-from ..models import CommissionLine, CommissionPeriod, CommissionRule, Invoice, Product
+from ..models import CommissionLine, CommissionPeriod, CommissionRule, Invoice, OutboxEvent, Product
 from .common import audit, clean
 from .pricing import cents
 
 SCOPE_RANK = {"medicine": 3, "category": 2, "brand": 1, "all": 0}
+
+
+def line_payload(x: CommissionLine, period: CommissionPeriod) -> dict[str, Any]:
+    return {"line_id": str(x.id), "period_id": str(period.id), "month": period.month.isoformat(),
+            "branch_id": str(x.branch_id), "staff_id": str(x.staff_id), "invoice_id": str(x.invoice_id),
+            "invoice_line_id": str(x.invoice_line_id), "invoice_number": x.invoice_number, "source": x.source,
+            "medicine_id": str(x.medicine_id), "sku": x.sku, "qty_base": x.qty_base, "net_usd": str(x.net_usd),
+            "rule_id": str(x.rule_id), "amount": str(x.amount), "created_at": x.created_at.isoformat()}  # fmt: skip
+
+
+def period_payload(p: CommissionPeriod) -> dict[str, Any]:
+    return {"period_id": str(p.id), "branch_id": str(p.branch_id), "month": p.month.isoformat(), "status": p.status}
+
+
+async def _emit(session: AsyncSession, line_id: UUID | None, period: CommissionPeriod) -> int:
+    if line_id is None:
+        return 0
+    x = await session.get(CommissionLine, line_id)
+    add_event(session, OutboxEvent, "commission.recorded", line_payload(x, period))
+    return 1
 
 
 def month_of(day: date) -> date:
@@ -142,6 +165,7 @@ async def set_period(session: AsyncSession, actor: CurrentUser, branch_id: UUID,
         period.closed_by, period.closed_at = actor.id, clock.now()
     else:
         period.paid_by, period.paid_at = actor.id, clock.now()
+    add_event(session, OutboxEvent, "commission_period.updated", period_payload(period))
     audit(session, actor, f"commission_period.{status}", "commission_period", period.id, branch_id=branch_id,
           after={"month": period.month.isoformat()})  # fmt: skip
     await session.commit()
@@ -172,8 +196,8 @@ async def record_sale(session: AsyncSession, inv: Invoice) -> int:
             period_id=period.id, branch_id=inv.branch_id, staff_id=inv.created_by, invoice_id=inv.id,
             invoice_line_id=line.id, invoice_number=inv.number or "", source="sale", medicine_id=line.medicine_id,
             sku=line.sku, qty_base=line.qty_base, net_usd=line.net, rule_id=rule.id, amount=amount,
-        ).on_conflict_do_nothing())  # fmt: skip
-        made += result.rowcount or 0
+        ).on_conflict_do_nothing().returning(CommissionLine.id))  # fmt: skip
+        made += await _emit(session, result.scalar_one_or_none(), period)
     return made
 
 
@@ -202,9 +226,21 @@ async def take_back(
             invoice_line_id=s.invoice_line_id, invoice_number=s.invoice_number, source=source,
             medicine_id=s.medicine_id, sku=s.sku, qty_base=-qty, net_usd=-cents(s.net_usd * qty / s.qty_base),
             rule_id=s.rule_id, amount=amount,
-        ).on_conflict_do_nothing())  # fmt: skip
-        made += result.rowcount or 0
+        ).on_conflict_do_nothing().returning(CommissionLine.id))  # fmt: skip
+        made += await _emit(session, result.scalar_one_or_none(), period)
     return made
+
+
+async def republish(session: AsyncSession) -> int:
+    """Every period and line again (make resync): the reports service's copy."""
+    periods = {p.id: p for p in (await session.execute(select(CommissionPeriod))).scalars()}
+    for p in periods.values():
+        add_event(session, OutboxEvent, "commission_period.updated", {**period_payload(p), "resync": True})
+    lines = list((await session.execute(select(CommissionLine).order_by(CommissionLine.created_at))).scalars())
+    for x in lines:
+        add_event(session, OutboxEvent, "commission.recorded", {**line_payload(x, periods[x.period_id]), "resync": True})
+    await session.commit()
+    return len(lines)
 
 
 # ---------------------------------------------------------------- report

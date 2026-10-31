@@ -265,6 +265,12 @@ class SplitRequest(BaseModel):
     lines: list[SplitLine] = Field(min_length=1, max_length=200)
 
 
+class MergeBackRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ref_id: str = Field(min_length=1, max_length=80, description="The failed invoice")
+
+
 class AvailableItem(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

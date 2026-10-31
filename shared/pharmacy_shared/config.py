@@ -67,8 +67,10 @@ class BaseServiceSettings(BaseSettings):
     # Idempotency-Key responses are kept this long
     idempotency_ttl_seconds: int = 24 * 60 * 60
 
-    # Outbox relay
+    # Outbox relay. Rows are never deleted: /internal/v1/outbox replays them
+    # (pharmacy_shared.replay) to the services named here.
     outbox_relay_enabled: bool = True
+    outbox_replay_callers: tuple[str, ...] = ("reports",)
     outbox_poll_seconds: float = 1.0
     outbox_batch_size: int = 100
 
