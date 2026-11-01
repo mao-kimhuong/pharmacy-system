@@ -246,3 +246,11 @@ class DepositOut(BaseModel):
     status: str
     method: str
     currency: str
+
+
+class CreditStatus(BaseModel):
+    customer_id: UUID
+    is_active: bool
+    balance: Decimal
+    credit_limit: Decimal
+    available: Decimal

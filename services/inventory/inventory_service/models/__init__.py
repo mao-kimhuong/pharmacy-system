@@ -12,6 +12,7 @@ from pharmacy_shared.numbering import DocSequenceMixin
 from pharmacy_shared.outbox import OutboxMixin
 
 from .base import Base
+from .recalls import Recall, RecallLine
 from .reorder import AlertSent, OpenPOLine, ReorderLine, ReorderList, ReorderSetting
 from .s5 import SHRINKAGE_REASONS, BranchSettingsCopy, ShelfLocation, Shrinkage
 from .stock import (
@@ -83,6 +84,8 @@ class ProductPackUnit(PackUnitCopyMixin, Base):
 
 
 __all__ = [
+    "Recall",
+    "RecallLine",
     "BATCH_STATUSES",
     "MOVEMENT_TYPES",
     "ONCE_PER_SOURCE",

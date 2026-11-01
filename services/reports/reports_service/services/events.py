@@ -60,6 +60,7 @@ ROUTING_KEYS = (
     "invoice.*", "stock.changed", "stock.low", "batch.expiring", "goods.received", "supplier_payment.*",
     "customer_payment.*", "credit.*", "deposit.*", "transfer.*", "transfer_request.*", "purchase_request.*",
     "shrinkage.*", "count.*", "register.*", "commission.*", "commission_period.*", "audit.recorded",
+    "supplier_credit.*", "supplier_refund.*",
 )  # fmt: skip
 
 NOBODY = UUID(int=0)  # sales_daily key for a sale without a known staff member
@@ -145,6 +146,10 @@ async def handle_event(session: AsyncSession, event_type: str, payload: dict[str
         await goods_received(session, payload)
     elif kind == "supplier_payment":
         await supplier_payment(session, payload)
+    elif kind == "supplier_credit":
+        await supplier_credit(session, payload)
+    elif kind == "supplier_refund":
+        await supplier_refund(session, payload)
     elif kind == "customer_payment":
         await customer_payment(session, payload)
     elif event_type == "credit.charged":
@@ -454,6 +459,27 @@ async def supplier_payment(session: AsyncSession, p: dict[str, Any]) -> None:
             "payment_id": pid, "bill_id": UUID(a["receipt_id"]),
             "amount": Decimal("0") if cancelled or a.get("reversed") else D(a["amount"])},
             ["payment_id", "bill_id"])  # fmt: skip
+
+
+async def supplier_credit(session: AsyncSession, p: dict[str, Any]) -> None:
+    """A supplier return's credit: its allocations pay bills like a payment (absolute amounts)."""
+    totals: dict[UUID, Decimal] = {}
+    for a in p.get("allocations") or []:
+        totals[UUID(a["receipt_id"])] = totals.get(UUID(a["receipt_id"]), Decimal("0")) + D(a["amount"])
+    for bill_id, amount in totals.items():
+        await _upsert(session, BillAllocation, {"payment_id": UUID(p["credit_id"]), "bill_id": bill_id,
+                                                "amount": amount}, ["payment_id", "bill_id"])  # fmt: skip
+
+
+async def supplier_refund(session: AsyncSession, p: dict[str, Any]) -> None:
+    """Money a supplier paid back for a return (money in)."""
+    supplier = await session.get(Supplier, UUID(p["supplier_id"]))
+    day = date.fromisoformat(p["received_on"])
+    await _upsert(session, Payment, {
+        "id": f"supplier-refund:{p['refund_id']}", "branch_id": UUID(p["branch_id"]), "day": day,
+        "occurred_at": datetime.combine(day, datetime.min.time(), clock.TIMEZONE), "kind": "supplier_refund",
+        "method": p["method"], "currency": "USD", "amount": D(p["amount"]), "amount_usd": D(p["amount"]),
+        "reference": p.get("number") or "", "party": supplier.name if supplier else "", "staff_id": None}, ["id"])  # fmt: skip
 
 
 async def customer_payment(session: AsyncSession, p: dict[str, Any]) -> None:

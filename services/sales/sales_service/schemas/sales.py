@@ -73,6 +73,9 @@ class PaymentIn(BaseModel):
     deposit_id: UUID | None = Field(
         default=None, description="method deposit: the customer's deposit (sale order)"
     )
+    khqr_id: UUID | None = Field(
+        default=None, description="method KHQR: the paid dynamic KHQR (POST /payments/khqr), used once"
+    )
 
 
 class InvoiceCreate(BaseModel):
@@ -252,3 +255,30 @@ class ReturnOut(BaseModel):
     status: str
     created_at: datetime
     lines: list[ReturnLineOut]
+
+
+class SoldCustomer(BaseModel):
+    id: UUID
+    name: str
+    phone: str | None
+
+
+class SoldPatient(BaseModel):
+    id: UUID
+    name_en: str | None
+    name_km: str | None
+    prescription_number: str | None
+
+
+class SoldBatch(BaseModel):
+    invoice_id: UUID
+    number: str | None
+    branch_id: UUID
+    completed_at: datetime | None
+    sku: str
+    name: str
+    batch_id: UUID
+    lot_no: str
+    qty_base: int = Field(description="Sold minus returned")
+    customer: SoldCustomer | None
+    patient: SoldPatient | None = Field(default=None, description="Rx lines, only with prescriptions.view")

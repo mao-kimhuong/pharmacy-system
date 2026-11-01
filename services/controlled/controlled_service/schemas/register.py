@@ -146,3 +146,14 @@ class RegisterQuery(BaseModel):
     medicine_id: UUID | None = None
     date_from: date | None = None
     date_to: date | None = None
+
+
+class EntryDetail(BaseModel):
+    """One register entry: its neighbours in the chain and whether its hash still matches."""
+
+    entry: EntryOut
+    prev_entry_id: UUID | None
+    next_entry_id: UUID | None
+    hash_valid: bool = Field(description="sha256(prev_hash + the entry) equals the stored hash, and prev_hash is "
+                             "the previous entry's hash")  # fmt: skip
+    corrected_by: list[UUID] = Field(description="Correction entries pointing at this one")

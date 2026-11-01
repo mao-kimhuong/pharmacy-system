@@ -7,6 +7,7 @@ from pharmacy_shared.internal import InternalClient
 from ..config import get_settings
 from ..db import db
 from ..schemas.render import (
+    CustomerStatementRender,
     DispensingLabelRender,
     LabelRender,
     PurchaseOrderGroupRender,
@@ -15,12 +16,18 @@ from ..schemas.render import (
     RenderRequest,
     RxSummaryRender,
     SaleOrderRender,
+    SupplierReturnRender,
     TransferNoteRender,
 )
-from ..services import dispensing, labels, purchase_orders, receipts, sale_orders, transfer_note
+from ..services import dispensing, labels, purchase_orders, receipts, sale_orders, statements, transfer_note
 from ..services import register as register_pdf
 
 router = APIRouter(tags=["render"])
+
+
+def get_customers() -> InternalClient:
+    s = get_settings()
+    return InternalClient(s.customers_url, s.service_name, s.service_token)
 
 
 def get_controlled() -> InternalClient:
@@ -39,6 +46,7 @@ async def render(
     user: CurrentUser = Depends(current_user),
     session: AsyncSession = Depends(db.session),
     controlled: InternalClient = Depends(get_controlled),
+    customers: InternalClient = Depends(get_customers),
 ) -> Response:
     """Returns a PDF.
 
@@ -60,6 +68,11 @@ async def render(
       supplier, a delivery section per branch.
     - `type: sale_order` (sales.orders or sales.view, own branches): the quote or
       sale order, Khmer/English, with the deposit taken.
+    - `type: supplier_return` (purchasing.return, own branches): the return note,
+      values only with purchase-price permissions; `lang` km | en.
+    - `type: customer_statement` (contacts.customers): the statement from the
+      customers service; `lang` km | en.
+    - receipts and A4 invoices take `lang` (default: the branch's receipt_lang).
     PO and invoice: right after they are saved, waits up to 5 s for them, then
     DOCUMENT_NOT_READY (409).
     """
@@ -93,6 +106,16 @@ async def render(
             session, user, body.group_id, settings.document_wait_seconds
         )
         filename = f"{number}.pdf"
+    elif isinstance(body, SupplierReturnRender):
+        user.require("purchasing.return")
+        number, pdf = await statements.render_return(session, user, body.supplier_return_id, body.lang,
+                                                     settings.document_wait_seconds)  # fmt: skip
+        filename = f"{number}.pdf"
+    elif isinstance(body, CustomerStatementRender):
+        user.require("contacts.customers")
+        name, pdf = await statements.render_statement(customers, user, body.customer_id, body.date_from,
+                                                      body.date_to, body.lang)  # fmt: skip
+        filename = f"{name}.pdf"
     elif isinstance(body, SaleOrderRender):
         if not user.has_any("sales.orders", "sales.view"):
             user.require("sales.orders")
@@ -116,7 +139,7 @@ async def render(
         if not user.has_any("pos.sell", "sales.view"):
             user.require("sales.view")
         number, pdf = await receipts.render(
-            session, user, body.invoice_id, body.type, settings.document_wait_seconds
+            session, user, body.invoice_id, body.type, settings.document_wait_seconds, body.lang
         )
         filename = f"{number}{'-receipt' if body.type == 'receipt_80mm' else ''}.pdf"
     return Response(

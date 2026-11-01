@@ -255,3 +255,31 @@ async def test_active_ingredients_default_from_generic_and_drug_classes_travel_i
     )
     assert r.json()["drug_classes"] == ["penicillins"]
     assert (await audits())[-1]["after"] == {"drug_classes": "penicillins"}
+
+
+async def test_price_history_live_and_from_the_event_history(client) -> None:
+    from sqlalchemy import delete
+
+    from catalog_service.db import db
+    from catalog_service.models import PriceHistory
+    from catalog_service.services.prices import backfill
+
+    m = await create_medicine(client)
+    box = next(p for p in m["pack_units"] if p["name"] == "box")
+    r = await client.patch(f"{PREFIX}/pack-units/{box['id']}", json={"sell_price": "9.00"}, headers=OWNER)
+    assert r.status_code == 200, r.text
+    hist = (await client.get(f"{PREFIX}/medicines/{m['id']}/price-history", params={"pack_unit_id": box["id"]},
+                             headers=OWNER)).json()  # fmt: skip
+    assert [(h["old_price"], h["new_price"], h["source"]) for h in hist] == [
+        (None, box["sell_price"], "change"), (box["sell_price"], "9.00", "change")]
+    assert hist[1]["changed_by"] == OWNER["X-User-Id"]
+    async with db.sessionmaker() as s:  # as before S8b: no history yet
+        await s.execute(delete(PriceHistory))
+        await s.commit()
+    async with db.sessionmaker() as s:
+        first = await backfill(s)
+    async with db.sessionmaker() as s:
+        assert await backfill(s) == first  # safe to repeat
+    hist = (await client.get(f"{PREFIX}/medicines/{m['id']}/price-history", params={"pack_unit_id": box["id"]},
+                             headers=OWNER)).json()  # fmt: skip
+    assert [(h["new_price"], h["source"]) for h in hist] == [(box["sell_price"], "backfill"), ("9.00", "backfill")]

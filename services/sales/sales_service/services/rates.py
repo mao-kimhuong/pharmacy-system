@@ -5,12 +5,14 @@
   when (and a User Log entry old -> new). Each invoice stores the rate it used.
 """
 
+from datetime import date, datetime, time, timedelta
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pharmacy_shared import clock
 from pharmacy_shared.auth import CurrentUser
 from pharmacy_shared.outbox import add_event
 
@@ -27,13 +29,16 @@ async def current(session: AsyncSession, branch_id: UUID) -> ExchangeRate | None
     ).scalar_one_or_none()  # fmt: skip
 
 
-async def history(
-    session: AsyncSession, actor: CurrentUser, branch_id: UUID, limit: int = 50
-) -> list[ExchangeRate]:
+async def history(session: AsyncSession, actor: CurrentUser, branch_id: UUID, limit: int = 50, offset: int = 0,
+                  date_from: date | None = None, date_to: date | None = None) -> list[ExchangeRate]:  # fmt: skip
+    """Newest first; days in Asia/Phnom_Penh."""
     actor.require_branch(branch_id)
-    return list((await session.execute(
-        select(ExchangeRate).where(ExchangeRate.branch_id == branch_id)
-        .order_by(ExchangeRate.set_at.desc()).limit(limit))).scalars())  # fmt: skip
+    q = select(ExchangeRate).where(ExchangeRate.branch_id == branch_id)
+    if date_from:
+        q = q.where(ExchangeRate.set_at >= datetime.combine(date_from, time.min, clock.TIMEZONE))
+    if date_to:
+        q = q.where(ExchangeRate.set_at < datetime.combine(date_to + timedelta(days=1), time.min, clock.TIMEZONE))
+    return list((await session.execute(q.order_by(ExchangeRate.set_at.desc()).limit(limit).offset(offset))).scalars())
 
 
 async def set_rate(

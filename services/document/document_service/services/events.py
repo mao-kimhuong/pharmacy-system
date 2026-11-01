@@ -8,6 +8,7 @@
   (the pharmacist on the dispensing label).
 - transfer.* → copy of transfers for the transfer note (QR code of the number).
 - sale_order.* → copy of quotes / sale orders for their PDF.
+- supplier_return.* → copy of supplier returns for the return note (S8b).
   Each event carries the whole product with a `version`; an event older than
   the stored copy (delivered out of order) is ignored.
 """
@@ -21,7 +22,7 @@ from pharmacy_shared import copies
 from pharmacy_shared.copies import MEDICINE_EVENTS
 
 from ..models import Product, ProductPackUnit
-from . import dispensing, purchase_orders, receipts, sale_orders, transfer_note
+from . import dispensing, purchase_orders, receipts, sale_orders, statements, transfer_note
 
 ROUTING_KEYS = (
     "medicine.*",
@@ -32,6 +33,7 @@ ROUTING_KEYS = (
     "user.*",
     "transfer.*",
     "sale_order.*",
+    "supplier_return.*",
 )
 
 
@@ -52,6 +54,8 @@ async def handle_event(
         await dispensing.upsert_staff(session, payload)
     elif event_type in transfer_note.TRANSFER_EVENTS:
         await transfer_note.upsert_transfer(session, payload)
+    elif event_type in statements.RETURN_EVENTS:
+        await statements.upsert_return(session, payload)
     elif event_type in sale_orders.ORDER_EVENTS:
         await sale_orders.upsert_order(session, payload)
 

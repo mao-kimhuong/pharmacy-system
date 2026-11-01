@@ -26,6 +26,7 @@ from .extras import (
     SaleTemplateLine,
     SuspendedCart,
 )  # fmt: skip
+from .khqr import KhqrPayment
 from .sales import (
     INVOICE_STATUSES,
     PAY_METHODS,
@@ -75,6 +76,8 @@ class BranchSettingsCopy(Base):
         default=lambda: {"cashier": 5, "pharmacist": 10, "branch_manager": 20},
         server_default='{"cashier": 5, "pharmacist": 10, "branch_manager": 20}',
     )
+    receipt_lang: Mapped[str] = mapped_column(String(2), default="km", server_default="km")
+    khqr: Mapped[dict | None] = mapped_column(JSON, default=None)
 
 
 class KnownCustomer(Base):
@@ -106,6 +109,7 @@ class ProductPackUnit(PackUnitCopyMixin, Base):
 
 
 __all__ = [
+    "KhqrPayment",
     "Base", "BranchSettingsCopy", "DocSequence", "ExchangeRate", "INVOICE_STATUSES", "Invoice", "InvoiceLine",
     "InvoiceLineBatch", "InvoicePayment", "KnownBranch", "KnownCustomer", "OutboxEvent", "PAY_METHODS",
     "ProcessedMessage", "Product", "ProductPackUnit", "SaleReturn", "SaleReturnLine", "ORDER_STATUSES",

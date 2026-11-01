@@ -212,3 +212,22 @@ async def test_internal_daily_summary_needs_the_service_token(client) -> None:
     assert out["today"]["sales"] == "1.00" and out["today"]["gross_profit"] == "0.60"
     assert {b["code"] for b in out["branches"]} == {"PP1", "PP2"} and "top_debtors" not in out
     assert (await client.get("/internal/v1/outbox", headers=INTERNAL)).status_code == 403  # not for notification
+
+
+async def test_supplier_credit_and_refund(client) -> None:
+    supplier = uuid4()
+    await event("supplier.created", {"supplier_id": str(supplier), "code": "S", "name": "DKSH", "payment_terms_days": 30})
+    bill = uuid4()
+    await event("goods.received", {"receipt_id": str(bill), "number": "G1", "branch_id": str(PP1),
+                                   "supplier_id": str(supplier), "received_at": "2026-10-01T03:00:00+00:00",
+                                   "total": "100.00", "due_on": "2026-10-31", "lines": []})  # fmt: skip
+    credit = {"credit_id": str(uuid4()), "supplier_id": str(supplier), "branch_id": str(PP1), "amount": "30.00",
+              "remaining": "0.00", "status": "used", "allocations": [{"receipt_id": str(bill), "amount": "30.00"}]}  # fmt: skip
+    await event("supplier_credit.updated", credit)
+    await event("supplier_credit.updated", credit)  # again: still 30
+    rows = (await get(client, "payables/aging", MANAGER)).json()["rows"]
+    assert rows[0]["total"] == "70.00"
+    await event("supplier_refund.created", {"refund_id": str(uuid4()), "number": "PP1-SRF-1", "branch_id": str(PP1),
+                                            "supplier_id": str(supplier), "method": "cash", "amount": "12.00",
+                                            "received_on": "2026-10-27"})  # fmt: skip
+    assert (await get(client, "payments", date_from="2026-10-27")).json()["summary"] == {"cash": "12.00"}

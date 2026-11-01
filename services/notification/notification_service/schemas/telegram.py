@@ -50,3 +50,7 @@ class SettingsIn(BaseModel):
 
 class SettingsOut(SettingsIn):
     model_config = ConfigDict(from_attributes=True, extra="ignore")
+
+
+class Queued(BaseModel):
+    queued: int = Field(description="New messages queued (0 when the summary was already made)")

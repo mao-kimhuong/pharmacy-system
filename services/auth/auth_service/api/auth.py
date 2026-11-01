@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Header, Request, Response
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +12,8 @@ from ..db import db
 from ..models import User
 from ..permissions import menu_for
 from ..schemas.auth import (
+    BackupCodesOut,
+    BackupCodesRequest,
     ChangePasswordRequest,
     Login2faRequest,
     LoginRequest,
@@ -17,15 +21,19 @@ from ..schemas.auth import (
     MenuItemOut,
     MeResponse,
     RefreshRequest,
+    SessionOut,
     SetPinRequest,
     TokenResponse,
     TwoFactorEnableRequest,
     TwoFactorSetupResponse,
 )
 from ..services import auth as auth_service
-from ..services import two_factor
+from ..services import backup_codes, two_factor
+from ..services import my_sessions as sessions_service
 from ..services import users as users_service
 from ..services.access import load_permissions, mfa_setup_required
+from ..services.audit import write_audit
+from ..services.passwords import verify_password
 from ..services.tokens import AccessClaims, decode_access_token
 
 router = APIRouter(tags=["auth"])
@@ -93,9 +101,9 @@ async def login_2fa(
     redis: Redis = Depends(get_redis),
     settings: Settings = Depends(get_settings),
 ) -> TokenResponse:
-    """Step 2: the 6-digit code from the authenticator app."""
+    """Step 2: the 6-digit code from the authenticator app, or (lost phone) one backup code."""
     tokens = await auth_service.login_2fa(
-        session, redis, settings, body.mfa_token, body.code, client_info(request)
+        session, redis, settings, body.mfa_token, body.code, client_info(request), body.backup_code
     )
     return token_response(tokens, settings)
 
@@ -135,7 +143,10 @@ async def me(
     account = await session.get(User, user.id)
     if account is None or not account.is_active:
         raise AppError(ErrorCode.NOT_AUTHENTICATED, "Not authenticated", status_code=401)
-    return me_response(account, await load_permissions(session, account.role), settings)
+    out = me_response(account, await load_permissions(session, account.role), settings)
+    if account.totp_enabled:
+        out.backup_codes_left = await backup_codes.left(session, account.id)
+    return out
 
 
 @router.post("/me/password", status_code=204)
@@ -185,9 +196,50 @@ async def enable_2fa(
     redis: Redis = Depends(get_redis),
     settings: Settings = Depends(get_settings),
 ) -> TokenResponse:
-    """Confirm with the first 6-digit code. Returns new tokens that open everything."""
+    """Confirm with the first 6-digit code. Returns new tokens that open everything, and
+    10 backup codes (shown only now)."""
     tokens = await two_factor.enable(session, redis, settings, claims, body.code, client_info(request))
-    return token_response(tokens, settings)
+    codes = await backup_codes.regenerate(session, tokens.user)
+    await session.commit()
+    out = token_response(tokens, settings)
+    out.backup_codes = codes
+    return out
+
+
+@router.post("/2fa/backup-codes", response_model=BackupCodesOut, tags=["2fa"])
+async def new_backup_codes(
+    body: BackupCodesRequest, request: Request, claims: AccessClaims = Depends(bearer_claims),
+    session: AsyncSession = Depends(db.session),
+) -> BackupCodesOut:  # fmt: skip
+    """A new set of 10 backup codes (your password; the old set stops working). Shown only now."""
+    user = await session.get(User, claims.user_id, with_for_update=True)
+    if user is None or not user.is_active or not verify_password(user.password_hash, body.password):
+        raise AppError(ErrorCode.INVALID_CREDENTIALS, "Wrong password", status_code=401)
+    if not user.totp_enabled:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "Turn two-factor login on first", status_code=409)
+    codes = await backup_codes.regenerate(session, user)
+    write_audit(session, action="user.backup_codes_regenerated", entity_type="user", entity_id=user.id,
+                actor_id=user.id, actor_role=user.role, branch_id=user.branch_ids[0] if user.branch_ids else None,
+                after={"codes": len(codes)}, ip=client_info(request).ip, only_changes=False)  # fmt: skip
+    await session.commit()
+    return BackupCodesOut(codes=codes)
+
+
+@router.get("/me/sessions", response_model=list[SessionOut])
+async def my_sessions(claims: AccessClaims = Depends(bearer_claims), session: AsyncSession = Depends(db.session)) -> list:
+    """Where you are logged in (one row per login), newest first; `current` = this one."""
+    return await sessions_service.list_sessions(session, claims)
+
+
+@router.post("/me/sessions/{session_id}/revoke", status_code=204)
+async def revoke_session(
+    session_id: UUID, request: Request, claims: AccessClaims = Depends(bearer_claims),
+    session: AsyncSession = Depends(db.session), redis: Redis = Depends(get_redis),
+    settings: Settings = Depends(get_settings),
+) -> Response:  # fmt: skip
+    """End one of your sessions at once (revoking the current one logs you out)."""
+    await sessions_service.revoke(session, redis, settings, claims, session_id, client_info(request).ip)
+    return Response(status_code=204)
 
 
 @router.get("/verify", include_in_schema=False)

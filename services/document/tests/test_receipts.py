@@ -81,11 +81,11 @@ async def test_80mm_receipt_shows_usd_khr_payments_and_change(client) -> None:
 async def test_a4_invoice_and_cancelled_mark(client) -> None:
     inv = invoice_event(version=2, status="cancelled")
     await store(inv)
-    r = await client.post(f"{PREFIX}/render", json=body(inv, "invoice_a4"), headers=CASHIER)
+    r = await client.post(f"{PREFIX}/render", json={**body(inv, "invoice_a4"), "lang": "en"}, headers=CASHIER)
     assert r.status_code == 200
     text = PdfReader(io.BytesIO(r.content)).pages[0].extract_text()
     assert "PP1-INV-2026-000123" in text and "4.15" in text and "CANCELLED" in text
-    r = await client.post(f"{PREFIX}/render", json=body(inv), headers=CASHIER)
+    r = await client.post(f"{PREFIX}/render", json={**body(inv), "lang": "en"}, headers=CASHIER)
     assert "CANCELLED" in PdfReader(io.BytesIO(r.content)).pages[0].extract_text()
 
 

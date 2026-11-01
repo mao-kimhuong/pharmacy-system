@@ -12,6 +12,14 @@ from .base import Base
 from .orders import PO_STATUSES, POLine, PurchaseOrder, Receipt, ReceiptLine
 from .payments import PAYMENT_METHODS, PaymentAllocation, SupplierPayment
 from .requests import POGroup, PurchaseRequest, PurchaseRequestLine
+from .returns import (
+    RETURN_REASONS,
+    CreditAllocation,
+    SupplierCredit,
+    SupplierRefund,
+    SupplierReturn,
+    SupplierReturnLine,
+)
 from .suppliers import Supplier, SupplierGroup
 
 
@@ -49,6 +57,12 @@ class ProductPackUnit(PackUnitCopyMixin, Base):
 
 __all__ = [
     "Base",
+    "CreditAllocation",
+    "RETURN_REASONS",
+    "SupplierCredit",
+    "SupplierRefund",
+    "SupplierReturn",
+    "SupplierReturnLine",
     "DocSequence",
     "KnownBranch",
     "OutboxEvent",

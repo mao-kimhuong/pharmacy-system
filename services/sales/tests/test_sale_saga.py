@@ -190,3 +190,16 @@ async def test_a_credit_sales_debt_gets_the_invoice_number(client, customers_cli
         await customers_client.get(f"/api/customers/v1/customers/{customer['id']}/unpaid", headers=OWNER)
     ).json()
     assert [(d["invoice_no"], d["due"]) for d in unpaid] == [(inv["number"], "8.00")]
+
+
+async def test_exchange_rate_history_pages_and_dates(client) -> None:
+    from .conftest import MANAGER, PP1, PREFIX, set_rate
+
+    for rate in (4000, 4050, 4100):
+        await set_rate(client, rate)
+    url = f"{PREFIX}/exchange-rates/{PP1}"
+    rows = (await client.get(url, headers=MANAGER)).json()
+    assert [(r["khr_per_usd"], r["previous"]) for r in rows] == [(4100, 4050), (4050, 4000), (4000, None)]
+    page2 = (await client.get(url, params={"size": 1, "page": 2}, headers=MANAGER)).json()
+    assert [r["khr_per_usd"] for r in page2] == [4050]
+    assert (await client.get(url, params={"from": "2099-01-01"}, headers=MANAGER)).json() == []

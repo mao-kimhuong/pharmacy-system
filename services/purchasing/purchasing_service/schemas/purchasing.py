@@ -290,7 +290,7 @@ class BalanceOut(BaseModel):
 
 class StatementEntry(BaseModel):
     on: date
-    kind: Literal["receipt", "payment"]
+    kind: Literal["receipt", "payment", "return", "refund"]
     number: str
     branch_id: UUID
     debit: Decimal
@@ -412,3 +412,71 @@ class PRInternal(BaseModel):
     source_ref: str = Field(min_length=1, max_length=80)
     note: str = Field(default="", max_length=500)
     lines: list[dict] = Field(min_length=1, max_length=500)
+
+
+# ---------------------------------------------------------------- supplier returns (S8b)
+
+
+class ReturnLineIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    batch_id: UUID = Field(description="The inventory batch (lot) going back")
+    medicine_id: UUID
+    qty_base: int = Field(ge=1, le=10_000_000)
+    receipt_line_id: UUID | None = None
+
+
+class SupplierReturnIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    branch_id: UUID
+    supplier_id: UUID
+    reason: Literal["damaged", "expired", "recalled", "wrong_item", "overstock"]
+    note: str = Field(default="", max_length=500)
+    lines: list[ReturnLineIn] = Field(min_length=1, max_length=200)
+
+
+class SupplierReturnInternal(SupplierReturnIn):
+    source_ref: str = Field(max_length=80, description="Once per source, e.g. recall_line:<id>")
+
+
+class SubmitReturnIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    settle: Literal["credit", "refund"] = Field(
+        default="credit", description="credit: on the supplier's account (default); refund: money back (owner/manager)")
+    refund_method: Literal["cash", "bank", "ABA", "KHQR"] | None = None
+    refund_reference: str = Field(default="", max_length=120)
+    pin_token: str | None = Field(default=None, max_length=200, description="Controlled lines: your PIN")
+    witness_token: str | None = Field(default=None, max_length=200, description="Controlled lines: a witness")
+
+
+class ReturnLineOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    line_no: int
+    batch_id: UUID
+    medicine_id: UUID
+    qty_base: int
+    receipt_line_id: UUID | None
+    lot_no: str
+    expiry_date: date | None
+    cost_per_base: Decimal | None = Field(default=None, description="Only with purchasing / cost permissions")
+    line_total: Decimal | None = Field(default=None, description="Only with purchasing / cost permissions")
+
+
+class SupplierReturnOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    number: str
+    branch_id: UUID
+    supplier_id: UUID
+    reason: str
+    note: str
+    status: str
+    total: Decimal | None = Field(default=None, description="Only with purchasing / cost permissions")
+    submitted_at: datetime | None
+    cancel_reason: str | None
+    created_at: datetime
+    lines: list[ReturnLineOut]

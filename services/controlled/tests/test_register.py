@@ -2,7 +2,7 @@
 tamper detection, append-only database, adjust/destroy with PIN + witness,
 corrections, reconciliation and discrepancies."""
 
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import select, text
@@ -241,3 +241,43 @@ async def test_open_balances_for_stock_before_the_register(client) -> None:
         assert await open_balances(s, clients()) == 0
     entries = (await register(client, diaz))["entries"]
     assert [(e["entry_type"], e["balance_after"]) for e in entries] == [("opening", 40)]
+
+
+async def test_a_controlled_return_to_the_supplier_is_a_register_entry(client) -> None:
+    from inventory_service.services.recalls import supplier_return_movement
+    from pharmacy_shared.internal import InternalCaller
+
+    from .conftest import SUPPLIER, batch_id, inventory_db
+
+    diaz = await add_controlled()
+    await receive(diaz, 100)
+    batch = await batch_id(diaz)
+    data = {"return_id": uuid4(), "number": "PP1-SRN-2026-000001", "branch_id": PP1, "supplier_id": SUPPLIER,
+            "lines": [{"line_no": 1, "batch_id": UUID(batch), "medicine_id": UUID(diaz), "qty_base": 30,
+                       "meta": {"witness_name": "Dara", "pin_confirmed": True}}]}  # fmt: skip
+    caller = InternalCaller(service="purchasing", user_id=None, role=None, branch_id=PP1)
+    for _ in range(2):  # a retried call books nothing twice
+        async with inventory_db.sessionmaker() as s:
+            out = await supplier_return_movement(s, caller, data)
+    assert out["lines"][0]["lot_no"] == "D1" and str(out["lines"][0]["cost_per_base"]) == "0.0500"
+    await relay()
+    reg = await register(client, diaz)
+    assert [(e["entry_type"], e["qty_base"], e["balance_after"]) for e in reg["entries"]] == [
+        ("receive", 100, 100), ("supplier_return", -30, 70)] and reg["chain_valid"]
+
+
+async def test_one_entry_with_its_chain_neighbours_and_hash_check(client) -> None:
+    diaz = await add_controlled()
+    await receive(diaz, 100)
+    await receive(diaz, 20, lot="D2")
+    await relay()
+    first, second = [e["id"] for e in (await register(client, diaz))["entries"]]
+    one = (await client.get(f"{PREFIX}/entries/{first}", headers=PHARMACIST)).json()
+    assert (one["prev_entry_id"], one["next_entry_id"], one["hash_valid"]) == (None, second, True)
+    assert one["entry"]["entry_type"] == "receive" and one["corrected_by"] == []
+    other = user("pharmacist", "controlled.view", (PP2,))
+    assert (await client.get(f"{PREFIX}/entries/{first}", headers=other)).status_code == 404
+    async with db.engine.begin() as conn:
+        await conn.execute(text("SET LOCAL session_replication_role = replica"))
+        await conn.execute(text("UPDATE register_entries SET qty_base = 90 WHERE lot_no = 'D1'"))
+    assert (await client.get(f"{PREFIX}/entries/{first}", headers=PHARMACIST)).json()["hash_valid"] is False

@@ -115,10 +115,31 @@ async def applicable(session: AsyncSession, branch_id: UUID, customer: KnownCust
     return out
 
 
-async def price(
-    session: AsyncSession, branch_id: UUID, customer: KnownCustomer | None, lines: list[PriceLine]
-) -> Result:
-    return best_deal(await applicable(session, branch_id, customer), lines)
+def eligible(d: dict[str, Any], branch_id: UUID, customer: KnownCustomer | None) -> bool:
+    """Window, days, branch and customer group (not the use limits)."""
+    if not _in_window(d, clock.now()):
+        return False
+    if d.get("branch_ids") and str(branch_id) not in d["branch_ids"]:
+        return False
+    return not (d.get("customer_group_ids") and not (customer and customer.group_id and str(customer.group_id)
+                                                     in d["customer_group_ids"]))  # fmt: skip
+
+
+def draft_promo(d: dict[str, Any]) -> Promo:
+    """A promotion being written in the catalog (the promotion preview), never saved here."""
+    return _promo(PromotionCopy(id=UUID(str(d["promotion_id"])), code=d["code"], version=0, is_active=True, data=d))
+
+
+async def price(session: AsyncSession, branch_id: UUID, customer: KnownCustomer | None, lines: list[PriceLine],
+                draft: dict[str, Any] | None = None) -> Result:  # fmt: skip
+    """Best deal over the active promotions; a draft (promotion preview) is added to them,
+    replacing the stored version of the same promotion."""
+    promos = await applicable(session, branch_id, customer)
+    if draft is not None:
+        promos = [p for p in promos if str(p.id) != str(draft["promotion_id"])]
+        if eligible(draft, branch_id, customer):
+            promos.append(draft_promo(draft))
+    return best_deal(promos, lines)
 
 
 async def hold(

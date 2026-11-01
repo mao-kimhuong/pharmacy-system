@@ -64,7 +64,7 @@ async def clean(monkeypatch) -> AsyncIterator[None]:
             " product_pack_units, products, known_branches, known_suppliers, processed_messages, outbox, shrinkages,"
             " shelf_locations, branch_settings, doc_sequences, transfer_discrepancies, transfer_picks, transfer_lines,"
             " transfers, transfer_request_lines, transfer_requests, reorder_lines, reorder_lists, reorder_settings,"
-            " open_po_lines, alerts_sent CASCADE"
+            " open_po_lines, alerts_sent, recall_lines, recalls CASCADE"
         ))  # fmt: skip
     redis = Redis.from_url(TEST_REDIS_URL)
     await redis.flushdb()

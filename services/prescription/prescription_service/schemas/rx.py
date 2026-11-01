@@ -332,6 +332,15 @@ class HoldRequest(BaseModel):
     lines: list[HoldLine] = Field(min_length=1, max_length=100)
 
 
+class CheckRequest(BaseModel):
+    """The cart preview: the same checks as check-and-hold, nothing held."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    branch_id: UUID
+    lines: list[HoldLine] = Field(min_length=1, max_length=100)
+
+
 class Warning(BaseModel):
     kind: Literal["allergy", "duplicate_therapy"]
     value: str
@@ -357,7 +366,7 @@ class HeldLine(BaseModel):
 
 
 class HoldOut(BaseModel):
-    invoice_id: UUID
+    invoice_id: UUID | None = Field(description="None for rx/check (nothing held)")
     lines: list[HeldLine]
 
 

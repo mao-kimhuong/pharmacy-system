@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from .inventory import router as inventory_router
+from .recalls import router as recalls_router
 from .reorder import router as reorder_router
 from .s5 import router as s5_router
 from .transfers import router as transfers_router
@@ -12,3 +13,4 @@ router.include_router(inventory_router)
 router.include_router(s5_router)
 router.include_router(transfers_router)
 router.include_router(reorder_router)
+router.include_router(recalls_router)

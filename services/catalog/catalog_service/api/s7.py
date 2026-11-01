@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pharmacy_shared.auth import CurrentUser, requires, requires_any
+from pharmacy_shared.internal import InternalClient
 
+from ..config import get_settings
 from ..db import db
 from ..models import Medicine, Promotion
 from ..schemas.catalog import (
@@ -13,6 +15,8 @@ from ..schemas.catalog import (
     MedicineOut,
     PromotionCreate,
     PromotionOut,
+    PromotionPreviewIn,
+    PromotionPreviewOut,
     PromotionUpdate,
 )
 from ..services import hampers, promotions
@@ -56,6 +60,23 @@ async def create_promotion(
     body: PromotionCreate, user: CurrentUser = Depends(promo_perm), session: AsyncSession = Depends(db.session),
 ) -> Promotion:  # fmt: skip
     return await promotions.create(session, user, body.model_dump(mode="json") | _times(body))
+
+
+def get_sales() -> InternalClient:
+    s = get_settings()
+    return InternalClient(s.sales_url, s.service_name, s.service_token)
+
+
+@router.post("/promotions/preview", tags=["promotions"], response_model=PromotionPreviewOut)
+async def preview_promotion(
+    body: PromotionPreviewIn, user: CurrentUser = Depends(promo_perm), session: AsyncSession = Depends(db.session),
+    sales: InternalClient = Depends(get_sales),
+) -> dict:  # fmt: skip
+    """A draft promotion on a sample cart, priced by the sales service like the till
+    (with the active promotions): the cart preview plus `conflicts` (the promotions
+    competing on each line and which one wins). Nothing is saved."""
+    return await promotions.preview(session, user, sales, body.promotion.model_dump(mode="json") | _times(body.promotion),
+                                    body.cart.model_dump(mode="json"))  # fmt: skip
 
 
 def _times(body: PromotionCreate | PromotionUpdate) -> dict:

@@ -1,7 +1,8 @@
 """Dispensing against prescriptions, for the sale saga (over /internal/v1) and
 the invoice events. Rules:
 
-check-and-hold (one call per sale, idempotent per invoice):
+check-and-hold (one call per sale, idempotent per invoice); rx/check (the cart
+preview) runs the same code with hold=False: no row locks, nothing held or written:
 - The Rx must be active or partly dispensed; past valid_until → RX_EXPIRED
   (hard stop, even before the daily job ran); draft / cancelled / fully
   dispensed → PRESCRIPTION_STATE.
@@ -39,10 +40,10 @@ from . import patients, prescriptions, safety
 log = logging.getLogger(__name__)
 
 
-def _line_out(rx: Prescription, item: RxItem, hold: RxHold, warnings: list[dict]) -> dict[str, Any]:
+def _line_out(rx: Prescription, item: RxItem, line_no: int, warnings: list[dict]) -> dict[str, Any]:
     p = rx.patient
     return {
-        "line_no": hold.line_no, "rx_item_id": item.id, "prescription_id": rx.id, "prescription_number": rx.number,
+        "line_no": line_no, "rx_item_id": item.id, "prescription_id": rx.id, "prescription_number": rx.number,
         "patient_id": p.id, "patient_name_en": p.name_en, "patient_name_km": p.name_km,
         "doctor_name": rx.doctor.name, "dosage": item.dosage, "frequency": item.frequency,
         "duration_days": item.duration_days, "remaining_after": item.remaining_base, "warnings": warnings,
@@ -59,25 +60,28 @@ async def _warnings(session: AsyncSession, rx: Prescription, item: RxItem) -> li
 async def check_and_hold(
     session: AsyncSession, caller: InternalCaller, data: dict[str, Any]
 ) -> dict[str, Any]:
-    invoice_id = data["invoice_id"]
-    existing = list((await session.execute(select(RxHold).where(RxHold.invoice_id == invoice_id))).scalars())
+    hold = data.get("hold", True)
+    invoice_id = data.get("invoice_id")
+    existing = list((await session.execute(select(RxHold).where(RxHold.invoice_id == invoice_id))).scalars()) if hold else []
     if existing:  # the same sale asked again: same answer
         out = []
         for hold in existing:
             rx = await session.get(Prescription, hold.item.prescription_id)
-            out.append(_line_out(rx, hold.item, hold, await _warnings(session, rx, hold.item)))
+            out.append(_line_out(rx, hold.item, hold.line_no, await _warnings(session, rx, hold.item)))
         return {"invoice_id": invoice_id, "lines": sorted(out, key=lambda x: x["line_no"])}
 
     lines = sorted(data["lines"], key=lambda x: str(x["rx_item_id"]))
     items = {i.id: i for i in (await session.execute(
         select(RxItem).where(RxItem.id.in_([x["rx_item_id"] for x in lines])))).scalars()}  # fmt: skip
     rx_ids = sorted({i.prescription_id for i in items.values()}, key=str)
-    rxs = {r.id: r for r in (await session.execute(
-        select(Prescription).where(Prescription.id.in_(rx_ids)).order_by(Prescription.id)
-        .with_for_update(of=Prescription).execution_options(populate_existing=True))).scalars()}  # fmt: skip
-    await session.execute(
-        select(RxItem.id).where(RxItem.id.in_(list(items))).order_by(RxItem.id).with_for_update()
-    )
+    query = select(Prescription).where(Prescription.id.in_(rx_ids)).order_by(Prescription.id)
+    if hold:
+        query = query.with_for_update(of=Prescription).execution_options(populate_existing=True)
+    rxs = {r.id: r for r in (await session.execute(query)).scalars()}
+    if hold:
+        await session.execute(
+            select(RxItem.id).where(RxItem.id.in_(list(items))).order_by(RxItem.id).with_for_update()
+        )
     for item in items.values():
         await session.refresh(item, attribute_names=["dispensed_base", "held_base"])
 
@@ -130,6 +134,10 @@ async def check_and_hold(
         raise AppError(code, f"{first['en']} · {first['km']}", status_code=409, details={
             "lines": [{"line_no": n, "warnings": w} for _, n, w in blocking]})  # fmt: skip
 
+    if not hold:  # the preview: what the sale would get, nothing held
+        lines = sorted((_line_out(rx, item, x["line_no"], w) for rx, item, x, w in out), key=lambda r: r["line_no"])
+        await session.rollback()
+        return {"invoice_id": None, "lines": lines}
     result = []
     for rx, item, x, warnings in out:
         item.held_base += x["qty_base"]
@@ -137,7 +145,7 @@ async def check_and_hold(
                       qty_base=x["qty_base"], dispensed_base=0, status="held", version_seen=0, item=item)  # fmt: skip
         session.add(hold)
         await patients.link_branch(session, rx.patient_id, data["branch_id"])
-        result.append(_line_out(rx, item, hold, warnings))
+        result.append(_line_out(rx, item, hold.line_no, warnings))
     await session.commit()
     return {"invoice_id": invoice_id, "lines": sorted(result, key=lambda r: r["line_no"])}
 

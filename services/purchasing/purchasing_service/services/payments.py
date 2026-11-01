@@ -25,7 +25,15 @@ from pharmacy_shared.errors import AppError, ErrorCode
 from pharmacy_shared.numbering import next_number
 from pharmacy_shared.outbox import add_event
 
-from ..models import DocSequence, OutboxEvent, PaymentAllocation, Receipt, SupplierPayment
+from ..models import (
+    DocSequence,
+    OutboxEvent,
+    PaymentAllocation,
+    Receipt,
+    SupplierCredit,
+    SupplierPayment,
+    SupplierRefund,
+)
 from .common import audit, branch_for, clean, commit, not_found
 from .suppliers import get_supplier
 
@@ -207,7 +215,7 @@ async def balance(session: AsyncSession, actor: CurrentUser, supplier_id: UUID) 
 @dataclass
 class Entry:
     on: date
-    kind: str  # receipt / payment
+    kind: str  # receipt / payment / return / refund
     number: str
     branch_id: UUID
     debit: Decimal
@@ -220,8 +228,9 @@ async def statement(
     session: AsyncSession, actor: CurrentUser, supplier_id: UUID, branch_id: UUID | None,
     date_from: date | None, date_to: date | None,
 ) -> dict[str, Any]:  # fmt: skip
-    """Bills (debit) and posted payments (credit) in date order with a running
-    balance; entries before `date_from` make the opening balance."""
+    """Bills (debit), posted payments and returns (credit), refunds received (debit)
+    in date order with a running balance; entries before `date_from` make the
+    opening balance."""
     supplier = await get_supplier(session, supplier_id)
     rq = _branch_scope(select(Receipt).where(Receipt.supplier_id == supplier.id), actor, Receipt)
     pq = _branch_scope(
@@ -232,6 +241,10 @@ async def statement(
         actor.require_branch(branch_id)
         rq = rq.where(Receipt.branch_id == branch_id)
         pq = pq.where(SupplierPayment.branch_id == branch_id)
+    cq = _branch_scope(select(SupplierCredit).where(SupplierCredit.supplier_id == supplier.id), actor, SupplierCredit)
+    fq = _branch_scope(select(SupplierRefund).where(SupplierRefund.supplier_id == supplier.id), actor, SupplierRefund)
+    if branch_id:
+        cq, fq = cq.where(SupplierCredit.branch_id == branch_id), fq.where(SupplierRefund.branch_id == branch_id)
     entries = [
         Entry(r.received_at.astimezone(clock.TIMEZONE).date(), "receipt", r.number, r.branch_id,
               r.total, ZERO, r.due_on)
@@ -239,6 +252,12 @@ async def statement(
     ] + [
         Entry(p.paid_on, "payment", p.number, p.branch_id, ZERO, p.amount)
         for p in (await session.execute(pq)).scalars()
+    ] + [  # S8b: a return is a credit; a refund received pays that credit back
+        Entry(c.created_at.astimezone(clock.TIMEZONE).date(), "return", c.number, c.branch_id, ZERO, c.amount)
+        for c in (await session.execute(cq)).scalars()
+    ] + [
+        Entry(f.received_on, "refund", f.number, f.branch_id, f.amount, ZERO)
+        for f in (await session.execute(fq)).scalars()
     ]  # fmt: skip
     entries.sort(key=lambda e: (e.on, 0 if e.kind == "receipt" else 1, e.number))
     opening = sum((e.debit - e.credit for e in entries if date_from and e.on < date_from), ZERO)

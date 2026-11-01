@@ -88,6 +88,9 @@ class BranchSettings(Base):
         default=lambda: dict(DEFAULT_DISCOUNT_CAPS),
         server_default='{"cashier": 5, "pharmacist": 10, "branch_manager": 20}',
     )
+    # S8b: language of receipts and A4 invoices; this branch's Bakong KHQR account (empty: the shared one)
+    receipt_lang: Mapped[str] = mapped_column(String(2), default="km", server_default="km")
+    khqr: Mapped[dict[str, Any] | None] = mapped_column(JSON, default=None)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -113,6 +116,8 @@ class BranchSettings(Base):
             "near_expiry_transfer_days": self.near_expiry_transfer_days,
             "order_deposit_on_cancel": self.order_deposit_on_cancel,
             "max_discount_pct": dict(self.max_discount_pct or {}),
+            "receipt_lang": self.receipt_lang,
+            "khqr": dict(self.khqr) if self.khqr else None,
         }
 
 

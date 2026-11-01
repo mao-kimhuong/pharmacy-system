@@ -125,6 +125,7 @@ def record_change(
     if before and before == after:
         return False
     m.version = (m.version or 0) + 1
+    session.sync_session.info["actor_id"] = actor.id if actor else None  # who changed a price (price history)
     add_event(session, OutboxEvent, event, event_payload(m))
     old, new = changes(before, after) if before else ({}, after)
     record_audit(

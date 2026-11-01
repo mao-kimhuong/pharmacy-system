@@ -6,6 +6,7 @@ from pharmacy_shared.outbox import OutboxMixin
 from .base import Base
 from .catalog import SCHEDULES, STORAGE, Brand, Category, HamperComponent, Medicine, PackUnit
 from .imports import ImportRow, ProductImport
+from .prices import PriceHistory
 from .promotions import PROMOTION_TYPES, Promotion
 
 
@@ -22,6 +23,7 @@ __all__ = [
     "Medicine",
     "OutboxEvent",
     "PackUnit",
+    "PriceHistory",
     "ProductImport",
     "PROMOTION_TYPES",
     "Promotion",

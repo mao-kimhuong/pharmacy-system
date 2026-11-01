@@ -28,7 +28,7 @@ ENTRY_TYPE = {
     "in": "receive", "opening": "opening", "out": "dispense", "sale_cancel": "sale_cancel",
     "return": "customer_return", "adjust_in": "adjust", "adjust_out": "adjust", "expire_writeoff": "expired",
     "transfer_in": "transfer_in", "transfer_out": "transfer_out", "shrinkage": "destroy",
-    "count_adjust": "count_adjust",
+    "count_adjust": "count_adjust", "supplier_return": "supplier_return",
 }  # fmt: skip
 
 

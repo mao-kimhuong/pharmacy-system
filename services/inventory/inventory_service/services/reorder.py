@@ -169,7 +169,8 @@ async def _figures(session: AsyncSession, branch_id: UUID, today: date, sales_da
     sellable = dict((await session.execute(
         select(Batch.medicine_id, func.sum(Stock.qty_on_hand - Stock.qty_reserved - Stock.qty_quarantined))
         .join(Batch, Batch.id == Stock.batch_id)
-        .where(Stock.branch_id == branch_id, Batch.status == "active", Batch.expiry_date >= today)
+        .where(Stock.branch_id == branch_id, Batch.status == "active", Batch.expiry_date >= today,
+               Stock.recall_id.is_(None))
         .group_by(Batch.medicine_id))).all())  # fmt: skip
     sold = {m: -int(q) for m, q in (await session.execute(
         select(Movement.medicine_id, func.sum(Movement.qty_base))
@@ -180,7 +181,7 @@ async def _figures(session: AsyncSession, branch_id: UUID, today: date, sales_da
     rows = await session.execute(
         select(Batch, Stock.qty_on_hand - Stock.qty_reserved - Stock.qty_quarantined)
         .join(Stock, Stock.batch_id == Batch.id)
-        .where(Stock.branch_id == branch_id, Batch.status == "active", Batch.expiry_date >= today,
+        .where(Stock.branch_id == branch_id, Batch.status == "active", Batch.expiry_date >= today, Stock.recall_id.is_(None),
                Batch.expiry_date <= today + timedelta(days=expiry_days),
                Stock.qty_on_hand - Stock.qty_reserved - Stock.qty_quarantined > 0))  # fmt: skip
     for batch, qty in rows:

@@ -5,6 +5,7 @@ from pharmacy_shared.consumer import ProcessedMessageMixin
 from pharmacy_shared.outbox import OutboxMixin
 
 from .audit import AuditLog
+from .backup_code import MfaBackupCode
 from .base import Base
 from .known_branch import KnownBranch
 from .refresh_token import RefreshToken
@@ -21,6 +22,7 @@ class ProcessedMessage(ProcessedMessageMixin, Base):
 
 
 __all__ = [
+    "MfaBackupCode",
     "AppliedGrant",
     "AuditLog",
     "Base",

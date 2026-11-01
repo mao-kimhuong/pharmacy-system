@@ -29,11 +29,12 @@ from .base import Base
 BATCH_STATUSES = ("active", "expired", "blocked", "recalled", "quarantine")
 MOVEMENT_TYPES = (
     "in", "opening", "out", "sale_cancel", "return", "adjust_in", "adjust_out", "expire_writeoff",
-    "transfer_in", "transfer_out", "shrinkage", "count_adjust",
+    "transfer_in", "transfer_out", "shrinkage", "count_adjust", "supplier_return",
 )  # fmt: skip
 # Booked once per source (a re-delivered event or a retried call books nothing twice).
 ONCE_PER_SOURCE = (
     "in", "opening", "out", "sale_cancel", "return", "shrinkage", "count_adjust", "transfer_in", "transfer_out",
+    "supplier_return",
 )  # fmt: skip
 
 
@@ -87,6 +88,8 @@ class Stock(IdMixin, Base):
     qty_reserved: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     # Returned goods waiting for a pharmacist: counted on hand, never sold.
     qty_quarantined: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # S8b: blocked by a recall at this branch (never sold or picked while set)
+    recall_id: Mapped[UUID | None] = mapped_column(Uuid, index=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -103,7 +106,7 @@ class Movement(IdMixin, Base):
         CheckConstraint("qty_base <> 0", name="ck_movements_qty"),
         CheckConstraint(
             "type IN ('in', 'opening', 'out', 'sale_cancel', 'return', 'adjust_in', 'adjust_out', "
-            "'expire_writeoff', 'transfer_in', 'transfer_out', 'shrinkage', 'count_adjust')",
+            "'expire_writeoff', 'transfer_in', 'transfer_out', 'shrinkage', 'count_adjust', 'supplier_return')",
             name="ck_movements_type",
         ),
         # A receipt line, stock-in line, opening line, sold or returned line is booked
@@ -112,7 +115,7 @@ class Movement(IdMixin, Base):
             "uq_movements_source", "type", "ref_type", "ref_id", unique=True,
             postgresql_where=text(
                 "type IN ('in', 'opening', 'out', 'sale_cancel', 'return', 'shrinkage', 'count_adjust',"
-                " 'transfer_in', 'transfer_out')"
+                " 'transfer_in', 'transfer_out', 'supplier_return')"
             ),
         ),
         Index("ix_movements_branch_time", "branch_id", "created_at"),

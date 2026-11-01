@@ -1,6 +1,6 @@
 SERVICES := auth branch catalog inventory stockcount prescription controlled sales customers purchasing reports notification document ai
 
-.PHONY: help env up down logs ps owner smoke test test-docker test-db test-db-down lint migrate revision resync backfill seed-demo bench-reports
+.PHONY: help env up down logs ps owner smoke test test-docker test-db test-db-down lint migrate revision resync backfill seed-demo bench-reports openapi
 
 help:
 	@echo "make env       copy .env.example to .env (first time)"
@@ -17,6 +17,7 @@ help:
 	@echo "make backfill  rebuild the reports' read models from every service's outbox (safe to repeat)"
 	@echo "make seed-demo a year of demo data in the reports (APP_ENV=development, DEMO branches)"
 	@echo "make bench-reports  time every report over the demo year"
+	@echo "make openapi   write every service's OpenAPI document to openapi/*.json"
 
 env:
 	@test -f .env || cp .env.example .env && echo ".env ready - change the passwords"
@@ -57,6 +58,9 @@ seed-demo:
 
 bench-reports:
 	docker compose exec reports python -m reports_service.cli bench
+
+openapi:
+	.venv/bin/python scripts/openapi.py
 
 test-db:
 	docker compose -f docker-compose.test.yml up -d --wait

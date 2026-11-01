@@ -127,3 +127,13 @@ async def test_the_sales_number_reaches_the_debt_directly_or_by_event(client) ->
     assert [d["invoice_no"] for d in unpaid] == ["PP1-INV-2026-000007", "PP1-INV-2026-000008"]
     st = (await client.get(f"{PREFIX}/customers/{c['id']}/statement", headers=OWNER)).json()
     assert [e["document_no"] for e in st["entries"]] == ["PP1-INV-2026-000007", "PP1-INV-2026-000008"]
+
+
+async def test_credit_status_and_statement_for_other_services(client) -> None:
+    c = await create_customer(client, limit="100.00")
+    await charge(client, c, "60.00")
+    r = await client.get(f"/internal/v1/customers/{c['id']}/credit", headers=INTERNAL)
+    assert r.status_code == 200 and (r.json()["balance"], r.json()["available"]) == ("60.00", "40.00")
+    assert (await client.get(f"/internal/v1/customers/{c['id']}/credit")).status_code == 401
+    st = await client.get(f"/internal/v1/customers/{c['id']}/statement", headers=INTERNAL)
+    assert st.status_code == 200 and st.json()["closing_balance"] == "60.00"

@@ -5,7 +5,7 @@ from datetime import timedelta
 from uuid import uuid4
 
 from pharmacy_shared import clock
-from sales_service.services import sale_saga
+from sales_service.services import checks
 
 from .conftest import (
     OWNER,
@@ -66,13 +66,13 @@ async def test_failed_order_sale_gives_the_stock_back_to_the_order(client, custo
 async def test_after_reserve_until_the_failed_part_is_released(client, customers_client, monkeypatch) -> None:
     para, o = await ordered(client, customers_client)
     later = clock.now() + timedelta(days=4)
-    below_cost = sale_saga._below_cost
+    below_cost = checks.below_cost
 
     def expire_then_check(*args):  # noqa: ANN002, ANN202
         monkeypatch.setattr(clock, "now", lambda: later)  # the order's hold ran out during the sale
         return below_cost(*args)
 
-    monkeypatch.setattr(sale_saga, "_below_cost", expire_then_check)
+    monkeypatch.setattr(checks, "below_cost", expire_then_check)
     r = await invoice(client, o, 1, SELLER, "merge-back-0003")
     assert r.status_code == 422 and r.json()["code"] == "BELOW_COST"
     assert await inventory_stock(para) == {"A": (300, 100, 0)}  # the failed box released; the order's other box

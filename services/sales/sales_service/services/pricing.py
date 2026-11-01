@@ -73,6 +73,7 @@ class Promo:
 class Result:
     discounts: dict[int, Decimal] = field(default_factory=dict)  # line_no → USD
     promotions: dict[int, list[UUID]] = field(default_factory=dict)  # line_no → promotions used on it
+    amounts: dict[tuple[int, UUID], Decimal] = field(default_factory=dict)  # (line_no, promotion) → USD
 
     @property
     def total(self) -> Decimal:
@@ -171,6 +172,7 @@ def _run(promos: list[Promo], lines: list[PriceLine]) -> Result:
             left[line_no] -= d
             result.discounts[line_no] = result.discounts.get(line_no, ZERO) + d
             result.promotions.setdefault(line_no, []).append(promo.id)
+            result.amounts[(line_no, promo.id)] = d
     return result
 
 

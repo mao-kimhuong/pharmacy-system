@@ -78,7 +78,7 @@ async def _fefo_rows(
     query = (
         select(Stock).join(Batch, Batch.id == Stock.batch_id)
         .where(Stock.branch_id == branch_id, Batch.medicine_id == medicine_id, Batch.status == "active",
-               Batch.expiry_date >= today,
+               Batch.expiry_date >= today, Stock.recall_id.is_(None),
                Stock.qty_on_hand - Stock.qty_reserved - Stock.qty_quarantined > 0)
         .order_by(*FEFO).execution_options(populate_existing=True)
     )  # fmt: skip
@@ -88,14 +88,12 @@ async def _fefo_rows(
 
 
 async def _override_row(
-    session: AsyncSession, branch_id: UUID, medicine_id: UUID, batch_id: UUID, line_no: int
+    session: AsyncSession, branch_id: UUID, medicine_id: UUID, batch_id: UUID, line_no: int, *, lock: bool = True
 ) -> Stock:
-    stock = (
-        await session.execute(
-            select(Stock).where(Stock.branch_id == branch_id, Stock.batch_id == batch_id)
-            .with_for_update(of=Stock).execution_options(populate_existing=True)
-        )
-    ).scalar_one_or_none()  # fmt: skip
+    query = select(Stock).where(Stock.branch_id == branch_id, Stock.batch_id == batch_id)
+    if lock:
+        query = query.with_for_update(of=Stock).execution_options(populate_existing=True)
+    stock = (await session.execute(query)).scalar_one_or_none()
     details = {"line_no": line_no, "batch_id": str(batch_id)}
     if stock is None or stock.batch.medicine_id != medicine_id:
         raise AppError(ErrorCode.OUT_OF_STOCK, f"Line {line_no}: that batch has no stock of this medicine here",
@@ -104,9 +102,10 @@ async def _override_row(
     if batch.status == "expired" or batch.expiry_date < clock.today():
         raise AppError(ErrorCode.BATCH_EXPIRED, f"Line {line_no}: lot {batch.lot_no} expired on {batch.expiry_date}",
                        status_code=409, details=details)  # fmt: skip
-    if batch.status != "active":
-        raise AppError(ErrorCode.BATCH_BLOCKED, f"Line {line_no}: lot {batch.lot_no} is {batch.status}",
-                       status_code=409, details={**details, "status": batch.status})  # fmt: skip
+    if batch.status != "active" or stock.recall_id is not None:
+        status = "recalled" if stock.recall_id is not None else batch.status
+        raise AppError(ErrorCode.BATCH_BLOCKED, f"Line {line_no}: lot {batch.lot_no} is {status}",
+                       status_code=409, details={**details, "status": status})  # fmt: skip
     return stock
 
 
@@ -149,13 +148,17 @@ async def availability(
     return out
 
 
-async def reserve(session: AsyncSession, caller: InternalCaller, data: dict[str, Any]) -> dict[str, Any]:
-    ref_type, ref_id = data["ref_type"], str(data["ref_id"])
+async def reserve(
+    session: AsyncSession, caller: InternalCaller, data: dict[str, Any], *, write: bool = True
+) -> dict[str, Any]:
+    """write=False (POST /reservations/plan, the cart preview): the same allocation
+    and the same errors, with plain reads (no row locks) and nothing saved."""
+    ref_type, ref_id = data.get("ref_type", "invoice"), str(data.get("ref_id"))
     existing = (
         await session.execute(
             select(Reservation).where(Reservation.ref_type == ref_type, Reservation.ref_id == ref_id)
         )
-    ).scalar_one_or_none()
+    ).scalar_one_or_none() if write else None
     if existing is not None:
         return to_dict(existing)  # the same invoice asked again: same answer
     branch_id = data["branch_id"]
@@ -169,7 +172,7 @@ async def reserve(session: AsyncSession, caller: InternalCaller, data: dict[str,
     for line in lines:
         medicine_id, qty = line["medicine_id"], line["qty_base"]
         if line.get("batch_id"):
-            stock = await _override_row(session, branch_id, medicine_id, line["batch_id"], line["line_no"])
+            stock = await _override_row(session, branch_id, medicine_id, line["batch_id"], line["line_no"], lock=write)
             free = left.setdefault(stock.id, available(stock))
             if free < qty:
                 missing.append({"line_no": line["line_no"], "medicine_id": str(medicine_id), "requested": qty,
@@ -179,7 +182,7 @@ async def reserve(session: AsyncSession, caller: InternalCaller, data: dict[str,
             picks.append((line, stock, qty, True))
             continue
         if medicine_id not in rows_by_medicine:
-            rows_by_medicine[medicine_id] = await _fefo_rows(session, branch_id, medicine_id)
+            rows_by_medicine[medicine_id] = await _fefo_rows(session, branch_id, medicine_id, lock=write)
         rows = rows_by_medicine[medicine_id]
         free_total = sum(left.setdefault(s.id, available(s)) for s in rows)
         if free_total < qty:
@@ -200,6 +203,15 @@ async def reserve(session: AsyncSession, caller: InternalCaller, data: dict[str,
         raise AppError(ErrorCode.OUT_OF_STOCK, "Not enough sellable stock at this branch", status_code=409,
                        details={"lines": sorted(missing, key=lambda m: m["line_no"])})  # fmt: skip
 
+    if not write:
+        out = {"id": None, "ref_type": ref_type, "ref_id": None, "branch_id": branch_id, "status": "planned",
+               "lines": [{"line_no": line["line_no"], "medicine_id": line["medicine_id"], "batch_id": stock.batch_id,
+                          "lot_no": stock.batch.lot_no, "expiry_date": stock.batch.expiry_date, "qty_base": qty,
+                          "cost_per_base": stock.batch.cost_per_base, "overridden": overridden,
+                          "hamper_id": (line.get("meta") or {}).get("hamper_id")}
+                         for line, stock, qty, overridden in picks]}  # fmt: skip
+        await session.rollback()
+        return out
     reservation = Reservation(ref_type=ref_type, ref_id=ref_id, branch_id=branch_id, status="reserved",
                               created_by=caller.user_id, lines=[])  # fmt: skip
     seq: dict[int, int] = defaultdict(int)

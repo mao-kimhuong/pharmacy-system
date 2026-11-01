@@ -66,7 +66,9 @@ async def clean(monkeypatch) -> AsyncIterator[None]:
         await conn.execute(text(
             "TRUNCATE payment_allocations, supplier_payments, receipt_lines, receipts, po_lines, purchase_orders,"
             " suppliers, supplier_groups, doc_sequences, product_pack_units, products, known_branches,"
-            " processed_messages, outbox, purchase_request_lines, purchase_requests, po_groups CASCADE"
+            " processed_messages, outbox, purchase_request_lines, purchase_requests, po_groups,"
+            " supplier_credit_allocations, supplier_credits, supplier_refunds, supplier_return_lines, supplier_returns"
+            " CASCADE"
         ))  # fmt: skip
     redis = Redis.from_url(TEST_REDIS_URL)
     await redis.flushdb()

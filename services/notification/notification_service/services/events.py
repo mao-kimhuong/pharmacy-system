@@ -3,7 +3,8 @@ copies of branches and staff (names in the texts), and the alerts.
 
 Sent at once (to the branch's chat and the owner's): controlled register
 discrepancy, register chain broken, account or PIN lockout, a below-cost sale,
-a large manual discount (alert settings). Low stock and near expiry are kept
+a large manual discount (alert settings), a KHQR payment to refund by hand, a
+recalled batch (S8b). Low stock and near expiry are kept
 for the 07:30 digest (jobs.py). One message per event and chat (dedupe key).
 """
 
@@ -24,7 +25,7 @@ from . import texts
 from .telegram import queue
 
 ROUTING_KEYS = ("branch.*", "user.*", "stock.low", "batch.expiring", "register.discrepancy", "register.chain_broken",
-                "invoice.created")  # fmt: skip
+                "invoice.created", "khqr.needs_refund", "batch.recalled")  # fmt: skip
 OWNER = "owner"
 
 
@@ -72,6 +73,12 @@ async def handle_event(session: AsyncSession, event_type: str, p: dict[str, Any]
     elif event_type == "register.chain_broken":
         text = texts.chain_broken(await _branch(session, p["branch_id"]), str(p.get("medicine_id"))[:8])
         await _both(session, f"chain:{message_id}", "controlled", p["branch_id"], text, text)
+    elif event_type == "khqr.needs_refund":
+        text = texts.khqr_refund(await _branch(session, p["branch_id"]), p)
+        await _both(session, f"khqr:{p['khqr_id']}", "khqr_refund", p["branch_id"], text, text)
+    elif event_type == "batch.recalled":
+        text = texts.recall(await _branch(session, p["branch_id"]), p)
+        await _both(session, f"recall:{p['recall_id']}:{p['branch_id']}", "recall", p["branch_id"], text, text)
     elif event_type == "invoice.created":
         await money_alerts(session, p)
 

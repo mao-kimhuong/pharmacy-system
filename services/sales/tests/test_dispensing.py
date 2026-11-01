@@ -187,3 +187,18 @@ async def test_expired_rx_cannot_be_sold(client) -> None:
         mp.setattr(clock, "today", lambda: date(2026, 11, 26))
         r = await sell(client, [line(amox, "strip", 1, rx_item_id=rx["item"])], [pay("0.90")], PHARMACIST)
     assert r.status_code == 422 and r.json()["code"] == "RX_EXPIRED"
+
+
+async def test_invoices_by_batches_shows_the_patient_only_with_prescriptions_view(client) -> None:
+    amox = await stocked_rx_product()
+    rx = await prescribe(amox)
+    sale = (await sell(client, [line(amox, "strip", 1, rx_item_id=rx["item"])], [pay("0.90")], PHARMACIST)).json()
+    batch = sale["lines"][0]["batches"][0]["batch_id"]
+    r = await client.get(f"{PREFIX}/invoices/by-batches", params={"batch_ids": batch}, headers=PHARMACIST)
+    row = r.json()[0]
+    assert row["number"] == sale["number"] and row["qty_base"] == 10 and row["patient"]["name_en"] == "Sok Dara"
+    clerk = user("cashier", "sales.view")
+    row = (await client.get(f"{PREFIX}/invoices/by-batches", params={"batch_ids": batch}, headers=clerk)).json()[0]
+    assert "patient" not in row and row["lot_no"] == "A"
+    other = user("cashier", "sales.view", (uuid4(),))
+    assert (await client.get(f"{PREFIX}/invoices/by-batches", params={"batch_ids": batch}, headers=other)).json() == []

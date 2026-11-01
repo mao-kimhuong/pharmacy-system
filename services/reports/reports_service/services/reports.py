@@ -543,6 +543,23 @@ async def cost_changes(ctx: Ctx) -> Result:
     return await run_query(ctx, q, cols, "Cost change")
 
 
+@report("purchases/returns", "Supplier returns", "reports.purchases")
+async def supplier_returns(ctx: Ctx) -> Result:
+    """Stock sent back to suppliers (supplier_return movements): lot, quantity, value at the batch's cost."""
+    m, f = Movement, ctx.f
+    cond = [m.type == "supplier_return", m.day.between(f.date_from, f.date_to), in_branches(m.branch_id, ctx.branches)]
+    if f.medicine_id:
+        cond.append(m.medicine_id == f.medicine_id)
+    q = (select(m.day.label("day"), m.reason.label("reference"), KnownBranch.code.label("branch"),
+                Product.sku.label("sku"), m.lot_no.label("lot_no"), (-m.delta).label("qty_base"),
+                func.round(-m.delta * m.cost_per_base, 2).label("value"))
+         .join(Product, Product.id == m.medicine_id, isouter=True)
+         .join(KnownBranch, KnownBranch.id == m.branch_id, isouter=True).where(*cond).order_by(m.day, m.seq))  # fmt: skip
+    cols = [Col("day", "Day", "date"), Col("reference", "Return"), Col("branch", "Branch"), Col("sku", "SKU"),
+            Col("lot_no", "Lot"), Col("qty_base", "Qty (base)", "qty"), Col("value", "Value", "money", "purchase")]  # fmt: skip
+    return await run_query(ctx, q, cols, "Supplier returns")
+
+
 BUCKETS = (("not_due", None), ("d0_30", 30), ("d31_60", 60), ("d61_90", 90), ("d90_plus", None))
 
 

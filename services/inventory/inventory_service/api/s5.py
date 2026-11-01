@@ -14,6 +14,7 @@ from pharmacy_shared.uploads import MAX_BYTES
 from ..db import db
 from ..models import Shrinkage
 from ..schemas.inventory import (
+    HamperAvailability,
     LocationIn,
     LocationOut,
     LocationRow,
@@ -119,7 +120,7 @@ async def read_photo(
     })  # fmt: skip
 
 
-@router.get("/hampers/{hamper_id}/availability", tags=["hampers"])
+@router.get("/hampers/{hamper_id}/availability", tags=["hampers"], response_model=HamperAvailability)
 async def hamper_availability(
     hamper_id: UUID, branch_id: UUID, user: CurrentUser = Depends(requires_any("inventory.view", "pos.sell")),
     session: AsyncSession = Depends(db.session),

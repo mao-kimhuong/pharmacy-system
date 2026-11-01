@@ -79,3 +79,18 @@ class SaleOrderCopy(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class SupplierReturnCopy(Base):
+    """supplier_return.* events from purchasing: the return note for the supplier."""
+
+    __tablename__ = "supplier_returns"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    version: Mapped[int] = mapped_column(Integer)
+    branch_id: Mapped[UUID] = mapped_column(Uuid, index=True)
+    number: Mapped[str] = mapped_column(String(32))
+    data: Mapped[dict[str, Any]] = mapped_column(JSON)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )

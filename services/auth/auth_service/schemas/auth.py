@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class LoginRequest(BaseModel):
@@ -16,7 +16,15 @@ class Login2faRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     mfa_token: str = Field(min_length=1, max_length=1000)
-    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+    code: str | None = Field(default=None, min_length=6, max_length=6, pattern=r"^\d{6}$")
+    backup_code: str | None = Field(default=None, min_length=10, max_length=12,
+                                    description="Instead of the 6-digit code (lost phone): one of your backup codes")
+
+    @model_validator(mode="after")
+    def _one(self) -> "Login2faRequest":
+        if (self.code is None) == (self.backup_code is None):
+            raise ValueError("Send either code or backup_code")
+        return self
 
 
 class RefreshRequest(BaseModel):
@@ -49,6 +57,7 @@ class MeResponse(BaseModel):
     locale: str
     branch_ids: list[UUID]
     totp_enabled: bool = False
+    backup_codes_left: int | None = Field(default=None, description="Unused 2FA backup codes (with 2FA on)")
     has_pin: bool = False
     permissions: list[str] = []
     menu: list[MenuItemOut] = []
@@ -67,6 +76,7 @@ class TokenResponse(BaseModel):
     mfa_required: bool = False
     mfa_token: str | None = None
     mfa_setup_required: bool = False
+    backup_codes: list[str] | None = Field(default=None, description="Shown once, when 2FA is turned on")
 
 
 class TwoFactorSetupResponse(BaseModel):
@@ -128,3 +138,23 @@ class PinConsumeRequest(BaseModel):
     token: str = Field(min_length=10, max_length=200)
     action: str = Field(min_length=3, max_length=60)
     kind: Literal["actor", "witness"]
+
+
+class BackupCodesRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    password: str = Field(min_length=1, max_length=200)
+
+
+class BackupCodesOut(BaseModel):
+    codes: list[str] = Field(description="Shown only now: store them safely; the old set no longer works")
+
+
+class SessionOut(BaseModel):
+    id: UUID
+    started_at: datetime
+    last_used_at: datetime
+    expires_at: datetime
+    ip: str | None
+    user_agent: str | None
+    current: bool

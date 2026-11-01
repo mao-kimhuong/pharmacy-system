@@ -152,3 +152,14 @@ async def set_invoice_number(session: AsyncSession, invoice_id: UUID, invoice_no
         a.invoice_no = invoice_no
     await session.commit()
     return True
+
+
+async def credit_status(session: AsyncSession, customer_id: UUID) -> dict[str, Any]:
+    """For the cart preview: what this customer may still take on credit (no lock, nothing written)."""
+    from .customers import get_customer
+
+    customer = await get_customer(session, customer_id)
+    balance = await balance_of(session, customer.id)
+    return {"customer_id": customer.id, "is_active": customer.is_active, "balance": balance,
+            "credit_limit": customer.credit_limit,
+            "available": max(customer.credit_limit - balance, Decimal("0.00"))}  # fmt: skip

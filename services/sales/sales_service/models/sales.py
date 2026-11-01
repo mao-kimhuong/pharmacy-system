@@ -210,6 +210,7 @@ class InvoicePayment(IdMixin, Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(16, 2))  # in `currency` (riel: whole hundreds)
     amount_usd: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     deposit_id: Mapped[UUID | None] = mapped_column(Uuid)  # method "deposit": a sale order's deposit
+    khqr_id: Mapped[UUID | None] = mapped_column(Uuid, unique=True)  # method "KHQR": the paid QR, used once
 
 
 class SaleReturn(IdMixin, Base):

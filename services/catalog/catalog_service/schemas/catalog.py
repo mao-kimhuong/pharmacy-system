@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -326,3 +326,51 @@ class PromotionOut(BaseModel):
     include_rx: bool
     is_active: bool
     version: int
+
+
+class SampleLine(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    medicine_id: UUID
+    pack_unit_id: UUID
+    qty: int = Field(ge=1, le=100_000)
+
+
+class SampleCart(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    branch_id: UUID
+    customer_id: UUID | None = None
+    lines: list[SampleLine] = Field(min_length=1, max_length=50)
+
+
+class PromotionPreviewIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    promotion: PromotionCreate
+    cart: SampleCart
+
+
+class PromotionPreviewOut(BaseModel):
+    """The sales service's cart preview (lines with prices, promotions, findings) plus conflicts."""
+
+    model_config = ConfigDict(extra="allow")
+
+    lines: list[dict[str, Any]]
+    subtotal: Decimal | None = None
+    discount: Decimal | None = None
+    total: Decimal | None = None
+    conflicts: list[dict[str, Any]] = Field(description="Per line: competing promotions, which won, draft_wins")
+    can_post: bool
+
+
+class PriceChange(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    pack_unit_id: UUID
+    pack_unit: str
+    old_price: Decimal | None
+    new_price: Decimal
+    changed_at: datetime
+    changed_by: UUID | None
+    source: str = Field(description="change (recorded live) or backfill (from the event history)")

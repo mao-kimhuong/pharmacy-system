@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pharmacy_shared.audit import changes, record_audit
 from pharmacy_shared.auth import CurrentUser
 from pharmacy_shared.errors import AppError, ErrorCode
+from pharmacy_shared.internal import InternalClient
 from pharmacy_shared.outbox import add_event
 
 from ..models import Brand, Category, Medicine, OutboxEvent, Promotion
@@ -173,3 +174,21 @@ async def republish(session: AsyncSession) -> int:
     for p in rows:
         add_event(session, OutboxEvent, "promotion.updated", {**payload(p), "resync": True})
     return len(rows)
+
+
+async def preview(session: AsyncSession, actor: CurrentUser, sales: InternalClient, data: dict[str, Any],
+                  cart: dict[str, Any]) -> dict[str, Any]:  # fmt: skip
+    """A draft promotion (checked like create, never saved) on a sample cart: the sales
+    service prices it with the active promotions (same pricing as the till) and says
+    which promotions compete on each line and which one wins."""
+    from uuid import uuid4
+
+    p = Promotion(id=uuid4(), code=clean(data["code"]).upper(), version=0, is_active=True,
+                  **{f: data.get(f) for f in FIELDS if f in data})  # fmt: skip
+    p.name, p.name_km = clean(p.name), clean(p.name_km)
+    await _check(session, p)
+    draft = payload(p)
+    await session.rollback()  # nothing is kept
+    actor.require_branch(UUID(str(cart["branch_id"])))
+    return await sales.post("/carts/preview", {"cart": cart, "draft_promotion": draft}, actor=actor,
+                            branch_id=cart["branch_id"])  # fmt: skip

@@ -89,19 +89,38 @@ def _receipt_item(x: dict[str, Any]) -> str:
     )
 
 
-def receipt_html(inv: dict[str, Any], page_height_mm: float = 2000) -> str:
+T = {  # labels of the receipt and the A4 invoice; numbers, SKUs and names are not translated
+    "en": {"receipt": "Receipt", "customer": "Customer", "total": "Total", "total_khr": "Total (KHR)",
+           "change": "Change", "credit": "On credit", "returned": "Returned", "cancelled": "CANCELLED",
+           "invoice": "INVOICE", "item": "Item", "pack": "Pack", "qty": "Qty", "price": "Price (USD)",
+           "amount": "Amount (USD)", "total_usd": "Total USD", "rate": "Rate"},
+    "km": {"receipt": "បង្កាន់ដៃ", "customer": "អតិថិជន", "total": "សរុប", "total_khr": "សរុប (រៀល)",
+           "change": "ប្រាក់អាប់", "credit": "ជំពាក់", "returned": "បានប្តូរយកវិញ", "cancelled": "បានលុបចោល",
+           "invoice": "វិក្កយបត្រ", "item": "មុខទំនិញ", "pack": "ខ្នាត", "qty": "ចំនួន", "price": "តម្លៃ (USD)",
+           "amount": "ទឹកប្រាក់ (USD)", "total_usd": "សរុប (USD)", "rate": "អត្រាប្តូរប្រាក់"},
+}  # fmt: skip
+
+
+def lang_of(inv: dict[str, Any], lang: str | None) -> str:
+    """Asked, else the branch setting receipt_lang (in the invoice), else Khmer."""
+    chosen = lang or (inv.get("branch") or {}).get("receipt_lang") or "km"
+    return chosen if chosen in T else "km"
+
+
+def receipt_html(inv: dict[str, Any], page_height_mm: float = 2000, lang: str = "km") -> str:
+    t = T[lang]
     b = inv["branch"]
     lines = "".join(_receipt_item(x) for x in inv["lines"])
     pays = "".join(
         f"<div class='row'><span>{e(m)}</span><span>{e(a)}</span></div>" for m, a in _payments(inv)
     )
     customer = inv.get("customer")
-    cust = f"<div>Customer: {e(customer['name'])} {e(customer['phone'])}</div>" if customer else ""
-    credit = (f"<div class='row'><span>On credit</span><span>${_usd(inv['credit_amount'])}</span></div>"
+    cust = f"<div>{t['customer']}: {e(customer['name'])} {e(customer['phone'])}</div>" if customer else ""
+    credit = (f"<div class='row'><span>{t['credit']}</span><span>${_usd(inv['credit_amount'])}</span></div>"
               if Decimal(inv["credit_amount"]) > 0 else "")  # fmt: skip
     rate = f"<div class='small'>1 USD = {_riel(inv['khr_per_usd'])} ៛</div>" if inv.get("khr_per_usd") else ""
-    cancelled = "<div class='stamp'>CANCELLED · បានលុបចោល</div>" if inv["status"] == "cancelled" else ""
-    returns = "".join(f"<div class='row small'><span>Returned {e(r['number'])}</span>"
+    cancelled = f"<div class='stamp'>{t['cancelled']}</div>" if inv["status"] == "cancelled" else ""
+    returns = "".join(f"<div class='row small'><span>{t['returned']} {e(r['number'])}</span>"
                       f"<span>-${_usd(r['refund_usd'])}</span></div>" for r in inv.get("returns") or [])  # fmt: skip
     css = f"""
       @page {{ size: 80mm {page_height_mm:.1f}mm; margin: 3mm 3.5mm }}
@@ -114,38 +133,39 @@ def receipt_html(inv: dict[str, Any], page_height_mm: float = 2000) -> str:
       .total {{ font-size: 11pt; font-weight: 700 }}
       .stamp {{ border: 0.5mm solid #000; text-align: center; font-weight: 700; margin: 1mm 0; padding: 0.5mm }}
     """
-    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><style>{css}</style></head><body>
+    return f"""<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><style>{css}</style></head><body>
       <div id="receipt">
       <div class="c"><h1>{e(b["name_en"])}</h1><div class="km" lang="km">{e(b["name_km"])}</div>
         <div class="small">{_multiline(b.get("receipt_header"))}</div></div>
       <hr>
-      <div class="row"><span>Receipt · បង្កាន់ដៃ</span><b>{e(inv.get("number"))}</b></div>
+      <div class="row"><span>{t["receipt"]}</span><b>{e(inv.get("number"))}</b></div>
       <div class="small">{e(_when(inv))}</div>{cust}{cancelled}
       <hr>{lines}<hr>
-      <div class="row total"><span>Total</span><span>${_usd(inv["total"])}</span></div>
-      <div class="row"><span>សរុប (KHR)</span><span>{_riel(inv.get("total_khr"))} ៛</span></div>{rate}
+      <div class="row total"><span>{t["total"]}</span><span>${_usd(inv["total"])}</span></div>
+      <div class="row"><span>{t["total_khr"]}</span><span>{_riel(inv.get("total_khr"))} ៛</span></div>{rate}
       <hr>{pays}{credit}
-      <div class="row"><span>Change · ប្រាក់អាប់</span><b>{e(_change(inv))}</b></div>{returns}
+      <div class="row"><span>{t["change"]}</span><b>{e(_change(inv))}</b></div>{returns}
       <hr><div class="c small">{_multiline(b.get("receipt_footer"))}</div>
       </div></body></html>"""
 
 
-def _render_receipt(inv: dict[str, Any]) -> bytes:
+def _render_receipt(inv: dict[str, Any], lang: str = "km") -> bytes:
     from weasyprint import HTML
     from weasyprint.urls import URLFetcher
 
     fetcher = URLFetcher(allowed_protocols={"data"})
-    page = HTML(string=receipt_html(inv), url_fetcher=fetcher).render().pages[0]
+    page = HTML(string=receipt_html(inv, lang=lang), url_fetcher=fetcher).render().pages[0]
     bottom = max(
         (b.position_y + b.margin_height() for b in page._page_box.descendants()
          if getattr(b, "element_tag", None) == "div" and hasattr(b, "margin_height")),
         default=200,
     )  # fmt: skip
     height = bottom * PX_TO_MM + 3 + 6  # bottom page margin + a little to tear off
-    return HTML(string=receipt_html(inv, height), url_fetcher=fetcher).write_pdf()
+    return HTML(string=receipt_html(inv, height, lang), url_fetcher=fetcher).write_pdf()
 
 
-def invoice_a4_html(inv: dict[str, Any]) -> str:
+def invoice_a4_html(inv: dict[str, Any], lang: str = "km") -> str:
+    t = T[lang]
     b, customer = inv["branch"], inv.get("customer")
     rows = "".join(
         f"<tr><td>{x['line_no']}</td><td><b>{e(x['name'])}</b><div class='km' lang='km'>{e(x['name_km'])}</div>"
@@ -154,7 +174,7 @@ def invoice_a4_html(inv: dict[str, Any]) -> str:
         for x in inv["lines"]
     )
     pays = "".join(f"<div>{e(m)}: {e(a)}</div>" for m, a in _payments(inv))
-    watermark = "<div class='watermark'>CANCELLED</div>" if inv["status"] == "cancelled" else ""
+    watermark = f"<div class='watermark'>{t['cancelled']}</div>" if inv["status"] == "cancelled" else ""
     css = f"""
       @page {{ size: A4; margin: 14mm 12mm }}
       * {{ box-sizing: border-box }} body {{ font-family: {FONTS}; font-size: 9.5pt; color: #111 }}
@@ -169,26 +189,26 @@ def invoice_a4_html(inv: dict[str, Any]) -> str:
       .watermark {{ position: fixed; top: 110mm; left: 0; right: 0; text-align: center; font-size: 72pt;
                     color: rgba(0,0,0,0.08); transform: rotate(-25deg); font-weight: 700 }}
     """
-    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><style>{css}</style></head><body>
+    return f"""<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><style>{css}</style></head><body>
       {watermark}
       <div class="head"><div><h1>{e(b["name_en"])}</h1><div class="km" lang="km">{e(b["name_km"])}</div>
         <div class="sub">{_multiline(b.get("receipt_header"))}</div></div>
-        <div class="right"><div class="sub">INVOICE · វិក្កយបត្រ</div><div class="number">{
+        <div class="right"><div class="sub">{t["invoice"]}</div><div class="number">{
         e(inv.get("number"))
     }</div>
         <div>{e(_when(inv))}</div></div></div>
-      {f"<p>Customer: <b>{e(customer['name'])}</b> {e(customer['phone'])}</p>" if customer else ""}
-      <table><thead><tr><th>#</th><th>Item</th><th>Pack</th><th class="r">Qty</th><th class="r">Price (USD)</th>
-        <th class="r">Amount (USD)</th></tr></thead><tbody>{rows}</tbody></table>
+      {f"<p>{t['customer']}: <b>{e(customer['name'])}</b> {e(customer['phone'])}</p>" if customer else ""}
+      <table><thead><tr><th>#</th><th>{t["item"]}</th><th>{t["pack"]}</th><th class="r">{t["qty"]}</th>
+        <th class="r">{t["price"]}</th><th class="r">{t["amount"]}</th></tr></thead><tbody>{rows}</tbody></table>
       <div class="totals">
-        <div class="big"><span>Total USD</span><span>{_usd(inv["total"])}</span></div>
-        <div><span>Total KHR</span><span>{_riel(inv.get("total_khr"))} ៛</span></div>
+        <div class="big"><span>{t["total_usd"]}</span><span>{_usd(inv["total"])}</span></div>
+        <div><span>{t["total_khr"]}</span><span>{_riel(inv.get("total_khr"))} ៛</span></div>
         {
-        f"<div class='sub'><span>Rate</span><span>1 USD = {_riel(inv['khr_per_usd'])} ៛</span></div>"
+        f"<div class='sub'><span>{t['rate']}</span><span>1 USD = {_riel(inv['khr_per_usd'])} ៛</span></div>"
         if inv.get("khr_per_usd")
         else ""
     }
-        <div><span>Change</span><span>{e(_change(inv))}</span></div>
+        <div><span>{t["change"]}</span><span>{e(_change(inv))}</span></div>
       </div>
       <div style="margin-top:4mm">{pays}</div>
       <p class="sub" style="margin-top:8mm">{_multiline(b.get("receipt_footer"))}</p>
@@ -196,10 +216,12 @@ def invoice_a4_html(inv: dict[str, Any]) -> str:
 
 
 async def render(
-    session: AsyncSession, actor: CurrentUser, invoice_id: UUID, kind: str, wait_seconds: float
+    session: AsyncSession, actor: CurrentUser, invoice_id: UUID, kind: str, wait_seconds: float,
+    lang: str | None = None,
 ) -> tuple[str, bytes]:
     inv = await wait_for(session, InvoiceCopy, invoice_id, actor, wait_seconds, "invoice")
     name = inv.get("number") or str(invoice_id)
+    chosen = lang_of(inv, lang)
     if kind == "receipt_80mm":
-        return name, await run_in_threadpool(_render_receipt, inv)
-    return name, await html_to_pdf(invoice_a4_html(inv))
+        return name, await run_in_threadpool(_render_receipt, inv, chosen)
+    return name, await html_to_pdf(invoice_a4_html(inv, chosen))

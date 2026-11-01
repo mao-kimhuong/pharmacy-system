@@ -21,12 +21,15 @@ from ..services import exports
 from ..services.common import Ctx, Filters, Result, branch_scope, drop_hidden, make_filters, may_see
 from ..services.dashboard import dashboard
 from ..services.reports import REPORTS, Report
+from .schemas import CatalogItem, Dashboard, page_model
 
 router = APIRouter()
+FILES = {200: {"content": {"text/csv": {}, exports.MEDIA["xlsx"]: {}, "application/pdf": {}},
+               "description": "JSON, or the file for ?format=csv|xlsx|pdf"}}  # fmt: skip
 EXPORTS_PER_MINUTE = 10
 
 
-@router.get("/dashboard", tags=["dashboard"])
+@router.get("/dashboard", tags=["dashboard"], response_model=Dashboard, response_model_exclude_unset=True)
 async def get_dashboard(
     branch_id: UUID | None = None,
     user: CurrentUser = Depends(requires("dashboard.view")),
@@ -41,7 +44,7 @@ def allowed(user: CurrentUser, rep: Report) -> bool:
     return all(user.has_any(*p.split("|")) for p in rep.permissions)
 
 
-@router.get("/catalog", tags=["reports"])
+@router.get("/catalog", tags=["reports"], response_model=list[CatalogItem])
 async def catalog(user: CurrentUser = Depends(current_user)) -> list[dict]:
     """The reports this user may open."""
     return [{"key": r.key, "title": r.title, "path": f"/api/reports/v1/{r.key}"}
@@ -110,11 +113,12 @@ async def run(rep: Report, p: Params, request: Request, user: CurrentUser, sessi
         ctx = Ctx(session, user, f, branch_scope(user, f.branch_id), cap + 1, 0)
     else:
         ctx = Ctx(session, user, f, branch_scope(user, f.branch_id), p.size, (p.page - 1) * p.size)
-    result: Result = drop_hidden(user, await rep.build(ctx))
+    full = await rep.build(ctx)
+    result: Result = drop_hidden(user, full)
     if not exporting:
         return {"report": rep.key, "title": result.title, "filters": f.as_dict(), "page": p.page, "size": p.size,
                 "total": result.total, "columns": [c.__dict__ for c in result.columns], "rows": result.rows,
-                "summary": result.summary}  # fmt: skip
+                "summary": result.summary, "cost_hidden": len(result.columns) < len(full.columns)}  # fmt: skip
     if len(result.rows) > cap:
         raise AppError(ErrorCode.EXPORT_TOO_LARGE, f"{result.total} rows: at most {cap} in one {p.format.upper()} "
                        "file; narrow the dates or filters", status_code=422,
@@ -146,8 +150,10 @@ def _route(rep: Report) -> None:
         return await run(rep, p, request, user, session, document)
 
     perms = " and ".join(x.replace("|", " or ") for x in rep.permissions)
-    router.add_api_route(f"/{rep.key}", endpoint, methods=["GET"], tags=["reports"], name=rep.key, response_model=None,
-                         summary=rep.title, description=f"{(rep.build.__doc__ or '').strip()}\n\nNeeds {perms}.")  # fmt: skip
+    router.add_api_route(f"/{rep.key}", endpoint, methods=["GET"], tags=["reports"], name=rep.key,
+                         response_model=page_model(rep.key), response_model_exclude_unset=True, responses=FILES,
+                         summary=rep.title, description=f"{(rep.build.__doc__ or '').strip()}\n\nNeeds {perms}. "
+                         "?format=csv|xlsx|pdf returns the same rows as a file.")  # fmt: skip
 
 
 for _rep in REPORTS.values():

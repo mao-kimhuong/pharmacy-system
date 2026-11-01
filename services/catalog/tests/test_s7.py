@@ -1,6 +1,8 @@
 """Hampers and promotions in the catalog (S7)."""
 
-from .conftest import CASHIER, OWNER, PREFIX, create_medicine, outbox, user
+from uuid import uuid4
+
+from .conftest import CASHIER, OWNER, PREFIX, count, create_medicine, outbox, user
 
 HAMPERS = user("branch_manager", "products.view,catalog.hampers")
 PROMOS = user("branch_manager", "products.view,catalog.promotions")
@@ -93,3 +95,36 @@ async def test_promotion_update_and_deactivate_bump_the_version(client) -> None:
     assert r.json()["is_active"] is False and r.json()["version"] == 3
     assert [t for t, _ in await outbox() if t.startswith("promotion.")] == [
         "promotion.created", "promotion.updated", "promotion.deactivated"]  # fmt: skip
+
+
+async def test_promotion_preview_sends_the_draft_to_sales_and_saves_nothing(client) -> None:
+    from catalog_service.api.s7 import get_sales
+    from catalog_service.main import app
+
+    para = await create_medicine(client)
+    sent = {}
+
+    class Sales:
+        async def post(self, path: str, body: dict, **kw) -> dict:  # noqa: ANN003
+            sent.update(path=path, **body)
+            return {"lines": [], "conflicts": [], "can_post": False}
+
+    app.dependency_overrides[get_sales] = lambda: Sales()
+    try:
+        before = await count("promotions"), await count("outbox")
+        branch = uuid4()
+        manager = user("branch_manager", "products.view,catalog.promotions", (branch,))
+        body = {"promotion": {"code": "new20", "name": "New 20", "type": "percent_off", "value": "20",
+                              "medicine_ids": [para["id"]]},
+                "cart": {"branch_id": str(branch), "lines": [{"medicine_id": para["id"],
+                                                                "pack_unit_id": para["pack_units"][0]["id"], "qty": 1}]}}  # fmt: skip
+        r = await client.post(f"{PREFIX}/promotions/preview", json=body, headers=manager)
+        assert r.status_code == 200, r.text
+        assert sent["path"] == "/carts/preview" and sent["draft_promotion"]["code"] == "NEW20"
+        assert sent["draft_promotion"]["medicine_ids"] == [para["id"]]
+        assert (await count("promotions"), await count("outbox")) == before  # nothing saved
+        bad = {**body, "promotion": {**body["promotion"], "value": "200"}}
+        assert (await client.post(f"{PREFIX}/promotions/preview", json=bad, headers=manager)).status_code == 422
+        assert (await client.post(f"{PREFIX}/promotions/preview", json=body, headers=PROMOS)).status_code == 403
+    finally:
+        app.dependency_overrides.clear()

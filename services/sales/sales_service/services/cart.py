@@ -43,6 +43,7 @@ class PricedLine:
     promo_discount: Decimal = ZERO
     promotion_ids: list[str] = field(default_factory=list)
     manual_discount: Decimal = ZERO
+    promotion_amounts: dict[str, Decimal] = field(default_factory=dict)
 
     @property
     def qty_base(self) -> int:
@@ -82,15 +83,16 @@ def price_line(line_no: int, pack: ProductPackUnit, qty: int) -> PricedLine:
 
 
 async def apply_promotions(session: AsyncSession, branch_id: UUID, customer: KnownCustomer | None,
-                           lines: list[PricedLine]) -> None:  # fmt: skip
+                           lines: list[PricedLine], draft: dict[str, Any] | None = None) -> None:  # fmt: skip
     priceable = [x for x in lines if x.promo_discount == ZERO and not x.promotion_ids]
     result = await promotions.price(session, branch_id, customer, [
         PriceLine(x.line_no, x.pack.product_id, x.pack.product.category_id, x.pack.product.brand_id,
                   x.pack.product.is_rx_only or bool(x.pack.product.controlled_schedule), x.qty, x.qty_base,
-                  x.line_total) for x in priceable])  # fmt: skip
+                  x.line_total) for x in priceable], draft)  # fmt: skip
     for x in priceable:
         x.promo_discount = result.discounts.get(x.line_no, ZERO)
         x.promotion_ids = [str(p) for p in result.promotions.get(x.line_no, [])]
+        x.promotion_amounts = {str(p): result.amounts[(x.line_no, p)] for p in result.promotions.get(x.line_no, [])}
 
 
 def apply_manual(lines: list[PricedLine], raw: list[dict[str, Any]]) -> None:

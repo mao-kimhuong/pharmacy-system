@@ -1,6 +1,7 @@
 """Catalog admin commands.
 
     python -m catalog_service.cli republish
+    python -m catalog_service.cli price-history   # fill the price history once from the event history
 
 republish: writes a medicine.updated event (current state, current version) for
 every medicine, and category.updated / brand.updated for every category and
@@ -44,14 +45,27 @@ async def republish() -> tuple[int, int]:
     return count, lookup_count
 
 
+async def _price_history() -> int:
+    from .services.prices import backfill
+
+    try:
+        async with db.sessionmaker() as session:
+            return await backfill(session)
+    finally:
+        await db.dispose()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="catalog_service.cli")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("republish", help="re-send every medicine, category and brand as events")
+    sub.add_parser("price-history", help="fill the price history from the event history (once; safe to repeat)")
     args = parser.parse_args(argv)
     if args.command == "republish":
         count, lookup_count = asyncio.run(republish())
         print(f"Queued {count} medicine and {lookup_count} category/brand events")
+    elif args.command == "price-history":
+        print(f"{asyncio.run(_price_history())} price history rows from the event history")
     return 0
 
 

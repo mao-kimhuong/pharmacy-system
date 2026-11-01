@@ -108,7 +108,7 @@ async def clean(monkeypatch) -> AsyncIterator[None]:
             " exchange_rates, doc_sequences, branch_settings, known_customers, product_pack_units, products,"
             " known_branches, processed_messages, outbox, promotion_uses, promotions, suspended_carts,"
             " sale_template_lines, sale_templates, sale_order_lines, sale_orders, commission_lines,"
-            " commission_periods, commission_rules CASCADE"))  # fmt: skip
+            " commission_periods, commission_rules, khqr_payments CASCADE"))  # fmt: skip
     async with inventory_db.engine.begin() as conn:
         await conn.execute(text(
             "TRUNCATE reservation_lines, reservations, quarantine_entries, movements, stock, batches, stock_ins,"

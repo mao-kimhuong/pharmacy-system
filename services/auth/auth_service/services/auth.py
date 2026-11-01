@@ -27,7 +27,7 @@ from pharmacy_shared.outbox import add_event
 
 from ..config import Settings
 from ..models import OutboxEvent, RefreshToken, User
-from . import sessions
+from . import backup_codes, sessions
 from .access import load_permissions, mfa_setup_required
 from .audit import write_audit
 from .mfa import check_code
@@ -120,7 +120,7 @@ async def _issue(
     session.add(row)
     permissions = await load_permissions(session, user.role)
     setup = mfa_setup_required(user, settings)
-    access, expires_in = create_access_token(user, settings, permissions, setup)
+    access, expires_in = create_access_token(user, settings, permissions, setup, session_id=family)
     return row, IssuedTokens(access, raw, expires_in, user, permissions, setup)
 
 
@@ -244,7 +244,8 @@ async def login(
 
 
 async def login_2fa(
-    session: AsyncSession, redis: Redis, settings: Settings, mfa_token: str, code: str, client: ClientInfo
+    session: AsyncSession, redis: Redis, settings: Settings, mfa_token: str, code: str | None, client: ClientInfo,
+    backup_code: str | None = None,
 ) -> IssuedTokens:
     user_id, jti, exp = decode_mfa_token(mfa_token, settings)
     user = (
@@ -254,7 +255,12 @@ async def login_2fa(
         raise _invalid_credentials()
     if user.locked_until is not None and user.locked_until > _now():
         raise _locked(user)
-    if not check_code(user, code, settings):
+    if backup_code:  # a lost phone: one of the backup codes, used once (same lockout as a wrong code)
+        if not await backup_codes.consume(session, user, backup_code):
+            raise await _failed_attempt(session, user, settings, client, "backup code")
+        _login_audit(session, user, "user.backup_code_used", client,
+                     left=await backup_codes.left(session, user.id))  # fmt: skip
+    elif not code or not check_code(user, code, settings):
         raise await _failed_attempt(session, user, settings, client, "code")
     # Each MFA token works once.
     try:
@@ -381,7 +387,7 @@ async def verify(
         raise AppError(ErrorCode.NOT_AUTHENTICATED, "Missing bearer token", status_code=401)
     claims = decode_access_token(authorization[7:].strip(), settings)
     try:
-        revoked = await sessions.is_revoked(redis, claims.user_id, claims.jti, claims.issued_at_ms)
+        revoked = await sessions.is_revoked(redis, claims.user_id, claims.jti, claims.issued_at_ms, claims.session_id)
     except Exception:  # noqa: BLE001
         # Fail open on the revocation list only: signature and 15-minute expiry still
         # apply, and the POS keeps working during a Redis outage.

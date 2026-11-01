@@ -41,6 +41,7 @@ class InvoiceRender(BaseModel):
 
     type: Literal["receipt_80mm", "invoice_a4"]
     invoice_id: UUID
+    lang: Literal["km", "en"] | None = Field(default=None, description="Default: the branch setting receipt_lang")
 
 
 class DispensingLabelRender(BaseModel):
@@ -105,6 +106,28 @@ class SaleOrderRender(BaseModel):
     sale_order_id: UUID
 
 
+class SupplierReturnRender(BaseModel):
+    """Return note for the supplier. Permission purchasing.return, own branches."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["supplier_return"]
+    supplier_return_id: UUID
+    lang: Literal["km", "en"] = "km"
+
+
+class CustomerStatementRender(BaseModel):
+    """A customer's statement. Permission contacts.customers."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["customer_statement"]
+    customer_id: UUID
+    date_from: date | None = None
+    date_to: date | None = None
+    lang: Literal["km", "en"] = "km"
+
+
 RenderRequest = Annotated[
     LabelRender
     | PurchaseOrderRender
@@ -114,7 +137,9 @@ RenderRequest = Annotated[
     | RegisterRender
     | TransferNoteRender
     | PurchaseOrderGroupRender
-    | SaleOrderRender,
+    | SaleOrderRender
+    | SupplierReturnRender
+    | CustomerStatementRender,
     Field(discriminator="type"),
 ]
 

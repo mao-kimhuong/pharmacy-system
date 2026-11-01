@@ -7,6 +7,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, FastAPI
 from fastapi.openapi.utils import get_openapi
+from pydantic import BaseModel
 
 from .auth import CurrentUser, current_user
 from .config import BaseServiceSettings
@@ -14,6 +15,7 @@ from .db import Database
 from .errors import register_error_handlers
 from .idempotency import IdempotencyMiddleware
 from .logging import setup_logging
+from .openapi_errors import add_error_responses
 from .outbox_relay import RabbitPublisher, run_relay
 from .rate_limit import RateLimitMiddleware
 from .redis import RedisProvider
@@ -22,6 +24,15 @@ from .replay import replay_router
 log = logging.getLogger(__name__)
 
 INTERNAL_PREFIX = "/internal/v1"
+
+
+class WhoAmI(BaseModel):
+    service: str
+    user_id: str
+    role: str
+    branch_ids: list[str]
+    is_pharmacist: bool
+    permissions: list[str]
 
 
 def create_service_app(
@@ -36,6 +47,7 @@ def create_service_app(
     on_startup: Sequence[Callable[[], Awaitable[None]]] = (),
     background: Sequence[Callable[[asyncio.Event], Awaitable[None]]] = (),
     internal_router: APIRouter | None = None,
+    public_paths: Sequence[str] = (),
 ) -> FastAPI:
     """Builds a service app with the same health/whoami routes, error format,
     middlewares (per-user rate limit, Idempotency-Key) and outbox relay.
@@ -44,6 +56,8 @@ def create_service_app(
     background: long-running tasks, e.g. an EventConsumer.run; they get a stop event.
     internal_router: service-to-service endpoints, mounted at /internal/v1 (outside
     /api, so Traefik never routes them; guarded by pharmacy_shared.internal).
+    public_paths: routes Traefik serves without a token (e.g. auth's login): no shared
+    401/403 in their documentation.
     """
     setup_logging()
     if settings.is_production:
@@ -117,7 +131,7 @@ def create_service_app(
     async def health() -> dict[str, str]:
         return {"status": "ok", "service": settings.service_name}
 
-    @app.get(f"{prefix}/whoami", tags=["system"])
+    @app.get(f"{prefix}/whoami", tags=["system"], response_model=WhoAmI)
     async def whoami(user: CurrentUser = Depends(current_user)) -> dict[str, Any]:
         """Protected test endpoint: shows the user Traefik passed to this service."""
         return {
@@ -134,12 +148,14 @@ def create_service_app(
         app.include_router(internal_router, prefix=INTERNAL_PREFIX, include_in_schema=False)
     if outbox_model is not None:
         app.include_router(replay_router(outbox_model), prefix=INTERNAL_PREFIX, include_in_schema=False)
-    _add_bearer_auth_to_docs(app, title)
+    public = {f"{prefix}/health", f"{prefix}/docs", f"{prefix}/openapi.json", *(public_paths or ())}
+    _add_bearer_auth_to_docs(app, title, public)
     return app
 
 
-def _add_bearer_auth_to_docs(app: FastAPI, title: str) -> None:
-    """Adds an "Authorize" button to the API docs (paste the access token)."""
+def _add_bearer_auth_to_docs(app: FastAPI, title: str, public: set[str]) -> None:
+    """Adds an "Authorize" button to the API docs (paste the access token) and the
+    error responses of every operation (pharmacy_shared.openapi_errors)."""
 
     def custom_openapi() -> dict[str, Any]:
         if app.openapi_schema:
@@ -149,6 +165,7 @@ def _add_bearer_auth_to_docs(app: FastAPI, title: str) -> None:
             "bearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
         }
         schema["security"] = [{"bearerAuth": []}]
+        add_error_responses(schema, app.routes, public)
         app.openapi_schema = schema
         return schema
 

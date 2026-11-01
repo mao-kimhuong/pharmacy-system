@@ -121,7 +121,7 @@ def _opening(ob, user: CurrentUser) -> JSONResponse:  # noqa: ANN001
     return respond(OpeningOut.model_validate(ob), user)
 
 
-@router.get("/opening-balances/template.xlsx", response_class=Response, tags=["initialize"])
+@router.get("/opening-balances/template.xlsx", response_class=Response, tags=["initialize"], responses={200: {"content": {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}}, "description": "The .xlsx file"}})  # fmt: skip
 async def opening_template(_: CurrentUser = Depends(initialize)) -> Response:
     return Response(opening.template(), media_type=XLSX_MEDIA_TYPE,
                     headers={"Content-Disposition": 'attachment; filename="opening-stock-template.xlsx"'})  # fmt: skip

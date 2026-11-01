@@ -136,3 +136,23 @@ async def test_merge_back_releases_when_the_order_no_longer_holds_stock(client) 
     assert await reserved_of(client) == {"PARA500": 10}
     back = await client.post(f"/internal/v1/reservations/{r['id']}/merge-back", json={"ref_id": inv}, headers=INTERNAL)
     assert back.json()["status"] == "released" and await reserved_of(client) == {}
+
+
+async def test_plan_is_the_same_allocation_and_reserves_nothing(client) -> None:
+    para, ors, kit = await stocked()
+    lines = [{"line_no": 1, "medicine_id": para["id"], "qty_base": 30}, {"line_no": 2, "medicine_id": kit["id"],
+                                                                          "qty_base": 1}]  # fmt: skip
+    plan = await client.post("/internal/v1/reservations/plan", json={"branch_id": str(PP1), "lines": lines},
+                             headers=INTERNAL)  # fmt: skip
+    assert plan.status_code == 200 and plan.json()["status"] == "planned", plan.text
+    assert await reserved_of(client) == {}  # nothing held
+    real = await client.post("/internal/v1/reservations", headers=INTERNAL, json={
+        "ref_type": "invoice", "ref_id": str(uuid4()), "branch_id": str(PP1), "lines": lines})  # fmt: skip
+
+    def key(r: dict) -> list:
+        return sorted((x["line_no"], x["lot_no"], x["qty_base"], x["cost_per_base"]) for x in r["lines"])
+
+    assert key(plan.json()) == key(real.json())
+    short = await client.post("/internal/v1/reservations/plan", headers=INTERNAL, json={
+        "branch_id": str(PP1), "lines": [{"line_no": 1, "medicine_id": ors["id"], "qty_base": 99}]})  # fmt: skip
+    assert short.status_code == 409 and short.json()["code"] == "OUT_OF_STOCK"

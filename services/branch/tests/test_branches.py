@@ -206,3 +206,18 @@ async def test_sales_extras_settings(client) -> None:
     bad = await client.put(f"{PREFIX}/branches/{branch['id']}/settings", headers=OWNER,
                            json={"max_discount_pct": {"cashier": 150}})  # fmt: skip
     assert bad.status_code == 422
+
+
+async def test_receipt_language_and_khqr_account(client) -> None:
+    branch = await create(client)
+    url = f"{PREFIX}/branches/{branch['id']}/settings"
+    s = (await client.get(url, headers=OWNER)).json()
+    assert (s["receipt_lang"], s["khqr"]) == ("km", None)  # the shared KHQR account
+    khqr = {"account_id": "pharmacy_pp1@aclb", "merchant_name": "Pharmacy PP1", "city": "Phnom Penh"}
+    r = await client.put(url, headers=OWNER, json={"receipt_lang": "en", "khqr": khqr})
+    assert r.status_code == 200, r.text
+    payload = [p for t, p in await outbox() if t == "branch.settings_updated"][-1]
+    assert payload["receipt_lang"] == "en" and payload["khqr"]["currencies"] == ["USD", "KHR"]
+    assert (await client.put(url, headers=OWNER, json={"khqr": {**khqr, "account_id": "no-bank"}})).status_code == 422
+    r = await client.put(url, headers=OWNER, json={"khqr": None})
+    assert r.json()["khqr"] is None  # back to the shared account

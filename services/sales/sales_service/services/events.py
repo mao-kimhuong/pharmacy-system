@@ -43,7 +43,8 @@ async def handle_event(
             "dispensing_label_size": payload.get("dispensing_label_size") or "70x40",
             "order_deposit_on_cancel": payload.get("order_deposit_on_cancel") or "keep_as_credit",
             "max_discount_pct": payload.get("max_discount_pct") or {"cashier": 5, "pharmacist": 10,
-                                                                    "branch_manager": 20}})  # fmt: skip
+                                                                    "branch_manager": 20},
+            "receipt_lang": payload.get("receipt_lang") or "km", "khqr": payload.get("khqr")})  # fmt: skip
     elif event_type in copies.MEDICINE_EVENTS:
         await copies.upsert_product(session, Product, ProductPackUnit, payload)
     elif event_type.startswith("promotion."):

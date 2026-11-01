@@ -198,3 +198,17 @@ async def test_dispensing_at_another_branch_links_the_patient(client) -> None:
     assert r.status_code == 200
     p = rx["patient"]["id"]
     assert (await client.get(f"{PREFIX}/patients/{p}", headers=PHARMACIST_PP2)).status_code == 200
+
+
+async def test_rx_check_is_the_same_check_and_holds_nothing(client) -> None:
+    rx, m = await basic(client, qty=10)
+    item = rx["items"][0]["id"]
+    body = {"branch_id": str(rx["branch_id"]), "lines": [{"line_no": 1, "rx_item_id": item, "medicine_id": m,
+                                                          "qty_base": 10}]}  # fmt: skip
+    r = await client.post("/internal/v1/rx/check", json=body, headers=INTERNAL)
+    assert r.status_code == 200 and r.json()["invoice_id"] is None and r.json()["lines"][0]["remaining_after"] == 10
+    assert (await remaining(client, rx))["items"][0]["remaining_base"] == 10  # nothing held
+    too_many = {**body, "lines": [{**body["lines"][0], "qty_base": 11}]}
+    r = await client.post("/internal/v1/rx/check", json=too_many, headers=INTERNAL)
+    assert r.status_code == 422 and r.json()["code"] == "RX_QUANTITY_EXCEEDED"  # same code as check-and-hold
+    assert (await hold(client, item, m, 10)).status_code == 200  # the full fill can still be held

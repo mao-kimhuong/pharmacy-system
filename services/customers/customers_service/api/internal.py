@@ -1,5 +1,6 @@
 """/internal/v1 – called by the sales service (sale saga), never through Traefik."""
 
+from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
@@ -11,15 +12,34 @@ from ..db import db
 from ..schemas.customers import (
     ChargeRequest,
     CreditResult,
+    CreditStatus,
     DepositSettle,
     DepositTake,
     DepositUse,
     NumberRequest,
     ReverseRequest,
+    StatementOut,
 )
-from ..services import credit, deposits
+from ..services import credit, deposits, payments
 
 router = APIRouter()
+
+
+@router.get("/customers/{customer_id}/credit", response_model=CreditStatus)
+async def credit_status(
+    customer_id: UUID, caller: InternalCaller = Depends(internal_caller), session: AsyncSession = Depends(db.session)
+) -> dict:
+    """The cart preview's credit check: balance, limit, what is still available."""
+    return await credit.credit_status(session, customer_id)
+
+
+@router.get("/customers/{customer_id}/statement", response_model=StatementOut, response_model_by_alias=True)
+async def statement(
+    customer_id: UUID, date_from: date | None = None, date_to: date | None = None,
+    caller: InternalCaller = Depends(internal_caller), session: AsyncSession = Depends(db.session),
+) -> StatementOut:  # fmt: skip
+    """The statement for the document service (customer statement PDF)."""
+    return StatementOut.model_validate(await payments.statement(session, customer_id, date_from, date_to))
 
 
 @router.post("/credit/charge", response_model=CreditResult)

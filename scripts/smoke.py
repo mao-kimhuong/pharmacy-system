@@ -68,7 +68,15 @@ the cashier gets 403 on Sale Margin By Item; /internal/v1/outbox is not routed;
 Telegram: the test message (503 without a bot token), the daily summary queued
 once when run twice, the User Log.
 
-Without prompts: SMOKE_PHONE, SMOKE_PASSWORD, SMOKE_S1=y ... SMOKE_S5=y, SMOKE_S6=y, SMOKE_S7=y, SMOKE_S8=y.
+S8b checks (optional, needs the S1b sample products and KHQR_PROVIDER=fake): a test
+branch receives PARA500 from a new supplier; the cart preview says can_post for it,
+RX_REQUIRED for AMOX500 without an Rx and PHARMACIST_REQUIRED for a cashier's Rx
+line; a KHQR is created, paid (fake Bakong) and pays a sale once; a supplier
+return lowers what we owe and prints; a recall of the lot stops its sale (lifted
+afterwards); a customer statement prints in Khmer and English; the owner logs in
+with a new backup code and that session is revoked at once.
+
+Without prompts: SMOKE_PHONE, SMOKE_PASSWORD, SMOKE_S1=y ... SMOKE_S5=y, SMOKE_S6=y, SMOKE_S7=y, SMOKE_S8=y, SMOKE_S8B=y.
 
 Uses only the Python standard library.
 """
@@ -163,9 +171,13 @@ def check(ok: bool, label: str) -> bool:
     return bool(ok)
 
 
+OWNER_LOGIN: dict[str, str] = {}  # kept for the S8b backup-code check
+
+
 def owner_login() -> dict | None:
     phone = os.environ.get("SMOKE_PHONE") or input("Owner phone: ")
     password = os.environ.get("SMOKE_PASSWORD") or getpass.getpass("Owner password: ")
+    OWNER_LOGIN.update(phone=phone, password=password)
     status, data = call("POST", "/api/auth/v1/login", {"phone": phone, "password": password})
     if not check(status == 200, f"owner login -> 200 (got {status} {data.get('code', '')})"):
         return None
@@ -1536,6 +1548,178 @@ def s8_checks(token: str) -> None:
         remove_test_cashier(token, bid, cashier)
 
 
+def s8b_checks(token: str) -> None:
+    cat, inv, sales, pur, cust = ("/api/catalog/v1", "/api/inventory/v1", "/api/sales/v1", "/api/purchasing/v1",
+                                  "/api/customers/v1")  # fmt: skip
+    docs = "/api/documents/v1/render"
+    found = {}
+    for sku in ("PARA500", "AMOX500"):
+        _, out = call("GET", f"{cat}/medicines/search?q={sku}", token=token)
+        found[sku] = next((x for x in out.get("items", []) if x["sku"] == sku), None)
+    para, amox = found["PARA500"], found["AMOX500"]
+    if para is None or amox is None:
+        check(False, "sample products PARA500 and AMOX500 exist (run the S1b step first)")
+        return
+    packs = {p["name"]: p for p in para["pack_units"]}
+    made = make_test_cashier(token)
+    if made is None:
+        return
+    bid, cashier, phone, password = made
+    today = date.today()
+    supplier: dict = {}
+    customer: dict = {}
+    recall: dict = {}
+
+    def key() -> dict:
+        return {"Idempotency-Key": str(uuid.uuid4())}
+
+    def line(m: dict, pack: str, qty: int, **extra) -> dict:
+        p = next(x for x in m["pack_units"] if x["name"] == pack)
+        return {"medicine_id": m["id"], "pack_unit_id": p["id"], "qty": qty, **extra}
+
+    def codes(p: dict, kind: str = "hard_stops") -> set:
+        return {f["code"] for f in p.get(kind, [])} | {f["code"] for x in p.get("lines", []) for f in x[kind]}
+
+    try:
+        # stock from a supplier (so it can go back to them)
+        sc = f"S8B{random.randint(1000, 9999)}"
+        status, supplier = call("POST", f"{pur}/suppliers", {"code": sc, "name": f"Smoke supplier {sc}",
+                                "payment_terms_days": 30}, token=token)  # fmt: skip
+
+        def make_po():
+            st, po = call("POST", f"{pur}/purchase-orders", {"branch_id": bid, "supplier_id": supplier.get("id"),
+                          "lines": [{"medicine_id": para["id"], "pack_unit_id": packs["box"]["id"], "qty": 2,
+                                     "unit_cost": "4.25"}]}, token=token)  # fmt: skip
+            return (st, po) if po.get("code") not in ("UNKNOWN_BRANCH", "UNKNOWN_MEDICINE") else None
+
+        status, po = wait_for(make_po, tries=30) or (0, {})
+        call("POST", f"{pur}/purchase-orders/{po.get('id')}/send", token=token)
+        status, _ = call("POST", f"{pur}/purchase-orders/{po.get('id')}/receive", {"lines": [
+            {"po_line_id": po["lines"][0]["id"], "lot_no": "S8BLOT", "expiry_date": (today + timedelta(days=500)).isoformat(),
+             "qty": 2}]}, token=token, headers=key())  # fmt: skip
+        if not check(status == 201, f"2 boxes of PARA500 received from {sc} -> {status}"):
+            return
+        call("PUT", f"{sales}/exchange-rates/{bid}", {"khr_per_usd": 4100}, token=token)
+        ctoken = call("POST", "/api/auth/v1/login", {"phone": phone, "password": password})[1].get("access_token", "")
+
+        def batch_id():
+            _, out = call("GET", f"{inv}/stock?branch_id={bid}&q=PARA500", token=token)
+            return next((b["batch_id"] for i in out.get("items", []) for b in i["batches"] if b["lot_no"] == "S8BLOT"), None)
+
+        batch = wait_for(batch_id, tries=30)
+        check(bool(batch), "the lot is in stock at the test branch")
+
+        # 1. cart preview: the same checks as the sale, nothing saved
+        def preview(lines, tok=None, **extra):
+            return call("POST", f"{sales}/carts/preview", {"branch_id": bid, "lines": lines, **extra},
+                        token=tok or ctoken)  # fmt: skip
+
+        status, p = preview([line(para, "strip", 2)])
+        check(status == 200 and p.get("can_post") and p["lines"][0]["batches"][0]["lot_no"] == "S8BLOT"
+              and p.get("total_khr"), f"preview: PARA500 can be sold from lot S8BLOT, {p.get('total')} USD / "
+              f"{p.get('total_khr')} KHR")  # fmt: skip
+        status, p = preview([line(amox, "strip", 1)])
+        check("RX_REQUIRED" in codes(p) and not p.get("can_post"), f"preview: an Rx-only line needs the Rx ({codes(p)})")
+        status, p = preview([line(amox, "strip", 1, rx_item_id=str(uuid.uuid4()))])
+        check("PHARMACIST_REQUIRED" in codes(p), "preview as cashier with an Rx line -> PHARMACIST_REQUIRED")
+
+        # 2. KHQR (fake provider on a development stack)
+        price = Decimal(packs["strip"]["sell_price"]) * 2
+        status, qr = call("POST", f"{sales}/payments/khqr", {"branch_id": bid, "amount": str(price), "currency": "USD"},
+                          token=ctoken, headers=key())  # fmt: skip
+        check(status == 201 and qr.get("status") == "pending" and qr.get("qr_string", "").startswith("000201"),
+              f"KHQR for {price} USD -> pending ({status})")  # fmt: skip
+        status, _ = call("POST", f"{sales}/payments/khqr/{qr.get('id')}/fake-pay", token=token)
+        _, seen = call("GET", f"{sales}/payments/khqr/{qr.get('id')}", token=ctoken)
+        if check(status == 204 and seen.get("status") == "paid", f"paid (fake Bakong) -> {seen.get('status')}"):
+            status, sale = call("POST", f"{sales}/invoices", {"branch_id": bid, "lines": [line(para, "strip", 2)],
+                                "payments": [{"method": "KHQR", "currency": "USD", "amount": str(price),
+                                              "khqr_id": qr["id"]}]}, token=ctoken, headers=key())  # fmt: skip
+            _, seen = call("GET", f"{sales}/payments/khqr/{qr['id']}", token=ctoken)
+            check(status == 201 and seen.get("status") == "used",
+                  f"sale {sale.get('number')} paid by KHQR; the QR is used ({seen.get('status')})")  # fmt: skip
+
+        # 3. supplier return: the credit lowers what we owe
+        _, before = call("GET", f"{pur}/suppliers/{supplier['id']}/balance", token=token)
+        status, ret = call("POST", f"{pur}/supplier-returns", {"branch_id": bid, "supplier_id": supplier["id"],
+                           "reason": "damaged", "lines": [{"batch_id": batch, "medicine_id": para["id"],
+                                                           "qty_base": 20}]}, token=token)  # fmt: skip
+        status, ret = call("POST", f"{pur}/supplier-returns/{ret.get('id')}/submit", {"settle": "credit"},
+                           token=token, headers=key())  # fmt: skip
+        _, after = call("GET", f"{pur}/suppliers/{supplier['id']}/balance", token=token)
+        check(status == 200 and ret.get("status") == "credited"
+              and Decimal(before.get("owed", "0")) - Decimal(after.get("owed", "0")) == Decimal(ret.get("total", "-1")),
+              f"return {ret.get('number')} of 20 tablets: owed {before.get('owed')} -> {after.get('owed')}")  # fmt: skip
+        body = json.dumps({"type": "supplier_return", "supplier_return_id": ret.get("id"), "lang": "en"}).encode()
+
+        def return_pdf():
+            st, pdf, _ = call_raw("POST", docs, body, token, {"Content-Type": "application/json"})
+            return pdf if st == 200 else None
+
+        pdf = wait_for(return_pdf, tries=20)
+        check(bool(pdf) and pdf.startswith(b"%PDF"), "the return note PDF for the supplier")
+
+        # 4. recall: the lot cannot be sold any more
+        status, recall = call("POST", f"{inv}/recalls", {"medicine_id": para["id"], "lot_nos": ["S8BLOT"],
+                              "reason": "Smoke test recall"}, token=token, headers=key())  # fmt: skip
+        check(status == 201, f"owner recalls lot S8BLOT -> {recall.get('number')}")
+        status, p = preview([line(para, "strip", 1)])
+        status, r = call("POST", f"{sales}/invoices", {"branch_id": bid, "lines": [line(para, "strip", 1)],
+                         "payments": [{"method": "cash", "amount": "5.00"}]}, token=ctoken, headers=key())  # fmt: skip
+        check(r.get("code") == "OUT_OF_STOCK" and "OUT_OF_STOCK" in codes(p),
+              f"the recalled lot is not sold: sale -> {r.get('code')}, preview -> {codes(p)}")  # fmt: skip
+        _, detail = call("GET", f"{inv}/recalls/{recall.get('id')}", token=token)
+        print(f"        recall {detail.get('number')}: " + ", ".join(
+            f"{x['lot_no']} on hand {x['on_hand']} ({x['action']})" for x in detail.get("lines", [])))
+
+        # 5. customer statement PDF in Khmer and English
+        status, customer = call("POST", f"{cust}/customers", {"phone": f"096{random.randint(1000000, 9999999)}",
+                                "name": "Smoke statement customer"}, token=token)  # fmt: skip
+        for lang in ("km", "en"):
+            body = json.dumps({"type": "customer_statement", "customer_id": customer.get("id"), "lang": lang}).encode()
+            st, pdf, _ = call_raw("POST", docs, body, token, {"Content-Type": "application/json"})
+            if check(st == 200 and pdf.startswith(b"%PDF"), f"customer statement PDF ({lang})"):
+                out = Path(tempfile.gettempdir()) / f"pharmacy-smoke-statement-{lang}.pdf"
+                out.write_bytes(pdf)
+                print(f"        open {out}")
+
+        # 6. 2FA backup code, then the session it opened is revoked
+        status, fresh = call("POST", "/api/auth/v1/2fa/backup-codes", {"password": OWNER_LOGIN["password"]},
+                             token=token)  # fmt: skip
+        codes_ = fresh.get("codes") or []
+        check(status == 200 and len(codes_) == 10, f"10 new backup codes ({status})")
+        _, step1 = call("POST", "/api/auth/v1/login", {"phone": OWNER_LOGIN["phone"], "password": OWNER_LOGIN["password"]})
+        status, step2 = call("POST", "/api/auth/v1/login/2fa", {"mfa_token": step1.get("mfa_token", ""),
+                             "backup_code": codes_[0] if codes_ else "x" * 11})  # fmt: skip
+        other = step2.get("access_token", "")
+        check(status == 200 and bool(other), f"owner logs in with a backup code -> {status}")
+        _, rows = call("GET", "/api/auth/v1/me/sessions", token=token)
+        mine = [r for r in rows if r.get("current")] if isinstance(rows, list) else []
+        check(len(rows) >= 2 and len(mine) == 1, f"sessions listed ({len(rows)}), this one marked current")
+        _, theirs = call("GET", "/api/auth/v1/me/sessions", token=other)
+        sid = next((r["id"] for r in theirs if r.get("current")), None) if isinstance(theirs, list) else None
+        status, _ = call("POST", f"/api/auth/v1/me/sessions/{sid}/revoke", token=token)
+        st, _ = call("GET", "/api/sales/v1/whoami", token=other)
+        check(status == 204 and st == 401, f"that session revoked: its token -> {st}")
+
+        for action in ("recall.started", "supplier_return.submitted", "khqr.created", "user.backup_code_used",
+                       "user.session_revoked"):  # fmt: skip
+
+            def logged(action=action):
+                _, log = call("GET", f"/api/auth/v1/audit-logs?action={action}&size=1", token=token)
+                return log.get("total")
+
+            check(bool(wait_for(logged)), f"User Log shows {action}")
+    finally:
+        if recall.get("id"):
+            call("POST", f"{inv}/recalls/{recall['id']}/lift", {"reason": "smoke test clean-up"}, token=token)
+        if customer.get("id"):
+            call("POST", f"{cust}/customers/{customer['id']}/deactivate", {"reason": "smoke test"}, token=token)
+        if supplier.get("id"):
+            call("POST", f"{pur}/suppliers/{supplier['id']}/deactivate", {"reason": "smoke test"}, token=token)
+        remove_test_cashier(token, bid, cashier)
+
+
 def main() -> int:
     print(f"Smoke test against {BASE}\n")
     tokens = s0_checks()
@@ -1603,6 +1787,13 @@ def main() -> int:
     if run_s8.strip().lower() in ("y", "yes", "1"):
         print()
         s8_checks(tokens["access_token"])
+    run_s8b = os.environ.get("SMOKE_S8B") or input(
+        "\nAlso run the S8b checks? It creates a test branch, a supplier, a PO, a KHQR sale (fake Bakong: development\n"
+        "only), a supplier return, a recall (lifted afterwards), a customer statement, a backup-code login. [y/N] "
+    )
+    if run_s8b.strip().lower() in ("y", "yes", "1"):
+        print()
+        s8b_checks(tokens["access_token"])
 
     status, _ = call(
         "POST",

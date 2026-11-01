@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from pharmacy_shared.auth import CurrentUser, requires, requires_any
 from pharmacy_shared.idempotency import require_idempotency_key
+from pharmacy_shared.openapi_errors import SALE_PASSTHROUGH, errors
 from pharmacy_shared.visibility import drop_fields
 
 from ..db import db
@@ -22,8 +23,9 @@ from ..schemas.sales import (
     ReasonRequest,
     ReturnCreate,
     ReturnOut,
+    SoldBatch,
 )
-from ..services import cancel, queries, rates, returns, sale_saga
+from ..services import by_batches, cancel, queries, rates, returns, sale_saga
 from ..services.clients import Clients, get_clients
 from ..services.common import COST_FIELDS, can_see_cost
 
@@ -49,13 +51,29 @@ async def set_rate(
 
 @router.get("/exchange-rates/{branch_id}", response_model=list[RateOut], tags=["exchange rate"])
 async def rate_history(
-    branch_id: UUID, user: CurrentUser = Depends(view), session: AsyncSession = Depends(db.session)
-) -> list[ExchangeRate]:
-    """Newest first: the first row is the rate in use."""
-    return await rates.history(session, user, branch_id)
+    branch_id: UUID, date_from: date | None = Query(default=None, alias="from"),
+    date_to: date | None = Query(default=None, alias="to"), page: int = Query(default=1, ge=1),
+    size: int = Query(default=50, ge=1, le=200), user: CurrentUser = Depends(view),
+    session: AsyncSession = Depends(db.session),
+) -> list[ExchangeRate]:  # fmt: skip
+    """Newest first (without filters the first row is the rate in use): who set it, when,
+    and the rate before. Filter by day (from / to, Phnom Penh) and page."""
+    return await rates.history(session, user, branch_id, size, (page - 1) * size, date_from, date_to)
 
 
-@router.post("/invoices", response_model=InvoiceOut, status_code=201, tags=["invoices"])
+@router.get("/invoices/by-batches", response_model=list[SoldBatch], response_model_exclude_unset=True,
+            tags=["invoices"])
+async def invoices_by_batches(
+    batch_ids: list[UUID] = Query(min_length=1, max_length=50), user: CurrentUser = Depends(requires("sales.view")),
+    session: AsyncSession = Depends(db.session),
+) -> list[dict]:  # fmt: skip
+    """A recall: the sales of these batches (lots) in your branches, newest first, with the
+    customer; the patient of Rx lines only with prescriptions.view."""
+    return await by_batches.invoices_by_batches(session, user, batch_ids)
+
+
+@router.post("/invoices", response_model=InvoiceOut, status_code=201, tags=["invoices"],
+             openapi_extra=errors(*SALE_PASSTHROUGH))
 async def create_invoice(
     body: InvoiceCreate,
     key: str = Depends(require_idempotency_key),
@@ -100,7 +118,7 @@ async def get_invoice(
     return respond(InvoiceOut.model_validate(await queries.get_invoice(session, user, invoice_id)), user)
 
 
-@router.post("/invoices/{invoice_id}/cancel", response_model=InvoiceOut, tags=["invoices"])
+@router.post("/invoices/{invoice_id}/cancel", response_model=InvoiceOut, tags=["invoices"], openapi_extra=errors(*SALE_PASSTHROUGH))
 async def cancel_invoice(
     invoice_id: UUID,
     body: ReasonRequest,
@@ -114,7 +132,7 @@ async def cancel_invoice(
     return respond(InvoiceOut.model_validate(inv), user)
 
 
-@router.post("/invoices/{invoice_id}/returns", response_model=ReturnOut, status_code=201, tags=["returns"])
+@router.post("/invoices/{invoice_id}/returns", response_model=ReturnOut, status_code=201, tags=["returns"], openapi_extra=errors(*SALE_PASSTHROUGH))
 async def create_return(
     invoice_id: UUID,
     body: ReturnCreate,

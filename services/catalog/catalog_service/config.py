@@ -10,6 +10,9 @@ class Settings(BaseServiceSettings):
     db_user: str = "catalog_user"
     db_password: str = "change-me-catalog"
 
+    # The promotion preview prices a sample cart in the sales service (/internal/v1/carts/preview)
+    sales_url: str = "http://sales:8000"
+
 
 @lru_cache
 def get_settings() -> Settings:

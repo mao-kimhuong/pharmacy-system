@@ -15,6 +15,8 @@ from ..schemas.inventory import (
     FromPurchaseRequest,
     MergeBackRequest,
     MovementsSince,
+    PlanOut,
+    PlanRequest,
     ReleaseByRef,
     ReservationOut,
     ReserveRequest,
@@ -23,8 +25,10 @@ from ..schemas.inventory import (
     ReverseRequest,
     SnapshotRequest,
     SplitRequest,
+    SupplierReturnMove,
+    SupplierReturnMoved,
 )
-from ..services import counting, transfers
+from ..services import counting, recalls, transfers
 from ..services import reservations as svc
 
 router = APIRouter()
@@ -38,6 +42,16 @@ async def reserve(
 ) -> dict:
     """FEFO, split over batches, row-locked; once per invoice. OUT_OF_STOCK lists the short lines."""
     return await svc.reserve(session, caller, body.model_dump())
+
+
+@router.post("/reservations/plan", response_model=PlanOut)
+async def plan(
+    body: PlanRequest,
+    caller: InternalCaller = Depends(internal_caller),
+    session: AsyncSession = Depends(db.session),
+) -> dict:
+    """The cart preview: the same FEFO allocation and errors as /reservations, no locks, nothing saved."""
+    return await svc.reserve(session, caller, body.model_dump(), write=False)
 
 
 @router.post("/reservations/release-by-ref", response_model=ReservationOut | None)
@@ -162,3 +176,12 @@ async def stock_available(
 ) -> dict:  # fmt: skip
     """Sellable now per item (hampers: whole hampers), nothing reserved (resuming a cart)."""
     return {"items": await svc.availability(session, body.branch_id, [i.model_dump() for i in body.items])}
+
+
+@router.post("/movements/supplier-return", response_model=SupplierReturnMoved)
+async def supplier_return(
+    body: SupplierReturnMove, caller: InternalCaller = Depends(internal_caller),
+    session: AsyncSession = Depends(db.session),
+) -> dict:  # fmt: skip
+    """Purchasing submits a supplier return: one supplier_return movement per line, once."""
+    return await recalls.supplier_return_movement(session, caller, body.model_dump())

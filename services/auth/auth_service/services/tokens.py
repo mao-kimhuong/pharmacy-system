@@ -28,10 +28,13 @@ class AccessClaims:
     # True for an owner/manager who has not set up 2FA yet: only the 2FA set-up
     # screens are allowed until they do.
     mfa_setup_required: bool = False
+    # The login session (refresh-token family) this token belongs to (S8b: /me/sessions)
+    session_id: UUID | None = None
 
 
 def create_access_token(
-    user: User, settings: Settings, permissions: list[str], mfa_setup_required: bool = False
+    user: User, settings: Settings, permissions: list[str], mfa_setup_required: bool = False,
+    session_id: UUID | None = None,
 ) -> tuple[str, int]:
     """Returns (token, expires_in_seconds)."""
     now = time.time()
@@ -45,6 +48,7 @@ def create_access_token(
         "perms": permissions,
         "mfa_setup": mfa_setup_required,
         "jti": uuid4().hex,
+        "sid": str(session_id) if session_id else None,
         "iat": int(now),
         "iat_ms": int(now * 1000),
         "exp": int(now) + expires_in,
@@ -79,6 +83,7 @@ def decode_access_token(token: str, settings: Settings) -> AccessClaims:
             expires_at=int(data["exp"]),
             permissions=[str(p) for p in data.get("perms", [])],
             mfa_setup_required=bool(data.get("mfa_setup", False)),
+            session_id=UUID(data["sid"]) if data.get("sid") else None,
         )
     except (jwt.PyJWTError, KeyError, ValueError, TypeError) as exc:
         raise AppError(ErrorCode.NOT_AUTHENTICATED, "Invalid or expired token", status_code=401) from exc

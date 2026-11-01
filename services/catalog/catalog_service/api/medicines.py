@@ -1,3 +1,4 @@
+from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Response
@@ -15,11 +16,12 @@ from ..schemas.catalog import (
     PackUnitCreate,
     PackUnitOut,
     PackUnitUpdate,
+    PriceChange,
     ReasonRequest,
     SearchHit,
     SearchPage,
 )
-from ..services import exports
+from ..services import exports, prices
 from ..services import medicines as svc
 
 router = APIRouter(tags=["medicines"])
@@ -68,7 +70,7 @@ async def search_medicines(
     return SearchPage(items=items, total=total, page=page, size=size)
 
 
-@router.get("/medicines/export.xlsx", response_class=Response)
+@router.get("/medicines/export.xlsx", response_class=Response, responses={200: {"content": {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}}, "description": "The .xlsx file"}})  # fmt: skip
 async def export_medicines(
     include_inactive: bool = False,
     _: CurrentUser = Depends(view),
@@ -105,6 +107,17 @@ async def update_medicine(
     session: AsyncSession = Depends(db.session),
 ) -> Medicine:
     return await svc.update_medicine(session, user, medicine_id, body.model_dump(exclude_unset=True))
+
+
+@router.get("/medicines/{medicine_id}/price-history", response_model=list[PriceChange])
+async def price_history(
+    medicine_id: UUID, pack_unit_id: UUID | None = None,
+    date_from: date | None = Query(default=None, alias="from"), date_to: date | None = Query(default=None, alias="to"),
+    _: CurrentUser = Depends(requires("products.view")), session: AsyncSession = Depends(db.session),
+) -> list:  # fmt: skip
+    """Every sell price change per pack unit (old → new, who, when). Cost is not in the
+    catalog: the reports' Cost change report has the receipts' cost."""
+    return await prices.history(session, medicine_id, pack_unit_id, date_from, date_to)
 
 
 @router.post("/medicines/{medicine_id}/deactivate", response_model=MedicineOut)

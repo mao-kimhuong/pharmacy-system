@@ -25,6 +25,24 @@ class Settings(BaseServiceSettings):
     jobs_enabled: bool = True
     order_expiry_every_seconds: int = 600
 
+    # KHQR (S8b): fake (tests, development) or bakong. Production refuses fake.
+    khqr_provider: str = "fake"
+    khqr_expires_seconds: int = 300
+    khqr_poll_seconds: float = 5.0
+    khqr_mcc: str = "5912"  # drug stores and pharmacies
+    # The shared Bakong account (a branch's own one comes from its settings)
+    khqr_account_id: str = ""
+    khqr_merchant_name: str = ""
+    khqr_city: str = "Phnom Penh"
+    khqr_merchant_id: str = ""
+    khqr_acquiring_bank: str = ""
+    bakong_api_base: str = "https://api-bakong.nbc.gov.kh"
+    bakong_token: str = ""
+
+    def check_khqr(self) -> None:
+        if self.is_production and self.khqr_provider != "bakong":
+            raise RuntimeError("KHQR_PROVIDER must be bakong in production (the fake provider pays nothing)")
+
 
 @lru_cache
 def get_settings() -> Settings:

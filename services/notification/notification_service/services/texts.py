@@ -75,3 +75,14 @@ def money_alert(branch: str, number: str, staff: str, kind: str, lines: list[dic
         body.append(f"• {x['sku']} {x['name']} ×{x['qty']} {x['pack_unit']}: list {x['line_total']}, "
                     f"net {x['net']}{cost}, manual discount {x['manual_discount']}")  # fmt: skip
     return "\n".join(body)
+
+
+def khqr_refund(branch: str, p: dict[str, Any]) -> str:
+    return (f"↩️ {branch}: KHQR payment of {p.get('amount')} {p.get('currency')} (bank ref {p.get('bank_ref') or '-'}) "
+            "was not used by a completed sale: refund it at the bank.")  # fmt: skip
+
+
+def recall(branch: str, p: dict[str, Any]) -> str:
+    lots = ", ".join(p.get("lots") or [])
+    return (f"⛔ {branch}: recall {p.get('number')} – {p.get('sku')} lot(s) {lots} blocked, "
+            f"{p.get('qty_base', 0)} on hand. Do not sell; follow the recall steps.")  # fmt: skip

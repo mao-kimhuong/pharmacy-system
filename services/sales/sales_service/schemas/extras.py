@@ -283,3 +283,18 @@ class CommissionLineOut(BaseModel):
     net_usd: Decimal
     amount: Decimal
     created_at: datetime
+
+
+class StaffCommission(BaseModel):
+    staff_id: UUID
+    net_usd: Decimal
+    commission: Decimal
+    lines: int
+
+
+class CommissionReport(BaseModel):
+    branch_id: UUID
+    month: date
+    status: str
+    staff: list[StaffCommission]
+    total: Decimal

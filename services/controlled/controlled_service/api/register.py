@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pharmacy_shared.auth import CurrentUser, requires
+from pharmacy_shared.errors import AppError, ErrorCode
 from pharmacy_shared.idempotency import require_idempotency_key
 
 from ..db import db
@@ -15,6 +16,7 @@ from ..schemas.register import (
     AdjustOut,
     CorrectionIn,
     DiscrepancyOut,
+    EntryDetail,
     EntryOut,
     RegisterOut,
     ResolveIn,
@@ -36,6 +38,25 @@ async def get_register(
     """The running register (oldest first) with balance_after and chain_valid."""
     user.require_branch(branch_id)
     return await register.entries(session, branch_id, medicine_id, date_from, date_to)
+
+
+@router.get("/entries/{entry_id}", response_model=EntryDetail)
+async def get_entry(entry_id: UUID, user: CurrentUser = Depends(view), session: AsyncSession = Depends(db.session)) -> dict:
+    """One entry with its place in the chain (previous / next), its hash check, and the
+    corrections made to it. The source: movement_id, ref_type / ref_id (sale, receipt…)."""
+    e = await session.get(RegisterEntry, entry_id)
+    if e is None or not user.can_access_branch(e.branch_id):
+        raise AppError(ErrorCode.NOT_FOUND, "Register entry not found", status_code=404)
+    chain_of = (RegisterEntry.branch_id == e.branch_id, RegisterEntry.medicine_id == e.medicine_id)
+    prev = (await session.execute(select(RegisterEntry).where(*chain_of, RegisterEntry.seq < e.seq)
+                                  .order_by(RegisterEntry.seq.desc()).limit(1))).scalar_one_or_none()  # fmt: skip
+    nxt = (await session.execute(select(RegisterEntry.id).where(*chain_of, RegisterEntry.seq > e.seq)
+                                 .order_by(RegisterEntry.seq).limit(1))).scalar_one_or_none()  # fmt: skip
+    linked = (prev.entry_hash if prev else chain.GENESIS) == e.prev_hash
+    corrections = list((await session.execute(select(RegisterEntry.id).where(
+        RegisterEntry.corrects_entry_id == e.id).order_by(RegisterEntry.seq))).scalars())  # fmt: skip
+    return {"entry": e, "prev_entry_id": prev.id if prev else None, "next_entry_id": nxt,
+            "hash_valid": linked and chain.compute_hash(e) == e.entry_hash, "corrected_by": corrections}  # fmt: skip
 
 
 @router.get("/register/verify", response_model=VerifyOut)

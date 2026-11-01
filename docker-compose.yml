@@ -127,7 +127,7 @@ services:
       - traefik.http.routers.auth-public.service=auth
       - traefik.http.routers.auth-public.middlewares=strip-identity-headers@file,security-headers-docs@file,ratelimit-per-ip@file
       # public: login (strict limit) and refresh
-      - traefik.http.routers.auth-login.rule=Path(`/api/auth/v1/login`)
+      - traefik.http.routers.auth-login.rule=Path(`/api/auth/v1/login`) || Path(`/api/auth/v1/login/2fa`)
       - traefik.http.routers.auth-login.priority=100
       - traefik.http.routers.auth-login.entrypoints=web
       - traefik.http.routers.auth-login.service=auth
@@ -351,6 +351,13 @@ services:
       DB_NAME: pharmacy_sales
       DB_USER: sales_user
       DB_PASSWORD: ${SALES_DB_PASSWORD}
+      KHQR_PROVIDER: ${KHQR_PROVIDER:-fake}
+      KHQR_ACCOUNT_ID: ${KHQR_ACCOUNT_ID:-}
+      KHQR_MERCHANT_NAME: ${KHQR_MERCHANT_NAME:-}
+      KHQR_CITY: ${KHQR_CITY:-Phnom Penh}
+      KHQR_MERCHANT_ID: ${KHQR_MERCHANT_ID:-}
+      KHQR_ACQUIRING_BANK: ${KHQR_ACQUIRING_BANK:-}
+      BAKONG_TOKEN: ${BAKONG_TOKEN:-}
     depends_on: *service-deps
     labels:
       - traefik.enable=true

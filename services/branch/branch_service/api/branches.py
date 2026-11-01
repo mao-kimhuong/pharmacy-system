@@ -93,7 +93,10 @@ async def update_settings(
     session: AsyncSession = Depends(db.session),
 ) -> BranchSettings:
     """Expiry alert days, receipt header/footer, branch price override."""
-    return await svc.update_settings(session, user, branch_id, body.model_dump(exclude_unset=True))
+    data = body.model_dump(exclude_unset=True)
+    if body.khqr is not None:
+        data["khqr"] = body.khqr.model_dump()  # with its defaults (currencies)
+    return await svc.update_settings(session, user, branch_id, data)
 
 
 @router.get("/features", response_model=list[FeatureOut], tags=["features"])

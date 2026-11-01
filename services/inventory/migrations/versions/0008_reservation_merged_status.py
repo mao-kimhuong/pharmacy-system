@@ -17,11 +17,17 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     op.drop_constraint("ck_reservations_status", "reservations", type_="check")
-    op.create_check_constraint("ck_reservations_status", "reservations",
-                               "status IN ('reserved', 'confirmed', 'released', 'reversed', 'merged')")
+    op.create_check_constraint(
+        "ck_reservations_status",
+        "reservations",
+        "status IN ('reserved', 'confirmed', 'released', 'reversed', 'merged')",
+    )
 
 
 def downgrade() -> None:
     op.drop_constraint("ck_reservations_status", "reservations", type_="check")
-    op.create_check_constraint("ck_reservations_status", "reservations",
-                               "status IN ('reserved', 'confirmed', 'released', 'reversed')")
+    op.create_check_constraint(
+        "ck_reservations_status",
+        "reservations",
+        "status IN ('reserved', 'confirmed', 'released', 'reversed')",
+    )

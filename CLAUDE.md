@@ -68,6 +68,7 @@ Traefik v3.6. Python 3.12. Lint with ruff.
 - `make resync` – re-send staff, branches, branch settings, products, customers, open POs and commission lines as events (needed
   once when a service starts listening after the data exists: RabbitMQ drops events for queues that did not exist yet)
 - `make backfill` – rebuild the reports' read models by replaying every service's outbox (safe to repeat; `--rebuild` empties first)
+- `make openapi` – every service's OpenAPI document to `openapi/*.json`
 - `make seed-demo` / `make bench-reports` – a year of demo data in the reports (APP_ENV=development, DEMO branches only) and
   the timing of every report (target < 2 s)
 
@@ -92,7 +93,7 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   (payload: branch_id, code, name_km, name_en, is_active), like auth's `known_branches`.
 - **Feature switches:** `services/branch/branch_service/features.py`; GET /api/branch/v1/features.
 - **Routes:** each service has a public Traefik router (health, docs, openapi.json) and a
-  protected one (everything else, via `auth-forward`). Auth adds public `login` and `refresh`.
+  protected one (everything else, via `auth-forward`). Auth adds public `login`, `login/2fa` and `refresh` (`shared/tests/test_traefik_routes.py`).
 - **Money/stock writes:** add `_: str = Depends(require_idempotency_key)` to the route; the
   middleware replays the saved response for a retried key (24 h).
 - **Events:** `add_event(session, OutboxEvent, "invoice.created", {...})` in the same
@@ -382,6 +383,52 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   chain broken, account or PIN lockout, below-cost sale, large manual discount (alert settings, 20 % / 10 USD); low stock
   and near expiry in the 07:30 digest. `POST /test` (503 TELEGRAM_NOT_CONFIGURED without a token).
 
+- **Cart preview (sales, from S8b):** `services/checks.py` is step 1 of the saga: `run_checks(mode="raise")` (the
+  saga; raises the first problem, consumes the PIN / approval tokens) and `mode="collect"` (the preview; every finding,
+  nothing consumed). `POST /carts/preview` then asks read-only twins: prescription `/internal/v1/rx/check` (same code as
+  check-and-hold, `hold=False`), inventory `/internal/v1/reservations/plan` (same allocator, `write=False`, no locks;
+  → BELOW_COST from the batches' cost), customers `GET /internal/v1/customers/{id}/credit`. Findings: hard_stop /
+  requirement (PIN, patient ID document, discount approval: reported, never consumed) / warning (resolved by the
+  override) / info (NEAR_EXPIRY), English + Khmer; `can_post`. Writes nothing. `POST /carts/price` is deprecated
+  (remove in S9). Catalog `POST /promotions/preview` sends a draft promotion to sales `/internal/v1/carts/preview`
+  (same pricing) → the preview + `conflicts`.
+- **OpenAPI errors (from S8b):** every 4xx/5xx is `ErrorOut` (`{code, message, details}`) with the exact codes per status:
+  found by `pharmacy_shared.openapi_errors` (AST of the endpoint and what it calls, by name, in its package and in
+  pharmacy_shared: `AppError(ErrorCode.X, …, status_code=N)` and helpers called the same way), plus
+  `openapi_extra=errors(...)` for codes passed through from other services (`SALE_PASSTHROUGH`), plus the shared
+  401/403/422/429/503 on protected routes. `shared/tests/test_openapi_quality.py` fails on untyped 2xx, non-ErrorOut
+  errors, or a code raised in an endpoint but not listed. Reports: one model per report, rows typed from its `Col(...)`
+  list. `make openapi` writes `openapi/*.json` (git-ignored).
+- **KHQR (sales, from S8b):** `POST /payments/khqr` (pos.sell, Idempotency-Key) → EMV-KHQR string (tag 29 individual /
+  30 merchant, CRC16) of the branch's Bakong account (branch setting `khqr`) or the shared one (`KHQR_*`); USD or KHR
+  (whole hundreds). `GET /payments/khqr/{id}` asks the provider (2 s Redis cache); a task polls pending ones every 5 s.
+  A sale pays with `{method: "KHQR", khqr_id, amount, currency}`: paid, same branch / amount / currency, unused
+  (`invoice_payments.khqr_id` unique, row locked) → `used`. A failed or cancelled sale → `needs_refund` +
+  `khqr.needs_refund` (Telegram alert); refunds by hand. `KHQR_PROVIDER=fake|bakong` (production refuses fake; fake:
+  `/internal/v1/khqr/fake/{id}/pay`, and `POST /payments/khqr/{id}/fake-pay` for the owner outside production).
+- **Supplier returns (purchasing, from S8b):** `PP1-SRN-…` draft → credited | refunded, or cancelled (only a draft,
+  reason); `purchasing.return`. Submit (Idempotency-Key): inventory `/internal/v1/movements/supplier-return` (movement
+  type `supplier_return`, once per line, the batch must be the supplier's; controlled: PIN + witness, action
+  `purchasing.supplier_return`, register entry `supplier_return`); value = the batches' cost. Every return is a
+  `supplier_credit`: settle `credit` applies it to the branch's open bills (oldest first) and what is left to the next
+  bills received; settle `refund` (owner / branch manager) records a supplier refund `PP1-SRF-…` (money in). Statement
+  shows `return` / `refund`. Events `supplier_return.*`, `supplier_credit.updated` (allocations), `supplier_refund.created`.
+  PDF `{"type":"supplier_return"}` (values only with purchase-price permissions).
+- **Recalls (inventory, from S8b):** `RC-2026-…` (one counter), `inventory.recall`: the owner recalls lots everywhere
+  (batch status `recalled` + stock rows blocked), a branch manager in their branches (stock rows only, `stock.recall_id`).
+  Blocked stock is never reserved, picked or counted as sellable (override → BATCH_BLOCKED). `batch.recalled` per branch
+  (Telegram). Per line: return (a draft supplier return, once) or destroy (shrinkage `recalled`). Close when nothing is
+  on hand; lift (owner, reason) restores. Affected sales: `GET /api/sales/v1/invoices/by-batches` (patient only with
+  prescriptions.view).
+- **Small S8b additions:** controlled `GET /entries/{id}` (neighbours, hash_valid, corrections); catalog
+  `pack_unit_price_history` (before-flush listener: every path; `GET /medicines/{id}/price-history`; `python -m
+  catalog_service.cli price-history` fills it once from the outbox); `GET /exchange-rates/{branch}` takes from / to /
+  page / size; document `customer_statement` (customers `/internal/v1/customers/{id}/statement`) and receipts / A4 in
+  `lang` km | en (branch setting `receipt_lang`, default km); auth 2FA backup codes (10, argon2, used once, `/2fa/enable`
+  shows them, `POST /2fa/backup-codes` with the password regenerates, `/login/2fa` takes `backup_code`, `/me`
+  `backup_codes_left`) and sessions (= refresh-token families; the access token carries `sid`; `GET /me/sessions`,
+  `POST /me/sessions/{id}/revoke` ends it at once via `auth:revoked_sid:{sid}`).
+
 ## Definition of done
 API matches the spec, migration included, tests pass (`make test` and `make test-docker`),
 `docker compose up` works, permissions checked per role, audit log written.
@@ -398,8 +445,15 @@ API matches the spec, migration included, tests pass (`make test` and `make test
 - [x] S6 Branches – transfer requests, transfers, purchase requests, re-order
 - [x] S7 Sales extras – sale order, suspend, templates, promotions, hampers, commission
 - [x] S8 Reports – dashboard, all reports, Telegram 20:00
+- [x] S8b API gaps – cart preview, OpenAPI error schemas, KHQR, supplier returns, recalls, small additions
 - [ ] S9 Hardening – performance, security, offline POS, UAT fixes; per-service tokens for
   internal calls (today one shared SERVICE_TOKEN: a service could call any other's /internal);
   SeaweedFS: lock down its IAM gRPC port and use a non-admin S3 identity per service; register table owned by a
   NOLOGIN role (today: trigger + REVOKE on the service user, which still owns the table)
+  Traefik's Docker provider restricted to this compose project (constraint on the `com.docker.compose.project`
+  label) so other stacks' containers never leak into routing (in S8 a second stack on the same host was load-balanced
+  into; check the constraint really filters – on the throwaway stack a Label constraint alone did not); remove the
+  deprecated `POST /api/sales/v1/carts/price` (replaced by `/carts/preview` in S8b); the intermittent "rejected SSL
+  upgrade" test DB errors (seen in catalog and sales tests): set `ssl=disable` explicitly for local and test DB
+  connections (SSL stays configurable for production) and make the test DB fixture retry its first connect.
 - [ ] S10 AI – DeepSeek phase A

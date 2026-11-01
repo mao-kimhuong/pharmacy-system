@@ -18,7 +18,7 @@ router = APIRouter(tags=["imports"])
 can_import = requires("products.import")
 
 
-@router.get("/imports/template.xlsx", response_class=Response)
+@router.get("/imports/template.xlsx", response_class=Response, responses={200: {"content": {"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}}, "description": "The .xlsx file"}})  # fmt: skip
 async def import_template(_: CurrentUser = Depends(can_import)) -> Response:
     return Response(
         spreadsheet.template(),

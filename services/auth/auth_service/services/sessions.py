@@ -3,6 +3,7 @@
 - auth:revoked:{jti}           one access token, kept until it would expire anyway
 - auth:revoked_after:{user_id} every access token issued before this time (ms) is refused;
                                used for "log out everywhere" and when a user is deactivated
+- auth:revoked_sid:{session}   every access token of one login session (S8b: revoke a session)
 """
 
 import time
@@ -33,9 +34,17 @@ async def revoke_all_sessions(redis: Redis, user_id: UUID) -> int:
     return cutoff_ms
 
 
-async def is_revoked(redis: Redis, user_id: UUID, jti: str, issued_at_ms: int) -> bool:
-    revoked_jti, cutoff = await redis.mget(_jti_key(jti), _user_key(user_id))
-    if revoked_jti is not None:
+async def revoke_session(redis: Redis, session_id: UUID, ttl_seconds: int) -> None:
+    """Refuse the access tokens of one login session (they live at most ttl_seconds)."""
+    await redis.set(f"auth:revoked_sid:{session_id}", "1", ex=max(1, ttl_seconds + 5))
+
+
+async def is_revoked(
+    redis: Redis, user_id: UUID, jti: str, issued_at_ms: int, session_id: UUID | None = None
+) -> bool:
+    keys = [_jti_key(jti), _user_key(user_id)] + ([f"auth:revoked_sid:{session_id}"] if session_id else [])
+    revoked_jti, cutoff, *sid = await redis.mget(*keys)
+    if revoked_jti is not None or (sid and sid[0] is not None):
         return True
     return cutoff is not None and issued_at_ms <= int(cutoff)
 

@@ -294,6 +294,15 @@ class ReserveRequest(BaseModel):
     lines: list[ReserveLine] = Field(min_length=1, max_length=200)
 
 
+class PlanRequest(BaseModel):
+    """The cart preview: what a reservation would take (same allocator), nothing held."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    branch_id: UUID
+    lines: list[ReserveLine] = Field(min_length=1, max_length=200)
+
+
 class ReservedBatch(BaseModel):
     line_no: int
     medicine_id: UUID
@@ -304,6 +313,11 @@ class ReservedBatch(BaseModel):
     cost_per_base: Decimal
     overridden: bool
     hamper_id: UUID | None = None
+
+
+class PlanOut(BaseModel):
+    status: str
+    lines: list["ReservedBatch"]
 
 
 class ReservationOut(BaseModel):
@@ -756,3 +770,110 @@ class ReorderLinesIn(BaseModel):
     source_branch_id: UUID | None = Field(
         default=None, description="Transfer requests: else the suggested branch"
     )
+
+
+class HamperAvailability(BaseModel):
+    hamper_id: UUID
+    branch_id: UUID
+    available: int = Field(description="Whole hampers sellable now: the lowest component")
+
+
+class Updated(BaseModel):
+    updated: int
+
+
+# ---------------------------------------------------------------- recalls and supplier returns (S8b)
+
+
+class RecallIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    medicine_id: UUID
+    lot_nos: list[str] = Field(min_length=1, max_length=50)
+    reason: str = Field(min_length=3, max_length=500)
+    source: str = Field(default="", max_length=120, description="Who asked: MoH letter, the manufacturer...")
+
+
+class RecallOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    number: str
+    medicine_id: UUID
+    lot_nos: list[str]
+    all_branches: bool
+    reason: str
+    source: str
+    status: str
+    created_at: datetime
+
+
+class RecallLineOut(BaseModel):
+    id: UUID
+    branch_id: UUID
+    batch_id: UUID
+    lot_no: str
+    expiry_date: date
+    qty_at_start: int
+    on_hand: int
+    in_transit: int
+    on_open_transfers: int
+    action: str
+    action_ref: str | None
+
+
+class RecallDetail(BaseModel):
+    id: UUID
+    number: str
+    medicine_id: UUID
+    sku: str
+    lot_nos: list[str]
+    all_branches: bool
+    reason: str
+    source: str
+    status: str
+    created_at: datetime
+    lines: list[RecallLineOut]
+
+
+class RecallDestroyIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    destruction_method: str | None = Field(default=None, max_length=120, description="Controlled medicines")
+    pin_token: str | None = Field(default=None, max_length=200)
+    witness_token: str | None = Field(default=None, max_length=200)
+
+
+class LiftIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(min_length=3, max_length=500)
+
+
+class SupplierReturnMoveLine(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    line_no: int = Field(ge=1)
+    batch_id: UUID
+    medicine_id: UUID
+    qty_base: int = Field(ge=1)
+    meta: dict[str, Any] | None = None
+
+
+class SupplierReturnMove(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    return_id: UUID
+    number: str = Field(max_length=32)
+    branch_id: UUID
+    supplier_id: UUID
+    lines: list[SupplierReturnMoveLine] = Field(min_length=1, max_length=200)
+
+
+class SupplierReturnMoved(BaseModel):
+    lines: list[dict[str, Any]]
+
+
+class RecallReturned(BaseModel):
+    supplier_return_id: UUID
+    number: str = Field(description="The draft supplier return in purchasing; submit it there")

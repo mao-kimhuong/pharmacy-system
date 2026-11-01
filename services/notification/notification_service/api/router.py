@@ -12,7 +12,7 @@ from pharmacy_shared.auth import CurrentUser, requires
 from pharmacy_shared.internal import InternalClient
 
 from ..db import db
-from ..schemas.telegram import ChatIn, ChatOut, MessageOut, SettingsIn, SettingsOut, TestIn
+from ..schemas.telegram import ChatIn, ChatOut, MessageOut, Queued, SettingsIn, SettingsOut, TestIn
 from ..services import admin
 from ..services.telegram import Sender
 
@@ -68,7 +68,7 @@ async def put_settings(body: SettingsIn, user: CurrentUser = Depends(manage),
     return await admin.set_settings(session, user, body.model_dump())
 
 
-@router.post("/daily-summary/run")
+@router.post("/daily-summary/run", response_model=Queued)
 async def run_summary(request: Request, day: date | None = None, user: CurrentUser = Depends(manage),
                       session: AsyncSession = Depends(db.session),
                       reports: InternalClient = Depends(get_reports)) -> dict:  # fmt: skip

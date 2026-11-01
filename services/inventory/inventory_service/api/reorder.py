@@ -15,6 +15,7 @@ from ..schemas.inventory import (
     ReorderListOut,
     ReorderSettingIn,
     ReorderSettingOut,
+    Updated,
 )
 from ..services import reorder
 from ..services.clients import get_purchasing
@@ -36,7 +37,7 @@ async def set_setting(
     return await reorder.set_setting(session, user, body.model_dump())
 
 
-@router.post("/reorder-settings/bulk")
+@router.post("/reorder-settings/bulk", response_model=Updated)
 async def set_bulk(
     body: ReorderBulkIn, user: CurrentUser = Depends(perm), session: AsyncSession = Depends(db.session),
 ) -> dict:  # fmt: skip

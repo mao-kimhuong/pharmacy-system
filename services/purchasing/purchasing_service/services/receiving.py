@@ -33,6 +33,7 @@ from ..config import get_settings
 from ..models import DocSequence, KnownBranch, OutboxEvent, Receipt, ReceiptLine
 from . import orders, requests
 from .common import audit, can_see_cost, clean, commit, products_by_id
+from .supplier_returns import apply_open_credits
 
 CENT = Decimal("0.01")
 COST = Decimal("0.0001")
@@ -131,6 +132,7 @@ async def receive(session: AsyncSession, actor: CurrentUser, po_id: UUID, data: 
     session.add(receipt)
     await session.flush()
 
+    await apply_open_credits(session, receipt)  # a supplier credit (return) pays the new bill first
     add_event(session, OutboxEvent, "goods.received", goods_received_payload(receipt))
     add_event(session, OutboxEvent, "purchase_order.received", await orders.event_payload(session, po))
     audit(session, actor, "goods.received", "receipt", receipt.id, branch_id=po.branch_id, after={

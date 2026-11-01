@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from pharmacy_shared.auth import CurrentUser, requires, requires_any
 from pharmacy_shared.idempotency import require_idempotency_key
+from pharmacy_shared.openapi_errors import SALE_PASSTHROUGH, errors
 
 from ..db import db
 from ..models import CommissionRule, KnownCustomer, SaleOrder, SaleTemplate, SuspendedCart
@@ -15,6 +16,7 @@ from ..schemas.extras import (
     CartIn,
     CartOut,
     CommissionLineOut,
+    CommissionReport,
     ConfirmIn,
     LoadedTemplate,
     OrderInvoiceIn,
@@ -30,11 +32,13 @@ from ..schemas.extras import (
     TemplateOut,
     TemplateUpdate,
 )
+from ..schemas.preview import CartPreviewIn, CartPreviewOut
 from ..schemas.sales import InvoiceOut
 from ..services import carts, commission, orders, templates
 from ..services.cart import price_cart
 from ..services.clients import Clients, get_clients
 from ..services.common import branch_for
+from ..services.preview import preview
 from .sales import respond
 
 router = APIRouter()
@@ -43,11 +47,22 @@ order_perm = requires("sales.orders")
 template_perm = requires("sales.templates")
 
 
-@router.post("/carts/price", response_model=PricedCart, tags=["carts"])
+@router.post("/carts/preview", response_model=CartPreviewOut, response_model_exclude_none=True, tags=["carts"])
+async def cart_preview(
+    body: CartPreviewIn, user: CurrentUser = Depends(requires("pos.sell")),
+    session: AsyncSession = Depends(db.session), clients: Clients = Depends(get_clients),
+) -> dict:  # fmt: skip
+    """What posting this cart would do, without doing it: prices and promotions, the
+    batches FEFO would take, every hard stop, requirement and warning (English and
+    Khmer), KHR total. The same checks as POST /invoices; nothing is saved or held."""
+    return await preview(session, user, clients, body.model_dump())
+
+
+@router.post("/carts/price", response_model=PricedCart, tags=["carts"], deprecated=True)
 async def price(
     body: CartIn, user: CurrentUser = Depends(requires("pos.sell")), session: AsyncSession = Depends(db.session),
 ) -> dict:  # fmt: skip
-    """What the POS shows: list price, best promotion deal, manual discounts, net."""
+    """Deprecated: use /carts/preview (removed in S9). List price, best promotion deal, manual discounts, net."""
     await branch_for(session, user, body.branch_id)
     customer = await session.get(KnownCustomer, body.customer_id) if body.customer_id else None
     lines = await price_cart(session, body.branch_id, customer, body.model_dump()["lines"])
@@ -146,7 +161,7 @@ async def get_order(
     return o
 
 
-@router.post("/sale-orders/{order_id}/confirm", response_model=OrderOut, tags=["sale orders"])
+@router.post("/sale-orders/{order_id}/confirm", response_model=OrderOut, tags=["sale orders"], openapi_extra=errors(*SALE_PASSTHROUGH))
 async def confirm(
     order_id: UUID, body: ConfirmIn, _: str = Depends(require_idempotency_key),
     user: CurrentUser = Depends(order_perm), session: AsyncSession = Depends(db.session),
@@ -157,8 +172,7 @@ async def confirm(
 
 
 @router.post(
-    "/sale-orders/{order_id}/invoice", response_model=InvoiceOut, status_code=201, tags=["sale orders"]
-)
+    "/sale-orders/{order_id}/invoice", response_model=InvoiceOut, status_code=201, tags=["sale orders"], openapi_extra=errors(*SALE_PASSTHROUGH))
 async def invoice(
     order_id: UUID, body: OrderInvoiceIn, key: str = Depends(require_idempotency_key),
     user: CurrentUser = Depends(requires("pos.sell")), session: AsyncSession = Depends(db.session),
@@ -227,7 +241,7 @@ async def pay_period(
     return await commission.set_period(session, user, branch_id, month, "paid")
 
 
-@router.get("/commission/report", tags=["commission"])
+@router.get("/commission/report", tags=["commission"], response_model=CommissionReport)
 async def report(
     branch_id: UUID, month: date, staff_id: UUID | None = None,
     user: CurrentUser = Depends(requires_any("commission.view_own", "commission.manage")),

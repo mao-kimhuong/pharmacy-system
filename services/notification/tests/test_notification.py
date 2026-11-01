@@ -183,3 +183,13 @@ async def test_stock_digest_once_per_branch_and_day(client) -> None:
     got = {m.target: m for m in await messages() if m.kind == "stock_digest"}
     assert "Low stock (2)" in got[str(PP1)].text and got[str(PP1)].status == "queued"
     assert "AMOX500 lot L1" in got["owner"].text  # PP2 has no chat: the owner gets its digest
+
+
+async def test_khqr_refund_and_recall_alerts(client) -> None:
+    await set_chats(client)
+    await event("khqr.needs_refund", {"khqr_id": str(uuid4()), "branch_id": str(PP1), "amount": "48.00",
+                                      "currency": "USD", "bank_ref": "B-77", "reason": "OUT_OF_STOCK"})  # fmt: skip
+    await event("batch.recalled", {"recall_id": str(uuid4()), "number": "RC-2026-000001", "branch_id": str(PP1),
+                                   "sku": "AMOX500", "lots": ["L1"], "qty_base": 40})  # fmt: skip
+    got = {(m.kind, m.target) for m in await messages()}
+    assert got == {("khqr_refund", "owner"), ("khqr_refund", str(PP1)), ("recall", "owner"), ("recall", str(PP1))}

@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -28,6 +28,8 @@ class BranchSettingsOut(BaseModel):
     near_expiry_transfer_days: int
     order_deposit_on_cancel: str
     max_discount_pct: dict[str, int]
+    receipt_lang: str
+    khqr: dict[str, Any] | None
 
 
 class BranchOut(BaseModel):
@@ -67,6 +69,19 @@ class BranchUpdate(BaseModel):
     license_no: str | None = Field(default=None, max_length=64)
 
 
+class KhqrAccount(BaseModel):
+    """This branch's Bakong KHQR account (as registered with the bank)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    account_id: str = Field(pattern=r"^[A-Za-z0-9._-]{3,32}@[a-z0-9]{2,12}$", examples=["pharmacy@aclb"])
+    merchant_name: str = Field(min_length=1, max_length=25)
+    city: str = Field(default="Phnom Penh", min_length=1, max_length=15)
+    merchant_id: str | None = Field(default=None, max_length=32, description="Merchant KHQR: the bank's merchant id")
+    acquiring_bank: str | None = Field(default=None, max_length=32)
+    currencies: list[Literal["USD", "KHR"]] = Field(default=["USD", "KHR"], min_length=1)
+
+
 class BranchSettingsUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -102,6 +117,8 @@ class BranchSettingsUpdate(BaseModel):
     max_discount_pct: dict[str, Annotated[int, Field(ge=0, le=100)]] | None = Field(
         default=None, description='Manual discount cap per role, e.g. {"cashier": 5, "pharmacist": 10}'
     )
+    receipt_lang: Literal["km", "en"] | None = Field(default=None, description="Receipts and A4 invoices")
+    khqr: KhqrAccount | None = Field(default=None, description="This branch's Bakong account; null: the shared one")
 
 
 class ReasonRequest(BaseModel):
