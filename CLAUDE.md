@@ -75,6 +75,10 @@ Traefik v3.6. Python 3.12. Lint with ruff.
 ## How things work (from S0)
 - **Who is calling:** `user: CurrentUser = Depends(current_user)`; then `user.require_branch(branch_id)`.
   Traefik strips client-sent identity headers and sets them from `/api/auth/v1/verify`.
+- **Web refresh cookie (auth):** a client that sends `X-Refresh-Cookie: 1` on `/login`, `/login/2fa` and `/refresh` gets the
+  refresh token only as cookie `pharmacy_refresh` (httpOnly, Secure, SameSite=Strict, path `/api/auth/v1/refresh`, 7 days),
+  never in the body; `/refresh` with no body reads the cookie; `/logout` clears it and ends the session by the token's `sid`.
+  Other clients (smoke, scripts) keep the token in the body (`tests/test_refresh_cookie.py`).
 - **Permissions (from S1a):** guard a route with `user: CurrentUser = Depends(requires("pos.sell"))`,
   or check inside with `user.require("sales.cancel")` / `user.has(...)`. Keys live in
   `services/auth/auth_service/permissions.py` (CATALOG + default role grants + MENU); add new
@@ -457,3 +461,14 @@ API matches the spec, migration included, tests pass (`make test` and `make test
   upgrade" test DB errors (seen in catalog and sales tests): set `ssl=disable` explicitly for local and test DB
   connections (SSL stays configurable for production) and make the test DB fixture retry its first connect.
 - [ ] S10 AI – DeepSeek phase A
+
+Front end (`web/`, plan: `docs/plans/frontend-plan.md`, design handoff: `docs/design/`):
+- [ ] F0 Design system + app shell + auth + shared states
+- [ ] F1 POS – all 9 flows on `/carts/preview`, POS lite, POS back office
+- [ ] F2 Prescriptions + controlled drugs
+- [ ] F3 Warehouse + stock (incl. mobile stock count)
+- [ ] F4 Purchase + transfer (incl. mobile receiving)
+- [ ] F5 Contacts
+- [ ] F6 Dashboard + reports
+- [ ] F7 User management + settings
+- [ ] F8 Print layouts, offline POS sync, polish, accessibility pass

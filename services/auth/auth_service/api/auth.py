@@ -66,10 +66,37 @@ def me_response(user: User, permissions: list[str], settings: Settings) -> MeRes
     return out
 
 
-def token_response(tokens: auth_service.IssuedTokens, settings: Settings) -> TokenResponse:
+REFRESH_COOKIE = "pharmacy_refresh"
+REFRESH_COOKIE_PATH = "/api/auth/v1/refresh"
+
+
+def wants_cookie(request: Request) -> bool:
+    """Browsers (the web app) send `X-Refresh-Cookie: 1`: the refresh token then travels only in an
+    httpOnly cookie, never in the JSON body. Other clients keep getting it in the body."""
+    return request.headers.get("x-refresh-cookie") == "1"
+
+
+def set_refresh_cookie(response: Response, token: str, settings: Settings) -> None:
+    response.set_cookie(
+        REFRESH_COOKIE, token, max_age=settings.jwt_refresh_days * 86400, path=REFRESH_COOKIE_PATH,
+        httponly=True, secure=True, samesite="strict",
+    )  # fmt: skip
+
+
+def clear_refresh_cookie(response: Response) -> None:
+    response.delete_cookie(REFRESH_COOKIE, path=REFRESH_COOKIE_PATH, httponly=True, secure=True, samesite="strict")
+
+
+def token_response(
+    tokens: auth_service.IssuedTokens, settings: Settings, request: Request | None = None,
+    response: Response | None = None,
+) -> TokenResponse:  # fmt: skip
+    in_cookie = request is not None and response is not None and wants_cookie(request)
+    if in_cookie:
+        set_refresh_cookie(response, tokens.refresh_token, settings)
     return TokenResponse(
         access_token=tokens.access_token,
-        refresh_token=tokens.refresh_token,
+        refresh_token=None if in_cookie else tokens.refresh_token,
         expires_in=tokens.expires_in,
         user=me_response(tokens.user, tokens.permissions, settings),
         mfa_setup_required=tokens.mfa_setup_required,
@@ -80,6 +107,7 @@ def token_response(tokens: auth_service.IssuedTokens, settings: Settings) -> Tok
 async def login(
     body: LoginRequest,
     request: Request,
+    response: Response,
     session: AsyncSession = Depends(db.session),
     redis: Redis = Depends(get_redis),
     settings: Settings = Depends(get_settings),
@@ -90,13 +118,14 @@ async def login(
     )
     if isinstance(result, auth_service.MfaChallenge):
         return TokenResponse(mfa_required=True, mfa_token=result.mfa_token)
-    return token_response(result, settings)
+    return token_response(result, settings, request, response)
 
 
 @router.post("/login/2fa", response_model=TokenResponse, response_model_exclude_none=True)
 async def login_2fa(
     body: Login2faRequest,
     request: Request,
+    response: Response,
     session: AsyncSession = Depends(db.session),
     redis: Redis = Depends(get_redis),
     settings: Settings = Depends(get_settings),
@@ -105,19 +134,24 @@ async def login_2fa(
     tokens = await auth_service.login_2fa(
         session, redis, settings, body.mfa_token, body.code, client_info(request), body.backup_code
     )
-    return token_response(tokens, settings)
+    return token_response(tokens, settings, request, response)
 
 
 @router.post("/refresh", response_model=TokenResponse, response_model_exclude_none=True)
 async def refresh(
-    body: RefreshRequest,
     request: Request,
+    response: Response,
+    body: RefreshRequest | None = None,
     session: AsyncSession = Depends(db.session),
     redis: Redis = Depends(get_redis),
     settings: Settings = Depends(get_settings),
 ) -> TokenResponse:
-    tokens = await auth_service.refresh(session, redis, settings, body.refresh_token, client_info(request))
-    return token_response(tokens, settings)
+    """The refresh token comes in the body, or (web app) in the httpOnly cookie set at login."""
+    token = body.refresh_token if body is not None else request.cookies.get(REFRESH_COOKIE)
+    if not token:
+        raise AppError(ErrorCode.NOT_AUTHENTICATED, "Missing refresh token", status_code=401)
+    tokens = await auth_service.refresh(session, redis, settings, token, client_info(request))
+    return token_response(tokens, settings, request, response)
 
 
 @router.post("/logout", status_code=204)
@@ -129,7 +163,9 @@ async def logout(
 ) -> Response:
     body = body or LogoutRequest()
     await auth_service.logout(session, redis, claims, body.refresh_token, body.all_devices)
-    return Response(status_code=204)
+    out = Response(status_code=204)
+    clear_refresh_cookie(out)
+    return out
 
 
 @router.get("/me", response_model=MeResponse)

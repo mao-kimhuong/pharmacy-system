@@ -358,6 +358,8 @@ async def logout(
         ).scalar_one_or_none()
         if row is not None and row.user_id == claims.user_id:
             await _revoke_family(session, row.family_id)
+    elif claims.session_id is not None:  # web app: the refresh token is in a cookie it cannot send here
+        await _revoke_family(session, claims.session_id)
     add_event(
         session,
         OutboxEvent,
