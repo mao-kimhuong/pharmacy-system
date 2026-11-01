@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Kantumruy+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E9EDEC;color:#17201F;font-family:'Inter','Kantumruy Pro',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0E7470}a:hover{color:#0B5F5C}
+*{box-sizing:border-box}
+</style>
+</helmet>
+<div style="padding:48px;display:flex;flex-direction:column;gap:40px;font-variant-numeric:tabular-nums">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#66706F">DELIVERABLE 4 · WAREHOUSE</div>
+    <h1 style="margin:0;font-size:28px;line-height:36px;font-weight:600">Warehouse</h1>
+    <div style="font-size:14px;color:#3A4645;max-width:820px;line-height:22px">Product master data: medicines, pack units and prices, hampers, bulk import, labels and opening stock. Owner and Manager; Pharmacist can view.</div>
+  </div>
+
+  <section style="display:flex;flex-wrap:wrap;gap:48px 40px;align-items:flex-start">
+  <sc-for list="{{ frames }}" as="f" hint-placeholder-count="3">
+    <div id="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px;width:1366px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">{{ f.id }}</span>
+        <span style="font-size:14px;font-weight:600">{{ f.frameName }}</span>
+        <span style="flex:none;white-space:nowrap;font-size:12px;line-height:18px;background:#fff;border:1px solid #DDE2E1;padding:2px 8px;border-radius:4px">Role: {{ f.roleNote }}</span>
+        <span style="font-family:'JetBrains Mono';font-size:11px;color:#0B5F5C;background:#DDF1EF;padding:3px 8px;border-radius:4px">{{ f.api }}</span>
+      </div>
+      <div style="width:1366px;min-height:768px;background:#F6F8F7;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(23,32,31,.08),0 24px 60px rgba(23,32,31,.12);display:flex;position:relative">
+        <aside style="width:64px;flex:none;background:#fff;border-right:1px solid #DDE2E1;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px">
+          <span style="width:32px;height:32px;border-radius:8px;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;margin-bottom:12px">+</span>
+          <sc-for list="{{ nav }}" as="n" hint-placeholder-count="10"><span style="width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;background:{{ n.bg }};color:{{ n.fg }}">{{ n.icon }}</span></sc-for>
+        </aside>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <header style="height:56px;flex:none;background:#fff;border-bottom:1px solid #DDE2E1;display:flex;align-items:center;gap:12px;padding:0 24px">
+            <span style="height:36px;padding:0 12px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap"><span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#DDF1EF;color:#0B5F5C;font-weight:500">{{ f.br }}</span>{{ f.brName }} ▾</span>
+            <span style="height:36px;flex:1;max-width:440px;padding:0 12px;border:1px solid #DDE2E1;background:#F6F8F7;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px;color:#66706F">⌕ {{ f.search }}<span style="margin-left:auto;font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#fff;border:1px solid #DDE2E1">Ctrl K</span></span>
+            <span style="margin-left:auto;display:flex;border:1px solid #C4CBCA;border-radius:6px;overflow:hidden;font-size:13px;font-weight:500"><span style="padding:7px 10px;background:{{ f.kmBg }};color:{{ f.kmFg }};font-family:'Kantumruy Pro'">ខ្មែរ</span><span style="padding:7px 10px;background:{{ f.enBg }};color:{{ f.enFg }}">EN</span></span>
+            <span style="width:36px;height:36px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;justify-content:center">🔔</span>
+            <span style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:32px;height:32px;border-radius:50%;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px">{{ f.ini }}</span><span style="display:flex;flex-direction:column;line-height:17px"><b>{{ f.user }}</b><span style="color:#66706F;font-size:12px">{{ f.role }}</span></span></span>
+          </header>
+          <div style="padding:22px 28px 28px;display:flex;flex-direction:column;gap:16px;flex:1">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px">
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#66706F;line-height:{{ f.lh }}px">{{ f.crumb }}</span><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2 style="margin:0;font-size:28px;line-height:{{ f.titleLh }}px;font-weight:600">{{ f.title }}</h2><sc-for list="{{ f.tags }}" as="x" hint-placeholder-count="0"><span style="display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px 0 6px;border-radius:4px;background:{{ x.bg }};color:{{ x.fg }};border:1px solid {{ x.bd }};font-size:12px;font-weight:600;white-space:nowrap">{{ x.l }}</span></sc-for></div></div>
+              <div style="display:flex;gap:8px"><sc-for list="{{ f.actions }}" as="a" hint-placeholder-count="2"><span style="height:36px;padding:0 14px;border-radius:6px;border:1px solid {{ a.bd }};background:{{ a.bg }};color:{{ a.fg }};display:flex;align-items:center;font-size:14px;font-weight:500;white-space:nowrap">{{ a.label }}</span></sc-for></div>
+            </div>
+
+            <sc-if value="{{ f.hasSteps }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:16px 22px;display:flex">
+                <sc-for list="{{ f.steps }}" as="s" hint-placeholder-count="4"><div style="flex:1;display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:center"><span style="width:28px;height:28px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:{{ s.bg }};color:{{ s.fg }};border:2px solid {{ s.bd }}">{{ s.n }}</span><span style="flex:1;height:2px;background:{{ s.line }};margin:0 8px"></span></div><span style="font-size:13px;font-weight:{{ s.w }}">{{ s.l }}</span></div></sc-for>
+              </div>
+            </sc-if>
+
+            <!-- Medicines list -->
+            <sc-if value="{{ f.s.list }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px">
+                <span style="height:34px;width:300px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;padding:0 10px;display:flex;align-items:center;color:#8C9594">⌕ Name, generic, barcode</span>
+                <span style="height:34px;padding:0 10px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;display:flex;align-items:center">Category ▾</span>
+                <span style="height:34px;padding:0 10px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;display:flex;align-items:center">Flags: Rx, Controlled ▾</span>
+                <span style="height:34px;padding:0 10px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;display:flex;align-items:center">Supplier ▾</span>
+                <span style="height:34px;padding:0 10px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;display:flex;align-items:center">Status: Active ▾</span>
+                <span style="margin-left:auto;height:34px;padding:0 10px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;display:flex;align-items:center">▥ Columns</span>
+              </div>
+              <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                <div style="display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr) 130px minmax(0,1.2fr) 90px 90px 90px 90px 40px;font-size:13px">
+                  <sc-for list="{{ medHead }}" as="h" hint-placeholder-count="9"><div style="padding:10px 12px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645;text-align:{{ h.a }};white-space:nowrap">{{ h.l }}</div></sc-for>
+                  <sc-for list="{{ meds }}" as="m" hint-placeholder-count="7">
+                    <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;display:flex;flex-direction:column;gap:3px"><span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b style="font-weight:500;color:{{ m.nc }}">{{ m.name }}</b><sc-for list="{{ m.badges }}" as="x" hint-placeholder-count="1"><span style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px 0 4px;border-radius:4px;background:{{ x.bg }};color:{{ x.fg }};font-size:11px;font-weight:600;white-space:nowrap">{{ x.l }}</span></sc-for></span><span style="font-family:'Kantumruy Pro';font-size:12px;color:#66706F;line-height:20px">{{ m.km }}</span></div>
+                    <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;color:#3A4645">{{ m.cat }}</div>
+                    <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;font-family:'JetBrains Mono';font-size:11px">{{ m.code }}</div>
+                    <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;color:#3A4645">{{ m.packs }}</div>
+                    <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;justify-content:flex-end;font-weight:600">{{ m.price }}</div>
+                    <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;justify-content:flex-end">{{ m.cost }}</div>
+                    <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;justify-content:flex-end">{{ m.stock }}</div>
+                    <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px 2px 7px;border-radius:999px;background:{{ m.sBg }};color:{{ m.sFg }};font-size:12px;font-weight:500;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:{{ m.sDot }}"></span>{{ m.st }}</span></div>
+                    <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;color:#66706F">⋯</div>
+                  </sc-for>
+                </div>
+                <div style="padding:10px 14px;display:flex;align-items:center;gap:12px;font-size:13px;color:#3A4645"><span>Rows per page</span><span style="display:flex;border:1px solid #C4CBCA;border-radius:6px;overflow:hidden"><span style="padding:3px 9px;background:#0E7470;color:#fff">20</span><span style="padding:3px 9px;border-left:1px solid #C4CBCA">50</span><span style="padding:3px 9px;border-left:1px solid #C4CBCA">100</span></span><span style="margin-left:auto">1–7 of 1,284</span></div>
+              </div>
+            </sc-if>
+
+            <!-- Medicine detail -->
+            <sc-if value="{{ f.s.detail }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:4px;border-bottom:1px solid #DDE2E1">
+                <sc-for list="{{ medTabs }}" as="t" hint-placeholder-count="6"><span style="padding:10px 14px;font-size:13px;font-weight:{{ t.w }};color:{{ t.fg }};border-bottom:2px solid {{ t.bd }};margin-bottom:-1px;white-space:nowrap">{{ t.l }}</span></sc-for>
+              </div>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start">
+                <div style="display:flex;flex-direction:column;gap:16px">
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                    <div style="padding:12px 18px;border-bottom:1px solid #EEF1F0;display:flex;justify-content:space-between;align-items:center"><b style="font-size:14px">Pack units</b><span style="font-size:13px;color:#0E7470;font-weight:500">+ Add unit</span></div>
+                    <div style="display:grid;grid-template-columns:110px 140px 150px 100px 100px 100px 90px;font-size:13px">
+                      <sc-for list="{{ packHead }}" as="h" hint-placeholder-count="7"><div style="padding:9px 14px;background:#F6F8F7;font-size:12px;font-weight:600;color:#3A4645;text-align:{{ h.a }}">{{ h.l }}</div></sc-for>
+                      <sc-for list="{{ packs }}" as="p" hint-placeholder-count="3">
+                        <div style="padding:11px 14px;border-top:1px solid #EEF1F0;display:flex;flex-direction:column"><b style="font-weight:500">{{ p.u }}</b><span style="font-family:'Kantumruy Pro';font-size:12px;color:#66706F;line-height:20px">{{ p.km }}</span></div>
+                        <div style="padding:11px 14px;border-top:1px solid #EEF1F0;display:flex;align-items:center">{{ p.contains }}</div>
+                        <div style="padding:11px 14px;border-top:1px solid #EEF1F0;display:flex;align-items:center;font-family:'JetBrains Mono';font-size:11px">{{ p.bc }}</div>
+                        <div style="padding:11px 14px;border-top:1px solid #EEF1F0;text-align:right;font-weight:600">{{ p.price }}</div>
+                        <div style="padding:11px 14px;border-top:1px solid #EEF1F0;text-align:right">{{ p.khr }}</div>
+                        <div style="padding:11px 14px;border-top:1px solid #EEF1F0;text-align:right">{{ p.cost }}</div>
+                        <div style="padding:11px 14px;border-top:1px solid #EEF1F0;text-align:right;color:#1E6B3F">{{ p.margin }}</div>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                    <div style="padding:12px 18px;border-bottom:1px solid #EEF1F0"><b style="font-size:14px">Price by customer group</b></div>
+                    <div style="display:grid;grid-template-columns:minmax(0,1fr) 120px 120px 120px;font-size:13px">
+                      <sc-for list="{{ grpHead }}" as="h" hint-placeholder-count="4"><div style="padding:9px 14px;background:#F6F8F7;font-size:12px;font-weight:600;color:#3A4645;text-align:{{ h.a }}">{{ h.l }}</div></sc-for>
+                      <sc-for list="{{ grpPrices }}" as="g" hint-placeholder-count="3"><div style="padding:10px 14px;border-top:1px solid #EEF1F0">{{ g.g }}</div><div style="padding:10px 14px;border-top:1px solid #EEF1F0;text-align:right">{{ g.box }}</div><div style="padding:10px 14px;border-top:1px solid #EEF1F0;text-align:right">{{ g.strip }}</div><div style="padding:10px 14px;border-top:1px solid #EEF1F0;text-align:right">{{ g.tab }}</div></sc-for>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:16px">
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+                    <b style="font-size:14px">Safety flags</b>
+                    <div style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;gap:8px;align-items:center"><span style="display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:4px;background:#3438A0;color:#fff;font-size:11px;font-weight:600">℞</span>Prescription only</span><span style="width:36px;height:20px;border-radius:10px;background:#C4CBCA;position:relative"><span style="position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff"></span></span></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;gap:8px;align-items:center"><span style="display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:4px;background:#A01D52;color:#fff;font-size:11px;font-weight:600">◆</span>Controlled</span><span style="width:36px;height:20px;border-radius:10px;background:#C4CBCA;position:relative"><span style="position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff"></span></span></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center"><span>Near-expiry threshold</span><b>90 days</b></div>
+                    <span style="font-size:12px;color:#66706F">Changing flags needs Owner and is logged.</span>
+                  </div>
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:8px;font-size:13px">
+                    <b style="font-size:14px">Ingredients & classes</b>
+                    <span>Paracetamol (acetaminophen) 500 mg</span>
+                    <span style="display:flex;gap:6px;flex-wrap:wrap"><span style="padding:3px 8px;border-radius:4px;background:#EEF1F0">Analgesic</span><span style="padding:3px 8px;border-radius:4px;background:#EEF1F0">Antipyretic</span></span>
+                  </div>
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:8px;font-size:13px">
+                    <b style="font-size:14px">Stock by branch</b>
+                    <div style="display:grid;grid-template-columns:1fr auto;gap:6px"><span>PP1 Toul Kork</span><b>1,840 tab</b><span>PP2 BKK1</span><b>2,100 tab</b><span>SR1 Siem Reap</span><b>960 tab</b></div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- Add/edit KM -->
+            <sc-if value="{{ f.s.edit }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start;font-family:'Kantumruy Pro','Inter'">
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;font-size:13px">
+                  <sc-for list="{{ editFields }}" as="fl" hint-placeholder-count="10">
+                    <label style="display:flex;flex-direction:column;gap:6px;grid-column:span {{ fl.span }}"><span style="font-weight:500;line-height:22px">{{ fl.l }}</span><span style="min-height:40px;border:{{ fl.bw }}px solid {{ fl.bd }};box-shadow:{{ fl.sh }};border-radius:6px;padding:8px 12px;display:flex;align-items:center;line-height:22px;color:{{ fl.c }}">{{ fl.v }}</span><sc-if value="{{ fl.hasErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#B42318;line-height:20px">✕ {{ fl.err }}</span></sc-if></label>
+                  </sc-for>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+                    <b style="font-size:14px;line-height:24px">ឯកតាកញ្ចប់</b>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center"><div style="border:1px solid #0E7470;background:#EFF8F7;border-radius:8px;padding:8px"><b>ប្រអប់</b><div style="font-size:12px;color:#66706F;font-family:Inter">= 10 strips</div></div><div style="border:1px solid #DDE2E1;border-radius:8px;padding:8px"><b>បន្ទះ</b><div style="font-size:12px;color:#66706F;font-family:Inter">= 10 tab</div></div><div style="border:1px solid #DDE2E1;border-radius:8px;padding:8px"><b>គ្រាប់</b><div style="font-size:12px;color:#66706F;font-family:Inter">base</div></div></div>
+                  </div>
+                  <div style="padding:12px 14px;background:#FDE8E6;border:1px solid #F4C3BD;border-radius:10px;font-size:13px;line-height:22px;color:#7A1610">មាន ១ កំហុស។ សូមកែមុនពេលរក្សាទុក។</div>
+                  <div style="display:flex;gap:8px"><span style="flex:1;height:42px;border-radius:6px;border:1px solid #C4CBCA;background:#fff;display:flex;align-items:center;justify-content:center;font-size:14px">បោះបង់</span><span style="flex:1.4;height:42px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">រក្សាទុក</span></div>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- Hamper -->
+            <sc-if value="{{ f.s.hamper }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;align-items:start">
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                  <div style="padding:12px 18px;border-bottom:1px solid #EEF1F0;display:flex;justify-content:space-between;align-items:center"><b style="font-size:14px">Components</b><span style="height:32px;width:260px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center;font-size:13px;color:#8C9594">+ Add item…</span></div>
+                  <div style="display:grid;grid-template-columns:minmax(0,1.6fr) 110px 90px 90px 90px 110px 36px;font-size:13px">
+                    <sc-for list="{{ hamperHead }}" as="h" hint-placeholder-count="7"><div style="padding:9px 14px;background:#F6F8F7;font-size:12px;font-weight:600;color:#3A4645;text-align:{{ h.a }}">{{ h.l }}</div></sc-for>
+                    <sc-for list="{{ hamper }}" as="c" hint-placeholder-count="6">
+                      <div style="padding:10px 14px;border-top:1px solid #EEF1F0">{{ c.name }}</div>
+                      <div style="padding:6px 14px;border-top:1px solid #EEF1F0"><span style="height:30px;border:1px solid #C4CBCA;border-radius:6px;padding:0 8px;display:flex;align-items:center">{{ c.unit }}</span></div>
+                      <div style="padding:6px 14px;border-top:1px solid #EEF1F0"><span style="height:30px;border:1px solid #C4CBCA;border-radius:6px;padding:0 8px;display:flex;align-items:center;justify-content:flex-end">{{ c.qty }}</span></div>
+                      <div style="padding:10px 14px;border-top:1px solid #EEF1F0;text-align:right">{{ c.retail }}</div>
+                      <div style="padding:10px 14px;border-top:1px solid #EEF1F0;text-align:right">{{ c.cost }}</div>
+                      <div style="padding:10px 14px;border-top:1px solid #EEF1F0;text-align:right;color:{{ c.sc }};font-weight:{{ c.sw }}">{{ c.avail }}</div>
+                      <div style="padding:10px 14px;border-top:1px solid #EEF1F0;color:#66706F">✕</div>
+                    </sc-for>
+                    <div style="padding:10px 14px;border-top:1px solid #DDE2E1;font-weight:600;grid-column:span 3">Totals</div><div style="padding:10px 14px;border-top:1px solid #DDE2E1;text-align:right;font-weight:600">$9.65</div><div style="padding:10px 14px;border-top:1px solid #DDE2E1;text-align:right;font-weight:600">$7.95</div><div style="padding:10px 14px;border-top:1px solid #DDE2E1;text-align:right;font-weight:600">PP1: 9 kits</div><div style="border-top:1px solid #DDE2E1"></div>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+                    <b style="font-size:14px">Price</b>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label style="display:flex;flex-direction:column;gap:4px"><span>Hamper price</span><span style="height:40px;border:2px solid #0E7470;border-radius:6px;padding:0 10px;display:flex;align-items:center;justify-content:space-between;font-size:16px"><span style="color:#66706F;font-size:13px">$</span><b>8.00</b></span></label><label style="display:flex;flex-direction:column;gap:4px"><span>KHR</span><span style="height:40px;border:1px solid #DDE2E1;background:#F6F8F7;border-radius:6px;padding:0 10px;display:flex;align-items:center;justify-content:flex-end;font-size:16px">៛32,800</span></label></div>
+                    <div style="display:grid;grid-template-columns:1fr auto;gap:4px"><span style="color:#66706F">Customer saves</span><b style="color:#6D3FB0">$1.65 (17%)</b><span style="color:#66706F">Margin</span><b style="color:#1E6B3F">$0.05 (0.6%)</b></div>
+                    <div style="padding:8px 10px;border-radius:6px;background:#FDF1D6;color:#5C3B00;font-size:12px;line-height:18px">Margin below 5% target. Price is still above cost, so sale is allowed.</div>
+                  </div>
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+                    <b style="font-size:14px">Availability</b>
+                    <span style="display:flex;gap:6px;flex-wrap:wrap"><span style="padding:3px 8px;border-radius:4px;background:#DDF1EF;color:#0B5F5C">PP1</span><span style="padding:3px 8px;border-radius:4px;background:#DDF1EF;color:#0B5F5C">PP2</span><span style="padding:3px 8px;border-radius:4px;border:1px dashed #C4CBCA;color:#66706F">SR1</span></span>
+                    <span>Sold as one line; stock is taken from each component (FEFO).</span>
+                    <span style="color:#A3201A">PP2: Povidone 30 ml out of stock → HAMPER_NOT_STOCKED</span>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- Import -->
+            <sc-if value="{{ f.s.import }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+                <sc-for list="{{ impKpi }}" as="k" hint-placeholder-count="4"><div style="background:#fff;border:1px solid {{ k.bd }};border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#66706F">{{ k.l }}</span><b style="font-size:22px;color:{{ k.c }}">{{ k.v }}</b></div></sc-for>
+              </div>
+              <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                <div style="padding:10px 14px;border-bottom:1px solid #DDE2E1;display:flex;gap:6px;font-size:13px;align-items:center"><span style="padding:6px 12px;border-radius:6px;background:#B42318;color:#fff;font-weight:500">Errors (4)</span><span style="padding:6px 12px;border-radius:6px;border:1px solid #C4CBCA">Warnings (7)</span><span style="padding:6px 12px;border-radius:6px;border:1px solid #C4CBCA">Valid (301)</span><span style="margin-left:auto;color:#0E7470;font-weight:500">Download error rows (.xlsx)</span></div>
+                <div style="display:grid;grid-template-columns:70px minmax(0,1.3fr) 150px 140px minmax(0,1.6fr);font-size:13px">
+                  <sc-for list="{{ impHead }}" as="h" hint-placeholder-count="5"><div style="padding:9px 14px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645">{{ h }}</div></sc-for>
+                  <sc-for list="{{ impRows }}" as="r" hint-placeholder-count="4">
+                    <div style="padding:10px 14px;border-bottom:1px solid #EEF1F0;font-family:'JetBrains Mono';font-size:12px">{{ r.row }}</div>
+                    <div style="padding:10px 14px;border-bottom:1px solid #EEF1F0">{{ r.name }}</div>
+                    <div style="padding:10px 14px;border-bottom:1px solid #EEF1F0;font-family:'JetBrains Mono';font-size:12px">{{ r.col }}</div>
+                    <div style="padding:10px 14px;border-bottom:1px solid #EEF1F0;background:#FFF8F7;color:#A3201A;font-family:'JetBrains Mono';font-size:12px">{{ r.val }}</div>
+                    <div style="padding:10px 14px;border-bottom:1px solid #EEF1F0;color:#7A1610">{{ r.msg }}</div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:center;justify-content:flex-end;font-size:13px"><span style="color:#3A4645">Commit is disabled while errors remain. Or import only valid rows:</span><span style="height:40px;padding:0 14px;border-radius:6px;border:1px solid #C4CBCA;background:#fff;display:flex;align-items:center;font-weight:500">Re-upload file</span><span style="height:40px;padding:0 14px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;font-weight:600">Commit 301 valid rows</span></div>
+            </sc-if>
+
+            <!-- Labels -->
+            <sc-if value="{{ f.s.labels }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 520px;gap:16px;align-items:start">
+                <div style="display:flex;flex-direction:column;gap:12px">
+                  <div style="display:flex;gap:4px;font-size:13px"><span style="padding:8px 14px;border-radius:6px;background:#0E7470;color:#fff;font-weight:500">Shelf labels</span><span style="padding:8px 14px;border-radius:6px;border:1px solid #C4CBCA;background:#fff">Barcode labels</span><span style="padding:8px 14px;border-radius:6px;border:1px solid #C4CBCA;background:#fff">Dispensing labels</span></div>
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                    <div style="display:grid;grid-template-columns:36px minmax(0,1.6fr) 110px 100px 90px;font-size:13px">
+                      <sc-for list="{{ lblHead }}" as="h" hint-placeholder-count="5"><div style="padding:9px 12px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645">{{ h }}</div></sc-for>
+                      <sc-for list="{{ lblRows }}" as="r" hint-placeholder-count="4">
+                        <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0"><span style="width:16px;height:16px;border-radius:4px;background:#0E7470;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center">✓</span></div>
+                        <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0">{{ r.name }}</div>
+                        <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0">{{ r.unit }}</div>
+                        <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;text-align:right">{{ r.price }}</div>
+                        <div style="padding:6px 12px;border-bottom:1px solid #EEF1F0"><span style="height:30px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;justify-content:center">{{ r.copies }}</span></div>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:8px;font-size:13px;align-items:center"><span>Printer</span><span style="height:36px;padding:0 10px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;display:flex;align-items:center">Xprinter XP-365B · 50×30 ▾</span><span style="margin-left:auto;height:40px;padding:0 16px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;font-weight:600">Print 10 labels</span></div>
+                </div>
+                <div style="background:#D6DCDB;border-radius:10px;padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                  <sc-for list="{{ lblPreview }}" as="p" hint-placeholder-count="4">
+                    <div style="height:140px;background:#fff;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.15);padding:10px 12px;display:flex;flex-direction:column;gap:2px">
+                      <b style="font-size:13px;line-height:16px">{{ p.name }}</b>
+                      <span style="font-family:'Kantumruy Pro';font-size:11px;line-height:16px;color:#3A4645">{{ p.km }}</span>
+                      <div style="display:flex;align-items:baseline;gap:6px;margin-top:4px"><b style="font-size:24px;line-height:28px">{{ p.price }}</b><span style="font-size:11px;color:#3A4645">/ {{ p.unit }}</span></div>
+                      <span style="font-size:11px;color:#3A4645">{{ p.khr }}</span>
+                      <div style="margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end"><span style="display:flex;gap:1px;height:18px"><span style="width:2px;background:#17201F"></span><span style="width:1px;background:#17201F"></span><span style="width:3px;background:#17201F"></span><span style="width:1px;background:#17201F"></span><span style="width:2px;background:#17201F"></span><span style="width:1px;background:#17201F"></span><span style="width:2px;background:#17201F"></span><span style="width:3px;background:#17201F"></span></span><span style="font-family:'JetBrains Mono';font-size:9px">{{ p.loc }}</span></div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- Initialize -->
+            <sc-if value="{{ f.s.init }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:12px 16px;background:#E3F3E9;border:1px solid #BFE2CC;border-radius:10px;display:flex;gap:12px;align-items:center;font-size:13px;color:#164E2E"><span style="width:24px;height:24px;border-radius:50%;background:#1E7B47;color:#fff;display:flex;align-items:center;justify-content:center">🔒</span><span style="flex:1"><b>SR1 opening stock committed and locked</b> on 15/01/2026 by Heng Sovann. 1,102 batches · $38,410.20. Further changes go through stock take or adjustment.</span></div>
+              <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                <div style="padding:12px 18px;border-bottom:1px solid #EEF1F0;display:flex;justify-content:space-between;align-items:center"><div style="display:flex;gap:10px;align-items:center"><b style="font-size:14px">PP2 BKK1 · opening stock</b><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 10px 2px 8px;border-radius:999px;background:#E4EEFA;color:#1F5FA8;border:1px solid #C3D7F0;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:#1F5FA8"></span>Validated · not committed</span></div><span style="font-size:13px;color:#3A4645">Opening date 01/11/2026 · 846 lines · total cost $29,108.60</span></div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.6fr) 130px 110px 100px 100px 110px minmax(0,1fr);font-size:13px">
+                  <sc-for list="{{ initHead }}" as="h" hint-placeholder-count="7"><div style="padding:9px 14px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645;text-align:{{ h.a }}">{{ h.l }}</div></sc-for>
+                  <sc-for list="{{ initRows }}" as="r" hint-placeholder-count="5">
+                    <div style="padding:10px 14px;border-bottom:1px solid #EEF1F0">{{ r.name }}</div>
+                    <div style="padding:10px 14px;border-bottom:1px solid #EEF1F0;font-family:'JetBrains Mono';font-size:12px">{{ r.batch }}</div>
+                    <div style="padding:10px 14px;border-bottom:1px solid #EEF1F0;color:{{ r.ec }}">{{ r.exp }}</div>
+                    <div style="padding:10px 14px;border-bottom:1px solid #EEF1F0;text-align:right">{{ r.qty }}</div>
+                    <div style="padding:10px 14px;border-bottom:1px solid #EEF1F0;text-align:right">{{ r.cost }}</div>
+                    <div style="padding:10px 14px;border-bottom:1px solid #EEF1F0;text-align:right;font-weight:600">{{ r.total }}</div>
+                    <div style="padding:10px 14px;border-bottom:1px solid #EEF1F0;color:{{ r.nc }}">{{ r.note }}</div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:center;justify-content:flex-end;font-size:13px"><span style="color:#3A4645">After commit this branch's opening stock is locked permanently.</span><span style="height:40px;padding:0 14px;border-radius:6px;border:1px solid #C4CBCA;background:#fff;display:flex;align-items:center;font-weight:500">Back to edit</span><span style="height:40px;padding:0 14px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;font-weight:600">Commit & lock with PIN</span></div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:#3A4645;max-width:1000px;line-height:20px">{{ f.note }}</div>
+    </div>
+  </sc-for>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const tog = lang => lang === 'km' ? { kmBg: '#0E7470', kmFg: '#fff', enBg: '#fff', enFg: '#3A4645' } : { kmBg: '#fff', kmFg: '#3A4645', enBg: '#0E7470', enFg: '#fff' };
+    const nav = ['▦', '◎', '℞', '◆', '▤', '▣', '⊕', '⇄', '☰', '⚙'].map((icon, i) => ({ icon, bg: i === 5 ? '#DDF1EF' : 'transparent', fg: i === 5 ? '#0B5F5C' : '#3A4645' }));
+    const btn = (label, kind) => kind === 'p' ? { label, bg: '#0E7470', fg: '#fff', bd: '#0E7470' } : { label, bg: '#fff', fg: '#17201F', bd: '#C4CBCA' };
+    const B = { rx: { l: '℞ Rx', bg: '#3438A0', fg: '#fff', bd: '#3438A0' }, ctl: { l: '◆ Controlled', bg: '#A01D52', fg: '#fff', bd: '#A01D52' }, hamper: { l: '▣ Hamper', bg: '#6B5A12', fg: '#fff', bd: '#6B5A12' }, promo: { l: '% Buy 2 get 1', bg: '#6D3FB0', fg: '#fff', bd: '#6D3FB0' } };
+    const steps = (labels, cur) => labels.map((l, i) => i < cur ? { l, n: '✓', bg: '#0E7470', fg: '#fff', bd: '#0E7470', line: '#0E7470', w: 500 } : i === cur ? { l, n: i + 1, bg: '#fff', fg: '#0E7470', bd: '#0E7470', line: '#DDE2E1', w: 600 } : { l, n: i + 1, bg: '#fff', fg: '#8C9594', bd: '#C4CBCA', line: '#DDE2E1', w: 400 }).map((s, i, a) => i === a.length - 1 ? { ...s, line: 'transparent' } : s);
+    const S = { list: 0, detail: 0, edit: 0, hamper: 0, import: 0, labels: 0, init: 0 };
+    const F = o => ({ lang: 'en', user: 'Heng Sovann', ini: 'HS', role: 'Owner', search: 'Search…', br: 'ALL', brName: 'All branches', tags: [], hasSteps: false, steps: [], ...o, s: { ...S, ...o.s }, ...tog(o.lang || 'en'), lh: o.lang === 'km' ? 22 : 18, titleLh: o.lang === 'km' ? 44 : 36 });
+
+    const frames = [
+      F({ id: '9a', frameName: 'Warehouse / Medicines / Desktop 1366 / EN', roleNote: 'Owner, Manager · Pharmacist view · cost column needs permission', api: 'GET /api/catalog/v1/medicines', crumb: 'Warehouse  /  Product', title: 'Medicines', actions: [btn('Import', 's'), btn('+ New medicine', 'p')], s: { list: 1 }, note: 'Khmer name under the Latin name. Safety flags as badges. Inactive products stay listed under Status: Inactive; there is no delete.' }),
+      F({ id: '9b', frameName: 'Warehouse / Medicine detail – pack units & prices / Desktop 1366 / EN', roleNote: 'Owner, Manager', api: 'GET /api/catalog/v1/medicines/{medicine_id} · GET …/pack-units', crumb: 'Warehouse  /  Product  /  Paracetamol 500 mg', title: 'Paracetamol 500 mg', actions: [btn('Deactivate', 's'), btn('Edit', 'p')], s: { detail: 1 }, note: 'Each pack unit has its own barcode and price. KHR is derived from the exchange rate and rounded to ៛100.' }),
+      F({ id: '9c', lang: 'km', user: 'ហេង សុវណ្ណ', role: 'ម្ចាស់', search: 'ស្វែងរក…', frameName: 'Warehouse / Add medicine / Desktop 1366 / KM', roleNote: 'Owner, Manager', api: 'POST /api/catalog/v1/medicines', crumb: 'ឃ្លាំង  /  ផលិតផល  /  ថ្មី', title: 'បន្ថែមឱសថ', actions: [], s: { edit: 1 }, note: 'Khmer labels with 22px line height. Inline error under the barcode field (duplicate).' }),
+      F({ id: '9d', frameName: 'Warehouse / Hamper editor / Desktop 1366 / EN', roleNote: 'Owner, Manager', api: 'POST /api/catalog/v1/hampers · PUT …/{hamper_id}/components · GET /api/inventory/v1/hampers/{hamper_id}/availability', crumb: 'Warehouse  /  Hamper  /  First-aid kit', title: 'First-aid kit', tags: [B.hamper], actions: [btn('Deactivate', 's'), btn('Save', 'p')], s: { hamper: 1 }, note: 'Availability per branch is computed from the scarcest component.' }),
+      F({ id: '9e', frameName: 'Warehouse / Import – validation / Desktop 1366 / EN', roleNote: 'Owner, Manager', api: 'POST /api/catalog/v1/imports · GET …/{import_id} · POST …/commit', crumb: 'Warehouse  /  Import Product', title: 'Import products', hasSteps: true, steps: steps(['Upload Excel', 'Validate', 'Commit'], 1), actions: [btn('Download template', 's')], s: { import: 1 }, note: 'Row-level errors point to the exact cell. Valid rows can be committed separately.' }),
+      F({ id: '9f', frameName: 'Warehouse / Print label / Desktop 1366 / EN', roleNote: 'Owner, Manager, Pharmacist', api: 'POST /api/documents/v1/render (label)', br: 'PP1', brName: 'Toul Kork', user: 'Chan Sophea', ini: 'CS', role: 'Branch manager', crumb: 'Warehouse  /  Print Label', title: 'Print labels', actions: [], s: { labels: 1 }, note: 'Shelf label: KM + EN name, USD price large, KHR below, barcode and shelf location.' }),
+      F({ id: '9g', frameName: 'Warehouse / Initialize opening stock / Desktop 1366 / EN', roleNote: 'Owner only', api: 'POST /api/inventory/v1/opening-balances · POST …/{opening_id}/commit', crumb: 'Warehouse  /  Initialize', title: 'Opening stock', hasSteps: true, steps: steps(['Enter or upload', 'Validate', 'Commit', 'Locked'], 2), actions: [], s: { init: 1 }, note: 'One-time per branch. Committed branches show a locked banner; warnings (near-expiry) are allowed, errors are not.' }),
+    ];
+
+    const meds = [
+      ['Paracetamol 500 mg', 'ប៉ារ៉ាសេតាម៉ុល ៥០០ មក', [], 'Analgesic', '8850123456789', 'box 10×10 · strip · tab', '$4.50', '$3.20', '4,900', 1],
+      ['Amoxicillin 500 mg', 'អាម៉ុកស៊ីស៊ីលីន ៥០០ មក', [B.rx], 'Antibiotic', '8850123400112', 'box 10×10 · strip · cap', '$16.00', '$12.00', '1,020', 1],
+      ['Cetirizine 10 mg', 'សេទីរីស៊ីន ១០ មក', [], 'Antihistamine', '8850123400556', 'box 10×10 · strip · tab', '$11.00', '$7.20', '2,330', 1],
+      ['ORS sachet', 'អូអរអេស', [B.promo], 'Rehydration', '8850123400778', 'box 20 · sachet', '$7.50', '$4.00', '410', 1],
+      ['Diazepam 5 mg', 'ឌីអាហ្សេប៉ាម ៥ មក', [B.ctl, B.rx], 'Anxiolytic', '8850123400990', 'box 10×10 · strip · tab', '$13.50', '$10.00', '480', 1],
+      ['First-aid kit', 'ឈុតសង្គ្រោះបឋម', [B.hamper], 'Hamper', 'HMP-0001', 'kit (6 items)', '$8.00', '$7.95', '21', 1],
+      ['Ranitidine 150 mg', 'រ៉ានីទីឌីន ១៥០ មក', [B.rx], 'Antacid', '8850123400221', 'box 10×10 · strip · tab', '$6.00', '$4.10', '0', 0],
+    ].map(([name, km, badges, cat, code, packs, price, cost, stock, active]) => ({ name, km, badges, cat, code, packs, price, cost, stock, nc: active ? '#17201F' : '#66706F', st: active ? 'Active' : 'Inactive', sBg: active ? '#DDF1EF' : '#EEF1F0', sFg: active ? '#0B5F5C' : '#3A4645', sDot: active ? '#13908A' : '#8C9594' }));
+
+    const medTabs = ['Info', 'Pack units & prices', 'Batches', 'Ingredients & classes', 'Rx / controlled flags', 'Price history'].map((l, i) => ({ l, w: i === 1 ? 600 : 500, fg: i === 1 ? '#0B5F5C' : '#66706F', bd: i === 1 ? '#0E7470' : 'transparent' }));
+    const packs = [
+      { u: 'Box', km: 'ប្រអប់', contains: '10 strips = 100 tab', bc: '8850123456789', price: '$4.50', khr: '៛18,500', cost: '$3.20', margin: '28.9%' },
+      { u: 'Strip', km: 'បន្ទះ', contains: '10 tab', bc: '8850123456796', price: '$0.50', khr: '៛2,100', cost: '$0.32', margin: '36.0%' },
+      { u: 'Tablet', km: 'គ្រាប់', contains: 'base unit', bc: '—', price: '$0.06', khr: '៛300', cost: '$0.032', margin: '46.7%' },
+    ];
+    const grpPrices = [{ g: 'Retail (default)', box: '$4.50', strip: '$0.50', tab: '$0.06' }, { g: 'Clinic', box: '$4.00', strip: '$0.45', tab: '$0.05' }, { g: 'NGO partner', box: '$3.80', strip: '$0.42', tab: '$0.05' }];
+
+    const field = (l, v, o = {}) => ({ l, v, span: o.span || 1, bw: o.err ? 1 : o.focus ? 2 : 1, bd: o.err ? '#B42318' : o.focus ? '#0E7470' : '#C4CBCA', sh: o.focus ? '0 0 0 3px #CDEBE8' : 'none', c: o.ph ? '#8C9594' : '#17201F', hasErr: !!o.err, err: o.err || '' });
+    const editFields = [
+      field('ឈ្មោះ (អង់គ្លេស) *', 'Omeprazole 20 mg'), field('ឈ្មោះ (ខ្មែរ) *', 'អូមេប្រាហ្សូល ២០ មក', { focus: 1 }),
+      field('ឈ្មោះទូទៅ', 'Omeprazole'), field('ប្រភេទ', 'ថ្នាំក្រពះ (PPI) ▾'),
+      field('បាកូដ (ប្រអប់) *', '8850123400334', { err: 'បាកូដនេះមានរួចហើយលើ "Omeprazole 20 mg (Zuellig)"' }), field('អ្នកផ្គត់ផ្គង់ចម្បង', 'Zuellig Pharma ▾'),
+      field('ថ្លៃដើម / ប្រអប់', '$15.00'), field('តម្លៃលក់ / ប្រអប់', '$19.00'),
+      field('សារធាតុសកម្ម', 'Omeprazole 20 mg', { span: 2 }),
+    ];
+
+    const hamper = [
+      ['Gauze 10×10 cm', 'piece', '2', '$0.60', '$0.40', '120'], ['Bandage roll 5 cm', 'roll', '1', '$1.20', '$0.90', '45'], ['Povidone-iodine 30 ml', 'bottle', '1', '$2.50', '$2.10', '9'],
+      ['Plasters assorted', 'piece', '20', '$2.00', '$1.60', '600'], ['Nitrile gloves', 'pair', '2', '$1.40', '$1.15', '80'], ['Medical tape', 'roll', '1', '$1.95', '$1.80', '30'],
+    ].map(([name, unit, qty, retail, cost, avail]) => ({ name, unit, qty, retail, cost, avail: avail + ' → ' + Math.floor(+avail / +qty) + ' kits', sc: Math.floor(+avail / +qty) < 10 ? '#A3201A' : '#17201F', sw: Math.floor(+avail / +qty) < 10 ? 600 : 400 }));
+
+    const impKpi = [{ l: 'Rows in file', v: '312', c: '#17201F', bd: '#DDE2E1' }, { l: 'Valid', v: '301', c: '#1E6B3F', bd: '#BFE2CC' }, { l: 'Warnings', v: '7', c: '#7A4F00', bd: '#F0D48E' }, { l: 'Errors', v: '4', c: '#A3201A', bd: '#F4C3BD' }];
+    const impRows = [
+      { row: '14', name: 'Loratadine 10 mg', col: 'barcode_box', val: '8850123400556', msg: 'Barcode already used by Cetirizine 10 mg' },
+      { row: '58', name: 'Metformin 500 mg', col: 'price_box', val: '-2.5', msg: 'Price must be a positive number' },
+      { row: '121', name: 'Tramadol 50 mg', col: 'controlled', val: 'yes', msg: 'Controlled products must also be Rx = yes' },
+      { row: '207', name: '(empty)', col: 'name_en', val: '', msg: 'English name is required' },
+    ];
+    const lblRows = [{ name: 'Paracetamol 500 mg', unit: 'strip', price: '$0.50', copies: '4' }, { name: 'Cetirizine 10 mg', unit: 'strip', price: '$1.20', copies: '2' }, { name: 'ORS sachet', unit: 'sachet', price: '$0.40', copies: '2' }, { name: 'Omeprazole 20 mg', unit: 'box', price: '$9.50', copies: '2' }];
+    const lblPreview = [
+      { name: 'Paracetamol 500 mg', km: 'ប៉ារ៉ាសេតាម៉ុល ៥០០ មក', price: '$0.50', unit: 'strip', khr: '៛2,100', loc: 'A2-2' },
+      { name: 'Cetirizine 10 mg', km: 'សេទីរីស៊ីន ១០ មក', price: '$1.20', unit: 'strip', khr: '៛4,900', loc: 'A2-1' },
+      { name: 'ORS sachet', km: 'អូអរអេស', price: '$0.40', unit: 'sachet', khr: '៛1,600', loc: 'A3-4' },
+      { name: 'Omeprazole 20 mg', km: 'អូមេប្រាហ្សូល ២០ មក', price: '$9.50', unit: 'box', khr: '៛39,000', loc: 'A2-3' },
+    ];
+    const initRows = [
+      ['Paracetamol 500 mg', 'PCM-2803', '03/2028', '2,100', '$0.032', '$67.20', '', '#17201F'],
+      ['Amoxicillin 500 mg', 'AMX-2702', '02/2027', '600', '$0.12', '$72.00', '', '#17201F'],
+      ['Cetirizine 10 mg', 'CTZ-2612', '12/2026', '380', '$0.072', '$27.36', '⚠ Near expiry (42 d)', '#7A4F00'],
+      ['Diazepam 5 mg', 'DZP-2702', '02/2027', '140', '$0.10', '$14.00', 'Controlled · register opens at 140', '#A01D52'],
+      ['ORS sachet', 'ORS-2801', '01/2028', '300', '$0.20', '$60.00', '', '#17201F'],
+    ].map(([name, batch, exp, qty, cost, total, note, nc]) => ({ name, batch, exp, qty, cost, total, note, nc, ec: note.startsWith('⚠') ? '#7A4F00' : '#17201F' }));
+
+    const H = (arr) => arr.map(([l, a]) => ({ l, a: a || 'left' }));
+    return {
+      frames, nav, meds, medTabs, packs, grpPrices, editFields, hamper, impKpi, impRows, lblRows, lblPreview, initRows,
+      medHead: H([['Medicine'], ['Category'], ['Barcode'], ['Pack units'], ['Price / box', 'right'], ['Cost / box', 'right'], ['Stock', 'right'], ['Status'], ['']]),
+      packHead: H([['Unit'], ['Contains'], ['Barcode'], ['Price', 'right'], ['KHR', 'right'], ['Cost', 'right'], ['Margin', 'right']]),
+      grpHead: H([['Customer group'], ['Box', 'right'], ['Strip', 'right'], ['Tablet', 'right']]),
+      hamperHead: H([['Item'], ['Unit'], ['Qty', 'right'], ['Retail', 'right'], ['Cost', 'right'], ['PP1 stock', 'right'], ['']]),
+      impHead: ['Row', 'Product', 'Column', 'Value', 'Problem'],
+      lblHead: ['', 'Medicine', 'Unit', 'Price', 'Copies'],
+      initHead: H([['Medicine'], ['Batch'], ['Expiry'], ['Qty', 'right'], ['Unit cost', 'right'], ['Value', 'right'], ['Check']]),
+    };
+  }
+}
+</script>
+</body>
+</html>

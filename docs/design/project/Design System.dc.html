@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Kantumruy+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F8F7;color:#17201F;font-family:'Inter','Kantumruy Pro',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0E7470}a:hover{color:#0B5F5C}
+*{box-sizing:border-box}
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+</style>
+</helmet>
+<div style="min-height:100vh;font-variant-numeric:tabular-nums">
+<header style="background:#FFFFFF;border-bottom:1px solid #DDE2E1">
+  <div style="max-width:1280px;margin:0 auto;padding:40px 32px 32px;display:flex;flex-wrap:wrap;gap:24px;align-items:flex-end;justify-content:space-between">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#66706F;letter-spacing:.04em">FOUNDATIONS / DESIGN SYSTEM / DESKTOP / KM + EN · v1.0</div>
+      <h1 style="margin:0;font-size:32px;line-height:40px;font-weight:600;letter-spacing:-.01em">Pharmacy System Management</h1>
+      <div style="font-family:'Kantumruy Pro',sans-serif;font-size:18px;line-height:30px;color:#3A4645">ប្រព័ន្ធគ្រប់គ្រងឱសថស្ថាន · ប្រព័ន្ធរចនា</div>
+    </div>
+    <nav style="display:flex;flex-wrap:wrap;gap:6px;font-size:13px">
+      <a href="#color" style="padding:6px 10px;border:1px solid #DDE2E1;border-radius:6px;text-decoration:none">Color</a>
+      <a href="#type" style="padding:6px 10px;border:1px solid #DDE2E1;border-radius:6px;text-decoration:none">Type</a>
+      <a href="#space" style="padding:6px 10px;border:1px solid #DDE2E1;border-radius:6px;text-decoration:none">Spacing</a>
+      <a href="#badges" style="padding:6px 10px;border:1px solid #DDE2E1;border-radius:6px;text-decoration:none">Badges</a>
+      <a href="#status" style="padding:6px 10px;border:1px solid #DDE2E1;border-radius:6px;text-decoration:none">Status</a>
+      <a href="#controls" style="padding:6px 10px;border:1px solid #DDE2E1;border-radius:6px;text-decoration:none">Controls</a>
+      <a href="#data" style="padding:6px 10px;border:1px solid #DDE2E1;border-radius:6px;text-decoration:none">Data</a>
+      <a href="#feedback" style="padding:6px 10px;border:1px solid #DDE2E1;border-radius:6px;text-decoration:none">Feedback</a>
+      <a href="#dialogs" style="padding:6px 10px;border:1px solid #DDE2E1;border-radius:6px;text-decoration:none">Dialogs</a>
+      <a href="#flow" style="padding:6px 10px;border:1px solid #DDE2E1;border-radius:6px;text-decoration:none">Flow</a>
+      <a href="#shell" style="padding:6px 10px;border:1px solid #DDE2E1;border-radius:6px;text-decoration:none">Shell</a>
+      <a href="#charts" style="padding:6px 10px;border:1px solid #DDE2E1;border-radius:6px;text-decoration:none">Charts</a>
+      <a href="#errors" style="padding:6px 10px;border:1px solid #DDE2E1;border-radius:6px;text-decoration:none">Errors</a>
+    </nav>
+  </div>
+</header>
+
+<main style="max-width:1280px;margin:0 auto;padding:0 32px 96px;position:relative">
+
+<sc-if value="{{ showGrid }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0 32px;display:grid;grid-template-columns:repeat(12,1fr);gap:24px;pointer-events:none;z-index:50">
+    <sc-for list="{{ twelve }}" as="g" hint-placeholder-count="12"><div style="background:rgba(214,60,47,.06);border-left:1px solid rgba(214,60,47,.2);border-right:1px solid rgba(214,60,47,.2)"></div></sc-for>
+  </div>
+</sc-if>
+
+<!-- COLOR -->
+<section id="color" style="padding:56px 0 0;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;gap:16px;align-items:baseline;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0E7470">01</span><h2 style="margin:0;font-size:22px;line-height:30px;font-weight:600">Color tokens</h2><span style="font-family:'Kantumruy Pro';font-size:15px;color:#66706F;line-height:26px">ពណ៌</span></div>
+  <p style="margin:0;max-width:720px;font-size:14px;line-height:22px;color:#3A4645;text-wrap:pretty">Teal primary for actions and selection. Semantic colors carry meaning only together with an icon and a text label. All text pairs below meet WCAG AA (4.5:1) on their own background.</p>
+  <sc-for list="{{ palettes }}" as="p" hint-placeholder-count="4">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="font-size:12px;font-weight:600;color:#66706F;text-transform:uppercase;letter-spacing:.06em">{{ p.name }}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px">
+        <sc-for list="{{ p.swatches }}" as="s" hint-placeholder-count="6">
+          <div style="background:#fff;border:1px solid #DDE2E1;border-radius:8px;overflow:hidden">
+            <div style="height:56px;background:{{ s.hex }};color:{{ s.on }};padding:8px 10px;font-size:12px;font-weight:600;display:flex;align-items:flex-end">Aa 12.50</div>
+            <div style="padding:8px 10px;display:flex;flex-direction:column;gap:2px">
+              <div style="font-size:12px;font-weight:600">{{ s.token }}</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#66706F">{{ s.hex }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-for>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px">
+    <div style="background:#0F1716;border-radius:10px;padding:24px;color:#E6EEED;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#8FA5A3">POS dark variant</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8FA5A3">pos.surface #0F1716</span></div>
+      <div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid #24302F;padding-top:16px">
+        <div style="display:flex;justify-content:space-between;font-size:14px;color:#AFC0BE"><span>Subtotal · <span style="font-family:'Kantumruy Pro'">សរុបរង</span></span><span>$13.30</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;color:#7FD6B0"><span>Promotion · ORS buy 2 get 1</span><span>−$0.80</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px"><span style="font-size:16px;font-weight:600;font-family:'Kantumruy Pro'">សរុប Total</span><span style="font-size:48px;line-height:56px;font-weight:700;color:#FFFFFF">$12.50</span></div>
+        <div style="text-align:right;font-size:20px;font-weight:600;color:#5FD0C4">៛51,300</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+        <div style="height:32px;border-radius:6px;background:#0F1716;border:1px solid #24302F"></div>
+        <div style="height:32px;border-radius:6px;background:#172322"></div>
+        <div style="height:32px;border-radius:6px;background:#24302F"></div>
+        <div style="height:32px;border-radius:6px;background:#2BB3A6"></div>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8FA5A3">surface · raised #172322 · line #24302F · accent #2BB3A6 · text #E6EEED</div>
+    </div>
+    <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:24px;display:flex;flex-direction:column;gap:12px;font-size:13px;line-height:20px;color:#3A4645">
+      <div style="font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#66706F">Usage rules</div>
+      <div>Primary 600 for buttons, links, focus ring, selected rows (primary 50).</div>
+      <div>Danger only for hard stops, expired, cancelled and destructive confirmation. Never for decoration.</div>
+      <div>Warning for near-expiry, pending approval and overridable checks.</div>
+      <div>Safety badge colors (Rx, Controlled, Quarantine, Hamper, Promotion) are reserved and never reused for other UI.</div>
+      <div>Money and quantities use neutral 900 at full opacity for maximum contrast.</div>
+    </div>
+  </div>
+</section>
+
+<!-- TYPE -->
+<section id="type" style="padding:56px 0 0;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;gap:16px;align-items:baseline;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0E7470">02</span><h2 style="margin:0;font-size:22px;line-height:30px;font-weight:600">Typography</h2><span style="font-family:'Kantumruy Pro';font-size:15px;color:#66706F;line-height:26px">អក្សរ</span></div>
+  <p style="margin:0;max-width:720px;font-size:14px;line-height:22px;color:#3A4645;text-wrap:pretty">Font stack <code style="font-family:'JetBrains Mono';font-size:12px;background:#EEF1F0;padding:1px 6px;border-radius:4px">'Inter', 'Kantumruy Pro', sans-serif</code>. Latin renders in Inter, Khmer falls through to Kantumruy Pro. Khmer line height is ×1.25 of Latin. All numbers use <code style="font-family:'JetBrains Mono';font-size:12px;background:#EEF1F0;padding:1px 6px;border-radius:4px">tabular-nums</code>.</p>
+  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+    <sc-for list="{{ typeScale }}" as="t" hint-placeholder-count="7">
+      <div style="display:grid;grid-template-columns:180px minmax(0,1fr) minmax(0,1fr);gap:24px;padding:20px 24px;border-bottom:1px solid #EEF1F0;align-items:center">
+        <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;font-weight:600">{{ t.name }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#66706F">{{ t.spec }}</span></div>
+        <div style="font-size:{{ t.size }}px;line-height:{{ t.lh }}px;font-weight:{{ t.w }};min-width:0">{{ t.en }}</div>
+        <div style="font-size:{{ t.size }}px;line-height:{{ t.lhKm }}px;font-weight:{{ t.w }};font-family:'Kantumruy Pro',sans-serif;min-width:0">{{ t.km }}</div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+    <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#66706F">Dual currency</div>
+      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-size:20px;font-weight:600">$12.50</span><span style="color:#8C9594">·</span><span style="font-size:20px;font-weight:600;color:#3A4645">៛51,300</span></div>
+      <div style="font-size:12px;color:#66706F;line-height:18px">USD first, KHR second, rounded to nearest ៛100. Rate shown on receipts: 1 USD = ៛4,100.</div>
+    </div>
+    <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#66706F">Date & time</div>
+      <div style="font-size:20px;font-weight:600">31/10/2026 · 14:05</div>
+      <div style="font-size:12px;color:#66706F;line-height:18px">DD/MM/YYYY, 24h, Asia/Phnom_Penh. Expiry on batches: MM/YYYY.</div>
+    </div>
+    <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#66706F">Length test (Khmer +40%)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <span style="padding:8px 14px;border-radius:6px;background:#0E7470;color:#fff;font-size:14px;font-weight:500">Pay</span>
+        <span style="padding:8px 14px;border-radius:6px;background:#0E7470;color:#fff;font-size:14px;font-weight:500;font-family:'Kantumruy Pro';line-height:22px">ទូទាត់ប្រាក់</span>
+      </div>
+      <div style="font-size:12px;color:#66706F;line-height:18px">Buttons and tabs size to content; no fixed widths, no ellipsis on labels.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SPACING -->
+<section id="space" style="padding:56px 0 0;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;gap:16px;align-items:baseline;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0E7470">03</span><h2 style="margin:0;font-size:22px;line-height:30px;font-weight:600">Spacing & grid</h2><span style="font-family:'Kantumruy Pro';font-size:15px;color:#66706F;line-height:26px">គម្លាត និងក្រឡា</span></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+    <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ spacing }}" as="sp" hint-placeholder-count="8">
+        <div style="display:flex;align-items:center;gap:12px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#66706F;width:56px">space-{{ sp.n }}</span><div style="height:12px;width:{{ sp.px }}px;background:#13908A;border-radius:2px"></div><span style="font-size:12px;color:#3A4645">{{ sp.px }}px</span></div>
+      </sc-for>
+    </div>
+    <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:12px;font-weight:600;color:#66706F">Desktop · 12 col · 24 gutter · 32 margin · sidebar 248 / 64</div>
+      <div style="display:grid;grid-template-columns:repeat(12,1fr);gap:4px;height:64px"><sc-for list="{{ twelve }}" as="g" hint-placeholder-count="12"><div style="background:#DDF1EF;border-radius:2px"></div></sc-for></div>
+      <div style="font-size:12px;font-weight:600;color:#66706F;margin-top:8px">Mobile · 4 col · 16 gutter · 16 margin</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;height:64px;max-width:180px"><div style="background:#DDF1EF;border-radius:2px"></div><div style="background:#DDF1EF;border-radius:2px"></div><div style="background:#DDF1EF;border-radius:2px"></div><div style="background:#DDF1EF;border-radius:2px"></div></div>
+    </div>
+    <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:10px;font-size:13px;color:#3A4645;line-height:20px">
+      <div style="font-size:12px;font-weight:600;color:#66706F">Radius · elevation · targets</div>
+      <div style="display:flex;gap:10px;align-items:center"><div style="width:40px;height:40px;border:1px solid #C4CBCA;border-radius:4px"></div>4 badges, inputs-sm</div>
+      <div style="display:flex;gap:10px;align-items:center"><div style="width:40px;height:40px;border:1px solid #C4CBCA;border-radius:6px"></div>6 buttons, inputs</div>
+      <div style="display:flex;gap:10px;align-items:center"><div style="width:40px;height:40px;border:1px solid #C4CBCA;border-radius:10px;box-shadow:0 8px 24px rgba(23,32,31,.12)"></div>10 cards, modals · shadow-lg</div>
+      <div>Hit targets: desktop 36px min, POS 48px, mobile 44px.</div>
+    </div>
+  </div>
+</section>
+
+<!-- SAFETY BADGES -->
+<section id="badges" style="padding:56px 0 0;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;gap:16px;align-items:baseline;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0E7470">04</span><h2 style="margin:0;font-size:22px;line-height:30px;font-weight:600">Safety badges</h2><span style="font-family:'Kantumruy Pro';font-size:15px;color:#66706F;line-height:26px">ស្លាកសុវត្ថិភាព</span></div>
+  <p style="margin:0;max-width:720px;font-size:14px;line-height:22px;color:#3A4645;text-wrap:pretty">Solid, square-cornered tags with icon + text. They describe the item. Status pills (next section) are rounded and describe a document. The two shapes never mix.</p>
+  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px">
+    <sc-for list="{{ safety }}" as="b" hint-placeholder-count="10">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <span style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 7px 0 5px;border-radius:4px;background:{{ b.bg }};color:{{ b.fg }};font-size:12px;font-weight:600;white-space:nowrap"><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;font-size:11px;line-height:1">{{ b.icon }}</span>{{ b.en }}</span>
+          <span style="display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 7px 0 5px;border-radius:4px;background:{{ b.bg }};color:{{ b.fg }};font-size:12px;font-weight:600;font-family:'Kantumruy Pro';white-space:nowrap"><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;font-size:11px;line-height:1;font-family:Inter">{{ b.icon }}</span>{{ b.km }}</span>
+        </div>
+        <div style="font-size:12px;line-height:18px;color:#66706F">{{ b.note }}</div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px">
+    <div style="border:2px solid #B42318;border-radius:10px;background:#fff;overflow:hidden">
+      <div style="background:#B42318;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px;font-weight:600;font-size:14px"><span style="width:20px;height:20px;border-radius:50%;background:#fff;color:#B42318;display:inline-flex;align-items:center;justify-content:center;font-size:12px">✕</span>Hard stop · <span style="font-family:'Kantumruy Pro'">ហាមឃាត់</span></div>
+      <div style="padding:16px;display:flex;flex-direction:column;gap:8px;font-size:14px;line-height:22px">
+        <div style="font-weight:600">Batch PCM-2405 expired on 30/09/2026</div>
+        <div style="color:#3A4645;font-family:'Kantumruy Pro';line-height:26px">ឡូត៍នេះផុតកំណត់ហើយ។ មិនអាចលក់បានទេ។</div>
+        <div style="display:flex;gap:8px;margin-top:4px"><span style="padding:8px 14px;border-radius:6px;background:#0E7470;color:#fff;font-size:13px;font-weight:500">Choose another batch</span><span style="padding:8px 14px;border-radius:6px;border:1px solid #C4CBCA;font-size:13px;font-weight:500">Remove line</span></div>
+        <div style="font-size:12px;color:#66706F">No override. Solid red header, 2px red frame, no reason field.</div>
+      </div>
+    </div>
+    <div style="border:1px solid #E9B949;border-radius:10px;background:#fff;overflow:hidden">
+      <div style="background:#FDF1D6;color:#7A4F00;padding:10px 16px;display:flex;align-items:center;gap:10px;font-weight:600;font-size:14px;border-bottom:1px solid #E9B949"><span style="width:20px;height:20px;border-radius:50%;background:#D99A1E;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px">!</span>Warning · can override · <span style="font-family:'Kantumruy Pro'">ការព្រមាន</span></div>
+      <div style="padding:16px;display:flex;flex-direction:column;gap:8px;font-size:14px;line-height:22px">
+        <div style="font-weight:600">Duplicate therapy: Omeprazole already dispensed 12/10/2026</div>
+        <div style="border:1px solid #C4CBCA;border-radius:6px;padding:8px 10px;color:#8C9594;font-size:13px">Reason (required, min 10 characters)…</div>
+        <div style="display:flex;gap:8px;margin-top:4px"><span style="padding:8px 14px;border-radius:6px;background:#0E7470;color:#fff;font-size:13px;font-weight:500">Acknowledge & continue</span><span style="padding:8px 14px;border-radius:6px;border:1px solid #C4CBCA;font-size:13px;font-weight:500">Remove item</span></div>
+        <div style="font-size:12px;color:#66706F">Amber, 1px frame, reason field always present.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATUS PILLS -->
+<section id="status" style="padding:56px 0 0;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;gap:16px;align-items:baseline;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0E7470">05</span><h2 style="margin:0;font-size:22px;line-height:30px;font-weight:600">Status vocabularies</h2><span style="font-family:'Kantumruy Pro';font-size:15px;color:#66706F;line-height:26px">ស្ថានភាព</span></div>
+  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+    <sc-for list="{{ statusGroups }}" as="sg" hint-placeholder-count="7">
+      <div style="display:grid;grid-template-columns:140px minmax(0,1fr);gap:16px;padding:16px 24px;border-bottom:1px solid #EEF1F0;align-items:start">
+        <div style="font-size:13px;font-weight:600;padding-top:3px">{{ sg.name }}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px 10px">
+          <sc-for list="{{ sg.items }}" as="st" hint-placeholder-count="5">
+            <span style="display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px 2px 8px;border-radius:999px;background:{{ st.bg }};color:{{ st.fg }};border:1px solid {{ st.bd }};font-size:12px;font-weight:500;line-height:18px;white-space:nowrap;text-decoration:{{ st.deco }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ st.dot }};flex:none"></span>{{ st.label }}</span>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="font-size:12px;color:#66706F">Tone map: neutral = draft/closed · info = sent/requested/in progress · primary = active/open · warning = partial/pending/near expiry · success = done · danger = expired/discrepancy · cancelled = danger outline, struck through.</div>
+</section>
+
+<!-- CONTROLS -->
+<section id="controls" style="padding:56px 0 0;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;gap:16px;align-items:baseline;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0E7470">06</span><h2 style="margin:0;font-size:22px;line-height:30px;font-weight:600">Buttons & inputs</h2><span style="font-family:'Kantumruy Pro';font-size:15px;color:#66706F;line-height:26px">ប៊ូតុង និងការបញ្ចូល</span></div>
+  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:24px;overflow-x:auto">
+    <div style="display:grid;grid-template-columns:100px repeat(6,minmax(120px,1fr));gap:16px 12px;align-items:center;min-width:900px">
+      <div></div>
+      <sc-for list="{{ btnStates }}" as="h" hint-placeholder-count="6"><div style="font-size:11px;font-weight:600;color:#66706F;text-transform:uppercase;letter-spacing:.06em">{{ h }}</div></sc-for>
+      <sc-for list="{{ buttons }}" as="row" hint-placeholder-count="4">
+        <div style="font-size:13px;font-weight:600">{{ row.name }}</div>
+        <sc-for list="{{ row.states }}" as="b" hint-placeholder-count="6">
+          <div><span style="display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:6px;background:{{ b.bg }};color:{{ b.fg }};border:1px solid {{ b.bd }};box-shadow:{{ b.sh }};opacity:{{ b.op }};font-size:14px;font-weight:500;white-space:nowrap">{{ b.spin }}{{ b.label }}</span></div>
+        </sc-for>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:24px;padding-top:20px;border-top:1px solid #EEF1F0">
+      <span style="font-size:12px;color:#66706F;width:100px">POS size 48</span>
+      <span style="display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 20px;border-radius:8px;background:#0E7470;color:#fff;font-size:16px;font-weight:600">Pay · <span style="font-family:'Kantumruy Pro'">ទូទាត់</span><span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,.18)">F9</span></span>
+      <span style="display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 20px;border-radius:8px;background:#fff;border:1px solid #C4CBCA;font-size:16px;font-weight:500">Suspend<span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#EEF1F0;color:#3A4645">F8</span></span>
+      <span style="display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 20px;border-radius:8px;background:#fff;border:1px solid #E8A39C;color:#B42318;font-size:16px;font-weight:500">Cancel (reason required)<span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#FDE8E6">Esc</span></span>
+      <span style="display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:6px;border:1px solid #C4CBCA;font-size:14px;font-weight:500;color:#3A4645">Deactivate</span>
+      <span style="font-size:12px;color:#66706F">No Delete button exists in the system.</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+    <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div style="font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#66706F">Text input states</div>
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:500">Customer name · <span style="font-family:'Kantumruy Pro'">ឈ្មោះអតិថិជន</span></span><span style="height:36px;border:1px solid #C4CBCA;border-radius:6px;padding:0 12px;display:flex;align-items:center;font-size:14px;color:#8C9594">Default</span></label>
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:500">Focus</span><span style="height:36px;border:1px solid #0E7470;box-shadow:0 0 0 3px #CDEBE8;border-radius:6px;padding:0 12px;display:flex;align-items:center;font-size:14px">Sok Dara<span style="width:1px;height:18px;background:#17201F;margin-left:1px"></span></span></label>
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:500">Phone · <span style="font-family:'Kantumruy Pro'">ទូរស័ព្ទ</span></span><span style="height:36px;border:1px solid #B42318;border-radius:6px;display:flex;align-items:center;font-size:14px;overflow:hidden"><span style="padding:0 10px;height:100%;display:flex;align-items:center;background:#F6F8F7;border-right:1px solid #DDE2E1;color:#3A4645">+855</span><span style="padding:0 12px">12 345 678</span></span><span style="font-size:12px;color:#B42318;line-height:18px">✕ This phone number is already registered. <span style="font-family:'Kantumruy Pro'">លេខនេះបានចុះឈ្មោះរួចហើយ។</span></span></label>
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:500;color:#8C9594">Disabled</span><span style="height:36px;background:#EEF1F0;border:1px solid #DDE2E1;border-radius:6px;padding:0 12px;display:flex;align-items:center;font-size:14px;color:#8C9594">PP1 · Toul Kork</span></label>
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:500">Loading</span><span style="height:36px;border:1px solid #C4CBCA;border-radius:6px;padding:0 12px;display:flex;align-items:center;justify-content:space-between;font-size:14px;color:#66706F">Checking stock…<span style="width:14px;height:14px;border-radius:50%;border:2px solid #CDEBE8;border-top-color:#0E7470"></span></span></label>
+    </div>
+    <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div style="font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#66706F">Specialised inputs</div>
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:500">Quantity · <span style="font-family:'Kantumruy Pro'">បរិមាណ</span></span><span style="height:36px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;font-size:14px;overflow:hidden"><span style="width:36px;text-align:center;color:#3A4645;border-right:1px solid #DDE2E1;height:100%;display:flex;align-items:center;justify-content:center">−</span><span style="flex:1;text-align:right;padding:0 10px;font-weight:600">2</span><span style="padding:0 10px;height:100%;display:flex;align-items:center;background:#F6F8F7;border-left:1px solid #DDE2E1;color:#3A4645;font-size:13px">strip ▾</span><span style="width:36px;text-align:center;color:#3A4645;border-left:1px solid #DDE2E1;height:100%;display:flex;align-items:center;justify-content:center">+</span></span></label>
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:500">Money · USD / KHR</span><span style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><span style="height:36px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;font-size:14px;overflow:hidden"><span style="padding:0 10px;color:#66706F">$</span><span style="flex:1;text-align:right;padding-right:10px;font-weight:600">10.00</span></span><span style="height:36px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;font-size:14px;overflow:hidden"><span style="padding:0 10px;color:#66706F">៛</span><span style="flex:1;text-align:right;padding-right:10px;font-weight:600">10,300</span></span></span><span style="font-size:12px;color:#66706F">KHR rounds to ៛100 on blur · rate 4,100</span></label>
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:500">Date range · <span style="font-family:'Kantumruy Pro'">ចន្លោះកាលបរិច្ឆេទ</span></span><span style="height:36px;border:1px solid #C4CBCA;border-radius:6px;padding:0 12px;display:flex;align-items:center;gap:8px;font-size:14px"><span>01/10/2026</span><span style="color:#8C9594">→</span><span>31/10/2026</span><span style="margin-left:auto;font-size:12px;color:#0E7470;font-weight:500">This month ▾</span></span></label>
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:500">Barcode / search · always focused</span><span style="height:48px;border:2px solid #0E7470;border-radius:8px;padding:0 12px;display:flex;align-items:center;gap:10px;font-size:16px;box-shadow:0 0 0 3px #CDEBE8"><span style="display:inline-flex;gap:1px;height:18px;align-items:stretch"><span style="width:2px;background:#17201F"></span><span style="width:1px;background:#17201F"></span><span style="width:3px;background:#17201F"></span><span style="width:1px;background:#17201F"></span><span style="width:2px;background:#17201F"></span></span><span style="color:#8C9594;flex:1;font-family:'Kantumruy Pro'">ស្កេន ឬស្វែងរកឱសថ… Scan or search</span><span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#EEF1F0;color:#3A4645">F2</span></span></label>
+    </div>
+    <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div style="font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#66706F">Select & chips</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span style="font-size:13px;font-weight:500">Supplier · searchable</span>
+        <span style="height:36px;border:1px solid #0E7470;box-shadow:0 0 0 3px #CDEBE8;border-radius:6px;padding:0 12px;display:flex;align-items:center;font-size:14px">amo<span style="width:1px;height:18px;background:#17201F"></span><span style="margin-left:auto;color:#66706F">▴</span></span>
+        <div style="border:1px solid #DDE2E1;border-radius:8px;box-shadow:0 8px 24px rgba(23,32,31,.12);padding:4px;display:flex;flex-direction:column">
+          <div style="padding:8px 10px;border-radius:4px;background:#EFF8F7;font-size:14px;display:flex;justify-content:space-between"><span><b>Amo</b>xicillin 500 mg</span><span style="font-size:12px;color:#66706F">box 10×10</span></div>
+          <div style="padding:8px 10px;font-size:14px;display:flex;justify-content:space-between"><span><b>Amo</b>xi-Clav 625 mg</span><span style="font-size:12px;color:#66706F">box 2×7</span></div>
+          <div style="padding:8px 10px;font-size:12px;color:#66706F;border-top:1px solid #EEF1F0">↑↓ to move · Enter to pick</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span style="font-size:13px;font-weight:500">Branches · multi-select</span>
+        <span style="min-height:36px;border:1px solid #C4CBCA;border-radius:6px;padding:4px 6px;display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:13px">
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:3px 6px 3px 8px;border-radius:4px;background:#DDF1EF;color:#0B5F5C;font-weight:500">PP1 Toul Kork <span>×</span></span>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:3px 6px 3px 8px;border-radius:4px;background:#DDF1EF;color:#0B5F5C;font-weight:500">SR1 Siem Reap <span>×</span></span>
+          <span style="color:#8C9594;padding:0 4px">Add…</span>
+        </span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font-size:13px;font-weight:500">Tabs</span>
+        <div style="display:flex;gap:4px;border-bottom:1px solid #DDE2E1;overflow-x:auto">
+          <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="4">
+            <span onClick="{{ tb.onClick }}" style="padding:8px 12px;font-size:13px;font-weight:{{ tb.w }};color:{{ tb.fg }};border-bottom:2px solid {{ tb.bd }};margin-bottom:-1px;cursor:pointer;white-space:nowrap;font-family:'Inter','Kantumruy Pro'">{{ tb.label }}</span>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:12px;overflow-x:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div style="font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#66706F">Checkbox matrix · role permissions</div><span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#66706F">🔒 Owner role is locked</span></div>
+    <div style="display:grid;grid-template-columns:minmax(220px,2fr) repeat(6,minmax(80px,1fr));min-width:760px;font-size:13px">
+      <sc-for list="{{ permCols }}" as="pc" hint-placeholder-count="7"><div style="padding:8px 10px;font-size:11px;font-weight:600;color:#66706F;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #DDE2E1;text-align:{{ pc.align }}">{{ pc.label }}</div></sc-for>
+      <sc-for list="{{ permRows }}" as="pr" hint-placeholder-count="5">
+        <div style="padding:10px;border-bottom:1px solid #EEF1F0;font-weight:{{ pr.w }};background:{{ pr.bg }};display:flex;flex-direction:column"><span>{{ pr.en }}</span><span style="font-family:'Kantumruy Pro';font-size:12px;color:#66706F;line-height:20px">{{ pr.km }}</span></div>
+        <sc-for list="{{ pr.cells }}" as="c" hint-placeholder-count="6">
+          <div style="padding:10px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;justify-content:center;background:{{ pr.bg }}"><span style="width:18px;height:18px;border-radius:4px;border:1.5px solid {{ c.bd }};background:{{ c.bg }};color:#fff;font-size:11px;display:inline-flex;align-items:center;justify-content:center;font-weight:700">{{ c.mark }}</span></div>
+        </sc-for>
+      </sc-for>
+    </div>
+    <div style="font-size:12px;color:#66706F">Row header toggles the whole group (indeterminate shown as –). "See cost" is highlighted because it hides cost/profit columns system-wide.</div>
+  </div>
+</section>
+
+<!-- DATA -->
+<section id="data" style="padding:56px 0 0;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;gap:16px;align-items:baseline;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0E7470">07</span><h2 style="margin:0;font-size:22px;line-height:30px;font-weight:600">Data display</h2><span style="font-family:'Kantumruy Pro';font-size:15px;color:#66706F;line-height:26px">ការបង្ហាញទិន្នន័យ</span></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
+    <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+      <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:18px 20px;display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:13px;color:#3A4645;font-weight:500">{{ k.label }}</span><span style="font-size:11px;color:#66706F;font-family:'JetBrains Mono'">{{ k.scope }}</span></div>
+        <div style="font-size:28px;line-height:36px;font-weight:600">{{ k.value }}</div>
+        <div style="font-size:13px;color:#66706F;min-height:20px">{{ k.sub }}</div>
+        <div style="display:flex;gap:12px;font-size:12px;border-top:1px solid #EEF1F0;padding-top:8px;margin-top:4px;flex-wrap:wrap"><span style="color:{{ k.c1 }};font-weight:600">{{ k.d1 }}</span><span style="color:#66706F">vs yesterday</span><span style="color:{{ k.c2 }};font-weight:600">{{ k.d2 }}</span><span style="color:#66706F">vs last Sat</span></div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+    <div style="padding:12px 16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-bottom:1px solid #DDE2E1">
+      <span style="height:32px;min-width:220px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center;font-size:13px;color:#8C9594">⌕ Search batches</span>
+      <span style="height:32px;padding:0 10px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px">Expiry: ≤ 90 days <span style="color:#66706F">×</span></span>
+      <span style="height:32px;padding:0 10px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px">Branch: PP1 <span style="color:#66706F">×</span></span>
+      <span style="height:32px;padding:0 10px;border:1px dashed #C4CBCA;border-radius:6px;display:flex;align-items:center;font-size:13px;color:#3A4645">+ Filter</span>
+      <span style="margin-left:auto;height:32px;padding:0 10px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;font-size:13px">▥ Columns</span>
+      <span style="height:32px;padding:0 10px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;font-size:13px">Export ▾</span>
+    </div>
+    <div style="padding:8px 16px;background:#EFF8F7;border-bottom:1px solid #CDEBE8;display:flex;gap:12px;align-items:center;font-size:13px;flex-wrap:wrap"><b style="color:#0B5F5C">2 selected</b><span style="color:#0E7470;font-weight:500">Move to quarantine</span><span style="color:#0E7470;font-weight:500">Create transfer request</span><span style="color:#0E7470;font-weight:500">Print labels</span><span style="margin-left:auto;color:#66706F">Clear</span></div>
+    <div style="overflow-x:auto">
+      <div style="display:grid;grid-template-columns:40px minmax(220px,2.4fr) 110px 100px 90px 110px 160px 48px;min-width:900px;font-size:13px">
+        <sc-for list="{{ tableHead }}" as="th" hint-placeholder-count="8"><div style="position:sticky;top:0;padding:10px 12px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645;text-align:{{ th.align }};white-space:nowrap">{{ th.label }}</div></sc-for>
+        <sc-for list="{{ tableRows }}" as="r" hint-placeholder-count="5">
+          <div style="padding:12px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;align-items:center"><span style="width:16px;height:16px;border-radius:4px;border:1.5px solid {{ r.cbd }};background:{{ r.cbg }};color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;font-weight:700">{{ r.check }}</span></div>
+          <div style="padding:12px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;flex-direction:column;gap:4px"><span style="font-weight:500">{{ r.name }}</span><span style="display:flex;gap:4px;flex-wrap:wrap"><sc-for list="{{ r.badges }}" as="b" hint-placeholder-count="1"><span style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px 0 4px;border-radius:4px;background:{{ b.bg }};color:{{ b.fg }};font-size:11px;font-weight:600">{{ b.icon }} {{ b.en }}</span></sc-for></span></div>
+          <div style="padding:12px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};font-family:'JetBrains Mono';font-size:12px;display:flex;align-items:center">{{ r.batch }}</div>
+          <div style="padding:12px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;align-items:center;color:{{ r.expC }};font-weight:{{ r.expW }}">{{ r.exp }}</div>
+          <div style="padding:12px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;align-items:center;justify-content:flex-end;font-weight:600">{{ r.qty }}</div>
+          <div style="padding:12px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;align-items:center;justify-content:flex-end">{{ r.value }}</div>
+          <div style="padding:12px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;align-items:center"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 10px 2px 8px;border-radius:999px;background:{{ r.st.bg }};color:{{ r.st.fg }};border:1px solid {{ r.st.bd }};font-size:12px;font-weight:500;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:{{ r.st.dot }}"></span>{{ r.st.en }}</span></div>
+          <div style="padding:12px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;align-items:center;justify-content:center;color:#66706F;font-size:16px">⋯</div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="padding:10px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:13px;color:#3A4645">
+      <span>Rows per page</span>
+      <span style="display:flex;border:1px solid #C4CBCA;border-radius:6px;overflow:hidden"><span style="padding:4px 10px;background:#0E7470;color:#fff">20</span><span style="padding:4px 10px;border-left:1px solid #C4CBCA">50</span><span style="padding:4px 10px;border-left:1px solid #C4CBCA">100</span></span>
+      <span style="margin-left:auto">1–20 of 186</span>
+      <span style="display:flex;gap:4px"><span style="width:32px;height:32px;border:1px solid #DDE2E1;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#C4CBCA">‹</span><span style="width:32px;height:32px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;justify-content:center">›</span></span>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+    <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:40px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+      <div style="width:40px;height:40px;border-radius:50%;background:#EEF1F0;display:flex;align-items:center;justify-content:center;color:#66706F">⌕</div>
+      <div style="font-size:15px;font-weight:600">No suspended carts</div>
+      <div style="font-family:'Kantumruy Pro';font-size:14px;color:#3A4645;line-height:24px">មិនមានការលក់ដែលបានផ្អាកទេ</div>
+      <div style="font-size:13px;color:#66706F;max-width:280px">Press F8 on the POS to park a cart and serve the next customer.</div>
+      <span style="margin-top:6px;padding:8px 14px;border-radius:6px;background:#0E7470;color:#fff;font-size:13px;font-weight:500">Go to POS</span>
+    </div>
+    <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#66706F">Skeleton loader</div>
+      <sc-for list="{{ skeletonRows }}" as="s" hint-placeholder-count="4">
+        <div style="display:flex;gap:12px;align-items:center"><div style="width:32px;height:32px;border-radius:6px;background:linear-gradient(90deg,#EEF1F0 0,#F6F8F7 50%,#EEF1F0 100%);background-size:800px 100%"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px"><div style="height:10px;width:{{ s.a }}%;border-radius:4px;background:#EEF1F0"></div><div style="height:10px;width:{{ s.b }}%;border-radius:4px;background:#F1F3F2"></div></div><div style="width:64px;height:10px;border-radius:4px;background:#EEF1F0"></div></div>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+<!-- FEEDBACK -->
+<section id="feedback" style="padding:56px 0 0;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;gap:16px;align-items:baseline;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0E7470">08</span><h2 style="margin:0;font-size:22px;line-height:30px;font-weight:600">Alerts, toasts, banners</h2><span style="font-family:'Kantumruy Pro';font-size:15px;color:#66706F;line-height:26px">ការជូនដំណឹង</span></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="4">
+        <div style="display:flex;gap:12px;padding:12px 14px;border-radius:8px;background:{{ a.bg }};border:1px solid {{ a.bd }}"><span style="width:20px;height:20px;flex:none;border-radius:50%;background:{{ a.ic }};color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ a.icon }}</span><div style="display:flex;flex-direction:column;gap:2px;font-size:13px;line-height:20px;color:{{ a.fg }}"><b>{{ a.title }}</b><span style="font-family:'Kantumruy Pro';line-height:22px">{{ a.km }}</span></div></div>
+      </sc-for>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-start">
+      <div style="display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:8px;background:#17201F;color:#fff;font-size:13px;box-shadow:0 8px 24px rgba(23,32,31,.2);width:100%;max-width:380px"><span style="color:#5FD0C4;font-weight:700">✓</span><span style="flex:1">Invoice PP1-INV-000482 saved</span><span style="color:#5FD0C4;font-weight:600">Reprint</span></div>
+      <div style="display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:8px;background:#17201F;color:#fff;font-size:13px;box-shadow:0 8px 24px rgba(23,32,31,.2);width:100%;max-width:380px"><span style="color:#FF8A7E;font-weight:700">✕</span><span style="flex:1">Printer not responding</span><span style="color:#5FD0C4;font-weight:600">Retry</span></div>
+      <div style="width:100%;padding:10px 14px;border-radius:8px;background:#3A4645;color:#fff;font-size:13px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="width:8px;height:8px;border-radius:50%;background:#F3C24B"></span><b>Offline</b><span>POS keeps scanning. 3 sales waiting to sync.</span><span style="font-family:'Kantumruy Pro';opacity:.85">គ្មានអ៊ីនធឺណិត</span></div>
+      <div style="width:100%;border:1px solid #E9B949;background:#FFFBF0;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 10px 2px 8px;border-radius:999px;background:#FDF1D6;color:#7A4F00;border:1px solid #F0D48E;font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:#D99A1E"></span>Pending approval</span><b style="font-size:14px">Shrinkage SH-PP1-0031 · $48.20</b></div>
+        <div style="font-size:13px;color:#3A4645;line-height:20px">Above the $25.00 branch threshold. Needs <b>Branch manager</b> (Chan Sophea / ចាន់ សុភា) or <b>Owner</b>. Requested by Sok Dara, 31/10/2026 13:40.</div>
+        <div style="display:flex;gap:8px"><span style="padding:7px 12px;border-radius:6px;background:#0E7470;color:#fff;font-size:13px;font-weight:500">Approve with PIN</span><span style="padding:7px 12px;border-radius:6px;border:1px solid #C4CBCA;background:#fff;font-size:13px;font-weight:500">Reject with reason</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DIALOGS -->
+<section id="dialogs" style="padding:56px 0 0;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;gap:16px;align-items:baseline;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0E7470">09</span><h2 style="margin:0;font-size:22px;line-height:30px;font-weight:600">Dialogs & drawer</h2><span style="font-family:'Kantumruy Pro';font-size:15px;color:#66706F;line-height:26px">ប្រអប់</span></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;align-items:start">
+    <div style="background:#fff;border-radius:12px;box-shadow:0 12px 40px rgba(23,32,31,.16);border:1px solid #DDE2E1;overflow:hidden">
+      <div style="padding:18px 20px;border-bottom:1px solid #EEF1F0;display:flex;justify-content:space-between"><div style="display:flex;flex-direction:column;gap:2px"><b style="font-size:16px">Cancel invoice PP1-INV-000471</b><span style="font-family:'Kantumruy Pro';font-size:13px;color:#66706F;line-height:22px">បោះបង់វិក្កយបត្រ</span></div><span style="color:#66706F">✕</span></div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:12px;font-size:13px">
+        <div style="color:#3A4645;line-height:20px">The invoice stays in the system as <b>cancelled</b>. Stock returns to batch PCM-2611. This cannot be undone.</div>
+        <span style="font-weight:500">Reason · required</span>
+        <span style="height:36px;border:1px solid #C4CBCA;border-radius:6px;padding:0 12px;display:flex;align-items:center">Wrong customer selected ▾</span>
+        <span style="min-height:64px;border:1px solid #C4CBCA;border-radius:6px;padding:8px 12px;color:#8C9594">Details (min 10 characters)</span>
+      </div>
+      <div style="padding:14px 20px;background:#F6F8F7;display:flex;justify-content:flex-end;gap:8px"><span style="padding:8px 14px;border-radius:6px;border:1px solid #C4CBCA;background:#fff;font-size:13px;font-weight:500">Keep invoice</span><span style="padding:8px 14px;border-radius:6px;background:#B42318;color:#fff;font-size:13px;font-weight:500;opacity:.45">Cancel invoice</span></div>
+    </div>
+
+    <div style="background:#fff;border-radius:12px;box-shadow:0 12px 40px rgba(23,32,31,.16);border:1px solid #DDE2E1;overflow:hidden">
+      <div style="padding:18px 20px 8px;display:flex;flex-direction:column;gap:4px;align-items:center;text-align:center">
+        <span style="font-size:12px;font-weight:600;color:#A01D52;display:inline-flex;gap:5px;align-items:center;background:#FBE4EE;padding:2px 8px;border-radius:4px">◆ Controlled · Diazepam 5 mg</span>
+        <b style="font-size:16px;margin-top:6px">Pharmacist PIN</b>
+        <span style="font-family:'Kantumruy Pro';font-size:13px;color:#66706F;line-height:22px">លេខសម្ងាត់ឱសថការី</span>
+        <span style="font-size:13px;color:#3A4645">Lim Srey Neang · លឹម ស្រីនាង</span>
+      </div>
+      <div style="display:flex;justify-content:center;gap:12px;padding:12px 0 16px">
+        <sc-for list="{{ pinDots }}" as="d" hint-placeholder-count="6"><span style="width:14px;height:14px;border-radius:50%;border:2px solid #0E7470;background:{{ d.bg }}"></span></sc-for>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 20px 16px">
+        <sc-for list="{{ pinKeys }}" as="k" hint-placeholder-count="12"><span onClick="{{ k.onClick }}" style="height:52px;border-radius:8px;background:{{ k.bg }};border:1px solid #DDE2E1;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:500;cursor:pointer;user-select:none;color:{{ k.fg }}" style-active="background:#DDF1EF">{{ k.label }}</span></sc-for>
+      </div>
+      <div style="padding:0 20px 18px;font-size:12px;color:#66706F;text-align:center">4 tries left · locks for 15 min after 5 wrong tries · type with keyboard too</div>
+    </div>
+
+    <div style="background:#fff;border-radius:12px;box-shadow:0 12px 40px rgba(23,32,31,.16);border:1px solid #DDE2E1;overflow:hidden">
+      <div style="padding:18px 20px;border-bottom:1px solid #EEF1F0;display:flex;flex-direction:column;gap:2px"><b style="font-size:16px">Witness sign-off</b><span style="font-family:'Kantumruy Pro';font-size:13px;color:#66706F;line-height:22px">ការចុះហត្ថលេខាសាក្សី</span></div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:14px;font-size:13px">
+        <div style="padding:10px 12px;background:#F6F8F7;border-radius:8px;line-height:20px">Destroy <b>20 tablets</b> Diazepam 5 mg · batch DZP-2502 · PP1</div>
+        <div style="display:flex;gap:10px;align-items:center"><span style="width:22px;height:22px;border-radius:50%;background:#1E7B47;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px">✓</span><div style="display:flex;flex-direction:column"><b>1 · Pharmacist</b><span style="color:#66706F">Lim Srey Neang · PIN verified 14:02</span></div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><span style="width:22px;height:22px;border-radius:50%;border:2px solid #0E7470;color:#0E7470;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none">2</span><div style="display:flex;flex-direction:column;gap:8px;flex:1"><b>Witness · manager or owner only</b><span style="height:36px;border:1px solid #C4CBCA;border-radius:6px;padding:0 12px;display:flex;align-items:center">Chan Sophea · ចាន់ សុភា ▾</span><span style="height:36px;border:1px solid #0E7470;box-shadow:0 0 0 3px #CDEBE8;border-radius:6px;padding:0 12px;display:flex;align-items:center;letter-spacing:6px">•••</span><span style="color:#66706F">Must be a different user from step 1.</span></div></div>
+      </div>
+      <div style="padding:14px 20px;background:#F6F8F7;display:flex;justify-content:flex-end;gap:8px"><span style="padding:8px 14px;border-radius:6px;border:1px solid #C4CBCA;background:#fff;font-size:13px;font-weight:500">Back</span><span style="padding:8px 14px;border-radius:6px;background:#0E7470;color:#fff;font-size:13px;font-weight:500">Sign & record</span></div>
+    </div>
+
+    <div style="background:#fff;border-radius:12px;box-shadow:0 12px 40px rgba(23,32,31,.16);border:1px solid #DDE2E1;overflow:hidden;display:grid;grid-template-columns:1fr 1.6fr;min-height:320px">
+      <div style="background:rgba(23,32,31,.35)"></div>
+      <div style="display:flex;flex-direction:column">
+        <div style="padding:16px;border-bottom:1px solid #EEF1F0;display:flex;justify-content:space-between"><div style="display:flex;flex-direction:column"><b style="font-size:15px">Link prescription</b><span style="font-family:'Kantumruy Pro';font-size:12px;color:#66706F;line-height:20px">ភ្ជាប់វេជ្ជបញ្ជា</span></div><span style="color:#66706F">✕</span></div>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+          <span style="height:34px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center">+855 12 888 204</span>
+          <div style="padding:10px;border:1px solid #0E7470;background:#EFF8F7;border-radius:8px;display:flex;flex-direction:column;gap:4px"><b>RX-PP1-00918 · Keo Malis</b><span>Amoxicillin 500 mg · 21 tabs</span><span style="color:#3A4645">Dispensed 7 · <b>Remaining 14</b> · Repeats 0/1</span></div>
+          <span style="font-size:12px;color:#66706F">Side drawer · 420px · Esc closes</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FLOW -->
+<section id="flow" style="padding:56px 0 0;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;gap:16px;align-items:baseline;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0E7470">10</span><h2 style="margin:0;font-size:22px;line-height:30px;font-weight:600">Stepper, timeline, upload, scanner</h2></div>
+  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:24px;overflow-x:auto">
+    <div style="display:flex;align-items:flex-start;min-width:720px">
+      <sc-for list="{{ steps }}" as="s" hint-placeholder-count="5">
+        <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center"><span style="width:28px;height:28px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:{{ s.bg }};color:{{ s.fg }};border:2px solid {{ s.bd }}">{{ s.mark }}</span><span style="flex:1;height:2px;background:{{ s.line }};margin:0 8px"></span></div>
+          <div style="display:flex;flex-direction:column;padding-right:12px"><span style="font-size:13px;font-weight:{{ s.w }}">{{ s.en }}</span><span style="font-family:'Kantumruy Pro';font-size:12px;color:#66706F;line-height:20px">{{ s.km }}</span></div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+    <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:flex;flex-direction:column">
+      <div style="font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#66706F;margin-bottom:14px">Timeline · TR-PP1-SR1-0027</div>
+      <sc-for list="{{ timeline }}" as="t" hint-placeholder-count="4">
+        <div style="display:grid;grid-template-columns:16px 1fr;gap:12px"><div style="display:flex;flex-direction:column;align-items:center"><span style="width:10px;height:10px;border-radius:50%;background:{{ t.dot }};margin-top:5px"></span><span style="flex:1;width:2px;background:#DDE2E1"></span></div><div style="display:flex;flex-direction:column;gap:2px;padding-bottom:16px;font-size:13px"><b>{{ t.title }}</b><span style="color:#66706F">{{ t.meta }}</span></div></div>
+      </sc-for>
+    </div>
+    <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#66706F">Upload with preview</div>
+      <div style="border:1.5px dashed #9FB5B3;border-radius:8px;padding:20px;text-align:center;font-size:13px;color:#3A4645;display:flex;flex-direction:column;gap:4px;background:#F6F8F7"><b>Drop photo or PDF</b><span style="color:#66706F">or tap to use camera · max 10 MB</span></div>
+      <div style="display:flex;gap:10px;align-items:center;border:1px solid #DDE2E1;border-radius:8px;padding:8px"><div style="width:52px;height:52px;border-radius:6px;background:repeating-linear-gradient(135deg,#EEF1F0 0 6px,#E3E8E7 6px 12px);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono';font-size:8px;color:#66706F">rx photo</div><div style="flex:1;display:flex;flex-direction:column;font-size:13px;gap:4px"><b>rx-keo-malis.jpg</b><span style="height:4px;border-radius:2px;background:#EEF1F0;overflow:hidden"><span style="display:block;width:68%;height:100%;background:#0E7470"></span></span><span style="font-size:12px;color:#66706F">Uploading 68%</span></div></div>
+    </div>
+    <div style="background:#0B0F0F;border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px;color:#fff;max-width:320px">
+      <div style="display:flex;justify-content:space-between;font-size:13px"><span>✕</span><b>Scan barcode · ស្កេន</b><span>⚡</span></div>
+      <div style="position:relative;height:220px;border-radius:12px;background:repeating-linear-gradient(135deg,#1A2222 0 8px,#202A2A 8px 16px);display:flex;align-items:center;justify-content:center">
+        <div style="position:relative;width:200px;height:110px">
+          <span style="position:absolute;left:0;top:0;width:24px;height:24px;border-left:3px solid #2BB3A6;border-top:3px solid #2BB3A6;border-radius:4px 0 0 0"></span>
+          <span style="position:absolute;right:0;top:0;width:24px;height:24px;border-right:3px solid #2BB3A6;border-top:3px solid #2BB3A6;border-radius:0 4px 0 0"></span>
+          <span style="position:absolute;left:0;bottom:0;width:24px;height:24px;border-left:3px solid #2BB3A6;border-bottom:3px solid #2BB3A6;border-radius:0 0 0 4px"></span>
+          <span style="position:absolute;right:0;bottom:0;width:24px;height:24px;border-right:3px solid #2BB3A6;border-bottom:3px solid #2BB3A6;border-radius:0 0 4px 0"></span>
+          <span style="position:absolute;left:12px;right:12px;top:54px;height:2px;background:#FF5A4E"></span>
+        </div>
+        <span style="position:absolute;bottom:8px;font-family:'JetBrains Mono';font-size:10px;color:#8FA5A3">camera feed</span>
+      </div>
+      <div style="background:#172322;border-radius:10px;padding:10px 12px;font-size:13px;display:flex;justify-content:space-between;align-items:center"><span>Cetirizine 10 mg · CTZ-2608</span><b style="color:#5FD0C4">+1</b></div>
+      <div style="font-size:12px;color:#8FA5A3;text-align:center">Vibrates on read · beeps on error</div>
+    </div>
+  </div>
+</section>
+
+<!-- SHELL PARTS -->
+<section id="shell" style="padding:56px 0 0;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;gap:16px;align-items:baseline;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0E7470">11</span><h2 style="margin:0;font-size:22px;line-height:30px;font-weight:600">Header controls</h2><span style="font-family:'Kantumruy Pro';font-size:15px;color:#66706F;line-height:26px">ផ្នែកក្បាល</span></div>
+  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+    <span style="height:36px;padding:0 12px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px"><span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#DDF1EF;color:#0B5F5C;font-weight:500">PP1</span>Toul Kork ▾</span>
+    <span style="height:36px;flex:1;min-width:240px;padding:0 12px;border:1px solid #DDE2E1;background:#F6F8F7;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px;color:#66706F">⌕ <span style="font-family:'Kantumruy Pro'">ស្វែងរក</span> Search anything<span style="margin-left:auto;font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#fff;border:1px solid #DDE2E1">Ctrl K</span></span>
+    <span onClick="{{ toggleLang }}" style="display:flex;border:1px solid #C4CBCA;border-radius:6px;overflow:hidden;font-size:13px;font-weight:500;cursor:pointer"><span style="padding:7px 10px;background:{{ kmBg }};color:{{ kmFg }};font-family:'Kantumruy Pro'">ខ្មែរ</span><span style="padding:7px 10px;background:{{ enBg }};color:{{ enFg }}">EN</span></span>
+    <span style="position:relative;width:36px;height:36px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:15px">🔔<span style="position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#B42318;color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">4</span></span>
+    <span style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:32px;height:32px;border-radius:50%;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px">SD</span><span style="display:flex;flex-direction:column;line-height:16px"><b>Sok Dara</b><span style="color:#66706F;font-size:12px">Pharmacist</span></span></span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+    <div style="background:#fff;border-radius:12px;box-shadow:0 12px 40px rgba(23,32,31,.16);border:1px solid #DDE2E1;overflow:hidden">
+      <div style="padding:14px 16px;border-bottom:1px solid #EEF1F0;font-size:15px;display:flex;gap:8px;align-items:center">⌕ <span>amox</span><span style="width:1px;height:18px;background:#17201F"></span></div>
+      <div style="padding:6px;font-size:13px;display:flex;flex-direction:column">
+        <div style="padding:6px 10px;font-size:11px;font-weight:600;color:#66706F;text-transform:uppercase">Medicines</div>
+        <div style="padding:8px 10px;background:#EFF8F7;border-radius:6px;display:flex;justify-content:space-between"><span>Amoxicillin 500 mg</span><span style="color:#66706F">PP1 · 340 tabs</span></div>
+        <div style="padding:6px 10px;font-size:11px;font-weight:600;color:#66706F;text-transform:uppercase">Pages</div>
+        <div style="padding:8px 10px;display:flex;justify-content:space-between"><span>Report › Sale Margin By Item</span><span style="color:#66706F">↵</span></div>
+      </div>
+    </div>
+    <div style="background:#fff;border-radius:12px;box-shadow:0 12px 40px rgba(23,32,31,.16);border:1px solid #DDE2E1;overflow:hidden">
+      <div style="padding:12px 16px;border-bottom:1px solid #EEF1F0;display:flex;justify-content:space-between;font-size:14px"><b>Notifications</b><span style="color:#0E7470;font-size:13px">Mark all read</span></div>
+      <div style="padding:12px 16px;border-bottom:1px solid #EEF1F0;display:flex;flex-direction:column;gap:6px;font-size:13px;background:#FFFBF0"><b>Discount 18% needs approval</b><span style="color:#66706F">PP2 · Cashier Meas Vibol · 2 min ago</span><span style="display:flex;gap:6px"><span style="padding:5px 10px;border-radius:6px;background:#0E7470;color:#fff;font-weight:500">Approve</span><span style="padding:5px 10px;border-radius:6px;border:1px solid #C4CBCA;font-weight:500">Reject</span></span></div>
+      <div style="padding:12px 16px;display:flex;flex-direction:column;gap:2px;font-size:13px"><b>12 batches expire within 30 days</b><span style="color:#66706F">SR1 · today 07:00</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- CHARTS -->
+<section id="charts" style="padding:56px 0 0;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;gap:16px;align-items:baseline;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0E7470">12</span><h2 style="margin:0;font-size:22px;line-height:30px;font-weight:600">Charts</h2><span style="font-family:'Kantumruy Pro';font-size:15px;color:#66706F;line-height:26px">តារាងក្រាហ្វ</span></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+    <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;justify-content:space-between;font-size:13px"><b>Sales by hour</b><span style="color:#66706F">Today vs last Sat</span></div>
+      <div style="height:160px;display:flex;align-items:flex-end;gap:6px;border-bottom:1px solid #C4CBCA;padding-bottom:1px">
+        <sc-for list="{{ bars }}" as="b" hint-placeholder-count="12"><div style="flex:1;display:flex;gap:1px;align-items:flex-end;height:100%"><div style="flex:1;height:{{ b.a }}%;background:#13908A;border-radius:2px 2px 0 0"></div><div style="flex:1;height:{{ b.b }}%;background:#C4DCDA;border-radius:2px 2px 0 0"></div></div></sc-for>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#66706F"><span>07</span><span>10</span><span>13</span><span>16</span><span>19</span></div>
+    </div>
+    <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;justify-content:space-between;font-size:13px"><b>Last 30 days</b><span style="color:#66706F">USD</span></div>
+      <svg viewBox="0 0 300 160" style="width:100%;height:160px" preserveAspectRatio="none"><line x1="0" y1="40" x2="300" y2="40" stroke="#EEF1F0"></line><line x1="0" y1="80" x2="300" y2="80" stroke="#EEF1F0"></line><line x1="0" y1="120" x2="300" y2="120" stroke="#EEF1F0"></line><polyline fill="none" stroke="#13908A" stroke-width="2" points="0,110 20,98 40,104 60,86 80,92 100,74 120,80 140,66 160,72 180,58 200,64 220,50 240,62 260,44 280,52 300,38"></polyline><polyline fill="none" stroke="#9AA6A5" stroke-width="1.5" stroke-dasharray="4 4" points="0,118 30,112 60,104 90,100 120,96 150,90 180,86 210,80 240,78 270,72 300,70"></polyline></svg>
+      <div style="display:flex;gap:16px;font-size:12px;color:#3A4645"><span style="display:flex;gap:6px;align-items:center"><span style="width:12px;height:2px;background:#13908A"></span>This period</span><span style="display:flex;gap:6px;align-items:center"><span style="width:12px;height:0;border-top:2px dashed #9AA6A5"></span>Previous</span></div>
+    </div>
+    <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:13px"><b>Sales by branch</b></div>
+      <div style="display:flex;gap:20px;align-items:center">
+        <div style="width:128px;height:128px;border-radius:50%;background:conic-gradient(#0E7470 0 46%,#5FB3AC 46% 78%,#B7DAD6 78% 100%);display:flex;align-items:center;justify-content:center;flex:none"><div style="width:80px;height:80px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center"><b style="font-size:15px">$7,284</b><span style="font-size:11px;color:#66706F">today</span></div></div>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+          <span style="display:flex;gap:8px;align-items:center"><span style="width:10px;height:10px;border-radius:2px;background:#0E7470"></span>PP1 Toul Kork <b style="margin-left:auto;padding-left:12px">46%</b></span>
+          <span style="display:flex;gap:8px;align-items:center"><span style="width:10px;height:10px;border-radius:2px;background:#5FB3AC"></span>PP2 BKK1 <b style="margin-left:auto;padding-left:12px">32%</b></span>
+          <span style="display:flex;gap:8px;align-items:center"><span style="width:10px;height:10px;border-radius:2px;background:#B7DAD6"></span>SR1 Siem Reap <b style="margin-left:auto;padding-left:12px">22%</b></span>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#66706F">Series use the primary ramp only. Max 5 series; others group as "Other".</div>
+    </div>
+  </div>
+</section>
+
+<!-- ERRORS -->
+<section id="errors" style="padding:56px 0 0;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;gap:16px;align-items:baseline;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0E7470">13</span><h2 style="margin:0;font-size:22px;line-height:30px;font-weight:600">Error code messages</h2><span style="font-family:'Kantumruy Pro';font-size:15px;color:#66706F;line-height:26px">សារកំហុស</span></div>
+  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow-x:auto">
+    <div style="display:grid;grid-template-columns:240px 110px minmax(240px,1fr) minmax(260px,1fr);min-width:900px;font-size:13px">
+      <div style="padding:10px 16px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645">Code</div>
+      <div style="padding:10px 16px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645">Type</div>
+      <div style="padding:10px 16px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645">English</div>
+      <div style="padding:10px 16px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645;font-family:'Kantumruy Pro'">ខ្មែរ</div>
+      <sc-for list="{{ errors }}" as="e" hint-placeholder-count="13">
+        <div style="padding:12px 16px;border-bottom:1px solid #EEF1F0;font-family:'JetBrains Mono';font-size:12px">{{ e.code }}</div>
+        <div style="padding:12px 16px;border-bottom:1px solid #EEF1F0"><span style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px;border-radius:4px;background:{{ e.bg }};color:{{ e.fg }};font-size:11px;font-weight:600;white-space:nowrap">{{ e.kind }}</span></div>
+        <div style="padding:12px 16px;border-bottom:1px solid #EEF1F0;line-height:20px">{{ e.en }}</div>
+        <div style="padding:12px 16px;border-bottom:1px solid #EEF1F0;font-family:'Kantumruy Pro';line-height:24px">{{ e.km }}</div>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;statusLang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;both&quot;,&quot;km&quot;,&quot;en&quot;],&quot;default&quot;:&quot;both&quot;,&quot;tsType&quot;:&quot;'both'|'km'|'en'&quot;},&quot;showGrid&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = { pin: 2, tab: 0, lang: 'km' };
+
+  renderVals() {
+    const T = {
+      neutral: { fg: '#3A4645', bg: '#EEF1F0', bd: '#DDE2E1', dot: '#8C9594' },
+      info: { fg: '#1F5FA8', bg: '#E4EEFA', bd: '#C3D7F0', dot: '#1F5FA8' },
+      primary: { fg: '#0B5F5C', bg: '#DDF1EF', bd: '#B8E0DC', dot: '#13908A' },
+      warning: { fg: '#7A4F00', bg: '#FDF1D6', bd: '#F0D48E', dot: '#D99A1E' },
+      success: { fg: '#1E6B3F', bg: '#E3F3E9', bd: '#BFE2CC', dot: '#2E9B5C' },
+      danger: { fg: '#A3201A', bg: '#FDE8E6', bd: '#F4C3BD', dot: '#D23C2F' },
+      cancelled: { fg: '#A3201A', bg: '#FFFFFF', bd: '#E8A39C', dot: '#D23C2F', deco: 'line-through' },
+    };
+    const sl = this.props.statusLang ?? 'both';
+    const pill = (en, km, t) => ({ ...T[t], deco: T[t].deco || 'none', en, km, label: sl === 'en' ? en : sl === 'km' ? km : en + ' · ' + km });
+
+    const S = {
+      rx: { icon: '℞', en: 'Rx only', km: 'ត្រូវការវេជ្ជបញ្ជា', bg: '#3438A0', fg: '#fff', note: 'Needs linked prescription. Pharmacist must dispense.' },
+      ctl: { icon: '◆', en: 'Controlled', km: 'ឱសថគ្រប់គ្រង', bg: '#A01D52', fg: '#fff', note: 'Rx + patient ID + pharmacist PIN. Logged in register.' },
+      exp: { icon: '✕', en: 'Expired', km: 'ផុតកំណត់', bg: '#B42318', fg: '#fff', note: 'Hard stop. Cannot be sold or transferred.' },
+      near: { icon: '◷', en: 'Near expiry · 45 d', km: 'ជិតផុតកំណត់', bg: '#F3C24B', fg: '#3D2A00', note: 'Within branch threshold (default 90 days). Show days left.' },
+      quar: { icon: '⊘', en: 'Quarantined', km: 'ដាក់ដាច់ដោយឡែក', bg: '#9A4A0A', fg: '#fff', note: 'Not sellable. Release needs pharmacist + reason.' },
+      allergy: { icon: '!', en: 'Allergy: Penicillin', km: 'អាឡែកហ្ស៊ី', bg: '#B42318', fg: '#fff', note: 'Patient allergy matches ingredient or class.' },
+      recall: { icon: '↺', en: 'Recalled', km: 'បានរំលឹកមកវិញ', bg: '#17201F', fg: '#fff', note: 'Supplier or authority recall. Blocked everywhere.' },
+      hamper: { icon: '▣', en: 'Hamper · 6 items', km: 'កញ្ចប់', bg: '#6B5A12', fg: '#fff', note: 'Bundle of stocked items. Expand to see components.' },
+      promo: { icon: '%', en: 'Buy 2 get 1 · −$0.80', km: 'ប្រូម៉ូសិន', bg: '#6D3FB0', fg: '#fff', note: 'Shows promotion name and saving on the line.' },
+      dup: { icon: '≡', en: 'Duplicate therapy', km: 'ការព្យាបាលស្ទួន', bg: '#FDF1D6', fg: '#7A4F00', note: 'Same class already dispensed. Acknowledge to continue.' },
+    };
+
+    const sw = (token, hex, on) => ({ token, hex, on: on || '#fff' });
+    const palettes = [
+      { name: 'Primary · teal', swatches: [sw('primary-50', '#EFF8F7', '#0B5F5C'), sw('primary-100', '#DDF1EF', '#0B5F5C'), sw('primary-300', '#7CC6BF', '#0B3F3D'), sw('primary-500', '#13908A'), sw('primary-600', '#0E7470'), sw('primary-700', '#0B5F5C'), sw('primary-900', '#073B39')] },
+      { name: 'Neutral · cool grey', swatches: [sw('white', '#FFFFFF', '#17201F'), sw('n-50', '#F6F8F7', '#17201F'), sw('n-100', '#EEF1F0', '#17201F'), sw('n-200', '#DDE2E1', '#17201F'), sw('n-300', '#C4CBCA', '#17201F'), sw('n-500', '#66706F'), sw('n-700', '#3A4645'), sw('n-900', '#17201F')] },
+      { name: 'Semantic', swatches: [sw('success', '#1E7B47'), sw('success-bg', '#E3F3E9', '#1E6B3F'), sw('warning', '#D99A1E', '#3D2A00'), sw('warning-bg', '#FDF1D6', '#7A4F00'), sw('danger', '#B42318'), sw('danger-bg', '#FDE8E6', '#A3201A'), sw('info', '#1F5FA8'), sw('info-bg', '#E4EEFA', '#1F5FA8')] },
+      { name: 'Safety badges (reserved)', swatches: [sw('rx', '#3438A0'), sw('controlled', '#A01D52'), sw('quarantine', '#9A4A0A'), sw('hamper', '#6B5A12'), sw('promotion', '#6D3FB0'), sw('recalled', '#17201F'), sw('near-expiry', '#F3C24B', '#3D2A00')] },
+    ];
+
+    const typeScale = [
+      { name: 'POS total', spec: '56/64 · 700', size: 56, lh: 64, lhKm: 80, w: 700, en: '$12.50', km: '៛51,300' },
+      { name: 'Page title', spec: '28/36 · 600 · km 44', size: 28, lh: 36, lhKm: 44, w: 600, en: 'Stock on hand', km: 'ស្តុកដែលមាន' },
+      { name: 'Section title', spec: '20/28 · 600 · km 34', size: 20, lh: 28, lhKm: 34, w: 600, en: 'Batches & expiry', km: 'ឡូត៍ និងថ្ងៃផុតកំណត់' },
+      { name: 'Body', spec: '14/22 · 400 · km 26', size: 14, lh: 22, lhKm: 26, w: 400, en: 'Release quarantine needs a pharmacist and a reason.', km: 'ការដោះលែងពីការដាក់ដាច់ដោយឡែក ត្រូវការឱសថការី និងមូលហេតុ។' },
+      { name: 'Table', spec: '13/20 · 400 · km 24', size: 13, lh: 20, lhKm: 24, w: 400, en: 'Paracetamol 500 mg · box 10×10', km: 'ប៉ារ៉ាសេតាម៉ុល ៥០០ មក · ប្រអប់ ១០×១០' },
+      { name: 'Label', spec: '12/16 · 500 · km 20', size: 12, lh: 16, lhKm: 20, w: 500, en: 'Expiry date', km: 'ថ្ងៃផុតកំណត់' },
+      { name: 'Receipt 80 mm', spec: '11/15 · 400 · km 18', size: 11, lh: 15, lhKm: 18, w: 400, en: 'Cetirizine 10 mg  2 × $0.40  $0.80', km: 'សេទីរីស៊ីន ១០ មក  ២ × $0.40' },
+    ];
+
+    const spacing = [1, 2, 3, 4, 6, 8, 12, 16].map(n => ({ n, px: n * 4 }));
+
+    const st = (bg, fg, bd, sh, op, label, spin) => ({ bg, fg, bd, sh: sh || 'none', op: op || 1, label, spin: spin || '' });
+    const btnStates = ['Default', 'Hover', 'Focus', 'Disabled', 'Loading', 'Khmer'];
+    const ring = '0 0 0 3px #CDEBE8';
+    const buttons = [
+      { name: 'Primary', states: [st('#0E7470', '#fff', '#0E7470', 0, 0, 'Save'), st('#0B5F5C', '#fff', '#0B5F5C', 0, 0, 'Save'), st('#0E7470', '#fff', '#0B5F5C', ring, 0, 'Save'), st('#C4CBCA', '#fff', '#C4CBCA', 0, 0, 'Save'), st('#0E7470', '#fff', '#0E7470', 0, .8, 'Saving', '◌ '), st('#0E7470', '#fff', '#0E7470', 0, 0, 'រក្សាទុក')] },
+      { name: 'Secondary', states: [st('#fff', '#17201F', '#C4CBCA', 0, 0, 'Print'), st('#F6F8F7', '#17201F', '#9AA6A5', 0, 0, 'Print'), st('#fff', '#17201F', '#0E7470', ring, 0, 'Print'), st('#F6F8F7', '#8C9594', '#DDE2E1', 0, 0, 'Print'), st('#fff', '#66706F', '#C4CBCA', 0, 0, 'Printing', '◌ '), st('#fff', '#17201F', '#C4CBCA', 0, 0, 'បោះពុម្ព')] },
+      { name: 'Danger', states: [st('#B42318', '#fff', '#B42318', 0, 0, 'Cancel invoice'), st('#931C13', '#fff', '#931C13', 0, 0, 'Cancel invoice'), st('#B42318', '#fff', '#931C13', '0 0 0 3px #F8CFCA', 0, 'Cancel invoice'), st('#E8B4AF', '#fff', '#E8B4AF', 0, 0, 'Cancel invoice'), st('#B42318', '#fff', '#B42318', 0, .8, 'Cancelling', '◌ '), st('#B42318', '#fff', '#B42318', 0, 0, 'បោះបង់វិក្កយបត្រ')] },
+      { name: 'Ghost', states: [st('transparent', '#0E7470', 'transparent', 0, 0, 'View all'), st('#EFF8F7', '#0B5F5C', 'transparent', 0, 0, 'View all'), st('transparent', '#0E7470', '#0E7470', ring, 0, 'View all'), st('transparent', '#8C9594', 'transparent', 0, 0, 'View all'), st('transparent', '#66706F', 'transparent', 0, 0, 'Loading', '◌ '), st('transparent', '#0E7470', 'transparent', 0, 0, 'មើលទាំងអស់')] },
+    ];
+
+    const tabLabels = ['Info · ព័ត៌មាន', 'Pack units · ឯកតា', 'Batches · ឡូត៍', 'Price history'];
+    const tabs = tabLabels.map((label, i) => ({ label, w: i === this.state.tab ? 600 : 500, fg: i === this.state.tab ? '#0B5F5C' : '#66706F', bd: i === this.state.tab ? '#0E7470' : 'transparent', onClick: () => this.setState({ tab: i }) }));
+
+    const permCols = [{ label: 'Permission', align: 'left' }, ...['View', 'Create', 'Edit', 'Approve', 'Cancel', 'See cost'].map(l => ({ label: l, align: 'center' }))];
+    const on = { bd: '#0E7470', bg: '#0E7470', mark: '✓' }, off = { bd: '#9AA6A5', bg: '#fff', mark: '' }, ind = { bd: '#0E7470', bg: '#0E7470', mark: '–' }, na = { bd: '#EEF1F0', bg: '#F6F8F7', mark: '' };
+    const permRows = [
+      { en: 'POS & sales', km: 'ការលក់', w: 600, bg: '#F6F8F7', cells: [on, on, ind, ind, ind, off] },
+      { en: 'Invoices', km: 'វិក្កយបត្រ', w: 400, bg: '#fff', cells: [on, on, off, na, on, off] },
+      { en: 'Discount above cap', km: 'បញ្ចុះតម្លៃលើសកំណត់', w: 400, bg: '#fff', cells: [na, na, na, on, na, na] },
+      { en: 'Stock', km: 'ស្តុក', w: 600, bg: '#F6F8F7', cells: [on, ind, ind, off, off, ind] },
+      { en: 'Shrinkage', km: 'ការខូចខាត', w: 400, bg: '#fff', cells: [on, on, off, off, off, on] },
+    ];
+
+    const kpis = [
+      { label: "Today's sales", scope: 'ALL', value: '$7,284.60', sub: '៛29,866,900', d1: '▲ 8.2%', c1: '#1E7B47', d2: '▼ 3.1%', c2: '#B42318' },
+      { label: 'Invoices', scope: 'ALL', value: '412', sub: '', d1: '▲ 5.4%', c1: '#1E7B47', d2: '▲ 1.0%', c2: '#1E7B47' },
+      { label: 'Average basket', scope: 'ALL', value: '$17.68', sub: '៛72,500', d1: '▲ 2.7%', c1: '#1E7B47', d2: '▼ 4.0%', c2: '#B42318' },
+      { label: 'Gross profit · owner', scope: 'ALL', value: '$2,031.40', sub: 'Margin 27.9%', d1: '▲ 6.1%', c1: '#1E7B47', d2: '— 0.0%', c2: '#66706F' },
+    ];
+
+    const tableHead = [{ label: '', align: 'left' }, { label: 'Medicine ↑', align: 'left' }, { label: 'Batch', align: 'left' }, { label: 'Expiry ↕', align: 'left' }, { label: 'Qty', align: 'right' }, { label: 'Value', align: 'right' }, { label: 'Status', align: 'left' }, { label: '', align: 'left' }];
+    const ck = { cbd: '#0E7470', cbg: '#0E7470', check: '✓', bg: '#EFF8F7' }, uk = { cbd: '#9AA6A5', cbg: '#fff', check: '', bg: '#fff' };
+    const tableRows = [
+      { ...ck, name: 'Paracetamol 500 mg', badges: [], batch: 'PCM-2611', exp: '11/2026', expC: '#7A4F00', expW: 600, qty: '1,240', value: '$124.00', st: pill('Near expiry', 'ជិតផុតកំណត់', 'warning') },
+      { ...ck, name: 'Amoxicillin 500 mg', badges: [S.rx], batch: 'AMX-2609', exp: '09/2026', expC: '#B42318', expW: 600, qty: '60', value: '$9.00', st: pill('Expired', 'ផុតកំណត់', 'danger') },
+      { ...uk, name: 'Diazepam 5 mg', badges: [S.ctl], batch: 'DZP-2702', exp: '02/2027', expC: '#7A4F00', expW: 600, qty: '180', value: '$27.00', st: pill('Near expiry', 'ជិតផុតកំណត់', 'warning') },
+      { ...uk, name: 'Cetirizine 10 mg', badges: [], batch: 'CTZ-2808', exp: '08/2028', expC: '#17201F', expW: 400, qty: '920', value: '$73.60', st: pill('Available', 'មាន', 'success') },
+      { ...uk, name: 'ORS sachet', badges: [S.promo], batch: 'ORS-2712', exp: '12/2027', expC: '#17201F', expW: 400, qty: '45', value: '$9.00', st: pill('Quarantined', 'ដាក់ដាច់ដោយឡែក', 'warning') },
+    ].map(r => ({ ...r, badges: r.badges.map(b => b === S.promo ? { ...b, en: 'Buy 2 get 1' } : b) }));
+
+    const alerts = [
+      { title: 'Exchange rate updated to ៛4,100', km: 'អត្រាប្តូរប្រាក់បានធ្វើបច្ចុប្បន្នភាព', bg: '#E4EEFA', bd: '#C3D7F0', fg: '#163F6E', ic: '#1F5FA8', icon: 'i' },
+      { title: 'Stock take ST-PP1-012 approved', km: 'ការរាប់ស្តុកត្រូវបានអនុម័ត', bg: '#E3F3E9', bd: '#BFE2CC', fg: '#164E2E', ic: '#1E7B47', icon: '✓' },
+      { title: '3 lines changed price since this cart was suspended', km: 'តម្លៃបានផ្លាស់ប្តូរ ៣ មុខ', bg: '#FDF1D6', bd: '#F0D48E', fg: '#5C3B00', ic: '#D99A1E', icon: '!' },
+      { title: "Couldn't load stock. Retry", km: 'មិនអាចផ្ទុកស្តុកបានទេ។ ព្យាយាមម្តងទៀត', bg: '#FDE8E6', bd: '#F4C3BD', fg: '#7A1610', ic: '#B42318', icon: '✕' },
+    ];
+
+    const pinDots = Array.from({ length: 6 }, (_, i) => ({ bg: i < this.state.pin ? '#0E7470' : 'transparent' }));
+    const pinKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'Clear', '0', '⌫'].map(k => ({
+      label: k, bg: k.length > 1 && k !== '⌫' ? '#F6F8F7' : '#fff', fg: k === 'Clear' ? '#66706F' : '#17201F',
+      onClick: () => this.setState(s => ({ pin: k === 'Clear' ? 0 : k === '⌫' ? Math.max(0, s.pin - 1) : Math.min(6, s.pin + 1) })),
+    }));
+
+    const stepData = [['Pick', 'រើស'], ['Dispatch', 'បញ្ជូន'], ['In transit', 'កំពុងដឹក'], ['Receive', 'ទទួល'], ['Close', 'បិទ']];
+    const cur = 2;
+    const steps = stepData.map(([en, km], i) => i < cur
+      ? { en, km, mark: '✓', bg: '#0E7470', fg: '#fff', bd: '#0E7470', line: '#0E7470', w: 500 }
+      : i === cur ? { en, km, mark: i + 1, bg: '#fff', fg: '#0E7470', bd: '#0E7470', line: '#DDE2E1', w: 600 }
+      : { en, km, mark: i + 1, bg: '#fff', fg: '#8C9594', bd: '#C4CBCA', line: i === stepData.length - 1 ? 'transparent' : '#DDE2E1', w: 400 });
+    steps[steps.length - 1].line = 'transparent';
+
+    const timeline = [
+      { title: 'In transit', meta: 'Dispatched by Sok Dara · witness Chan Sophea · 31/10/2026 09:12', dot: '#1F5FA8' },
+      { title: 'Picking done (FEFO)', meta: 'Sok Dara · 31/10/2026 08:50', dot: '#0E7470' },
+      { title: 'Approved', meta: 'Chan Sophea · 30/10/2026 17:05', dot: '#1E7B47' },
+      { title: 'Requested by SR1', meta: 'Heng Rithy · 30/10/2026 15:22', dot: '#8C9594' },
+    ];
+
+    const bars = [12, 30, 52, 64, 48, 40, 58, 72, 66, 54, 38, 20].map((a, i) => ({ a, b: [18, 26, 44, 70, 52, 46, 50, 64, 74, 48, 30, 16][i] }));
+
+    const H = { kind: 'Hard stop', bg: '#B42318', fg: '#fff' }, W = { kind: 'Needs approval', bg: '#FDF1D6', fg: '#7A4F00' }, I = { kind: 'Field error', bg: '#EEF1F0', fg: '#3A4645' };
+    const errors = [
+      ['OUT_OF_STOCK', H, 'Not enough stock in this branch.', 'ស្តុកមិនគ្រប់គ្រាន់នៅសាខានេះទេ។'],
+      ['CREDIT_LIMIT_EXCEEDED', W, "This sale is over the customer's credit limit.", 'ការលក់នេះលើសដែនកំណត់ឥណទានរបស់អតិថិជន។'],
+      ['RX_REQUIRED', W, 'This medicine needs a linked prescription.', 'ឱសថនេះត្រូវការភ្ជាប់វេជ្ជបញ្ជា។'],
+      ['PHARMACIST_REQUIRED', W, 'A pharmacist must complete this item.', 'ត្រូវការឱសថការីដើម្បីបញ្ចប់មុខទំនិញនេះ។'],
+      ['RX_QUANTITY_EXCEEDED', H, 'Quantity is more than the prescription has left.', 'បរិមាណលើសចំនួននៅសល់ក្នុងវេជ្ជបញ្ជា។'],
+      ['DISCOUNT_APPROVAL_REQUIRED', W, 'Discount is above your limit. A manager must approve with PIN.', 'ការបញ្ចុះតម្លៃលើសសិទ្ធិរបស់អ្នក។ អ្នកគ្រប់គ្រងត្រូវអនុម័តដោយ PIN។'],
+      ['BELOW_COST', H, 'Price is below cost. This sale is blocked.', 'តម្លៃទាបជាងថ្លៃដើម។ មិនអាចលក់បានទេ។'],
+      ['HAMPER_NOT_STOCKED', H, 'One or more hamper items are out of stock.', 'ទំនិញក្នុងកញ្ចប់មួយ ឬច្រើនអស់ពីស្តុក។'],
+      ['PERIOD_LOCKED', H, 'This period is closed and cannot be changed.', 'រយៈពេលនេះត្រូវបានបិទ មិនអាចកែប្រែបានទេ។'],
+      ['SUPPLIER_OVERPAYMENT', I, 'Payment is more than the supplier balance.', 'ការទូទាត់លើសសមតុល្យដែលត្រូវបង់ឱ្យអ្នកផ្គត់ផ្គង់។'],
+      ['DUPLICATE_PHONE', I, 'This phone number is already registered.', 'លេខទូរស័ព្ទនេះបានចុះឈ្មោះរួចហើយ។'],
+      ['PIN_LOCKED', H, 'PIN locked after 5 wrong tries. Try again in 15 minutes.', 'PIN ត្រូវបានចាក់សោក្រោយខុស ៥ ដង។ សូមព្យាយាមម្តងទៀតក្នុង ១៥ នាទី។'],
+      ['INVALID_MFA_CODE', I, 'The code is wrong or has expired.', 'លេខកូដមិនត្រឹមត្រូវ ឬផុតកំណត់។'],
+    ].map(([code, k, en, km]) => ({ code, ...k, en, km }));
+
+    const groups = [
+      ['Invoice', [['Draft', 'ព្រាង', 'neutral'], ['Completed', 'បានបញ្ចប់', 'success'], ['Partly returned', 'ប្រគល់វិញខ្លះ', 'warning'], ['Returned', 'បានប្រគល់វិញ', 'neutral'], ['Cancelled', 'បានលុបចោល', 'cancelled']]],
+      ['Purchase order', [['Draft', 'ព្រាង', 'neutral'], ['Sent', 'បានផ្ញើ', 'info'], ['Partly received', 'ទទួលបានខ្លះ', 'warning'], ['Received', 'បានទទួល', 'success'], ['Cancelled', 'បានលុបចោល', 'cancelled']]],
+      ['Prescription', [['Draft', 'ព្រាង', 'neutral'], ['Active', 'សកម្ម', 'primary'], ['Partly dispensed', 'ចែកចាយខ្លះ', 'warning'], ['Fully dispensed', 'ចែកចាយរួច', 'success'], ['Expired', 'ផុតកំណត់', 'danger'], ['Cancelled', 'បានលុបចោល', 'cancelled']]],
+      ['Transfer', [['Requested', 'បានស្នើ', 'neutral'], ['Approved', 'បានអនុម័ត', 'primary'], ['Picking', 'កំពុងរើស', 'info'], ['In transit', 'កំពុងដឹកជញ្ជូន', 'info'], ['Received', 'បានទទួល', 'success'], ['Closed', 'បានបិទ', 'neutral'], ['Discrepancy', 'មានភាពខុសគ្នា', 'danger'], ['Cancelled', 'បានលុបចោល', 'cancelled']]],
+      ['Stock take', [['Open', 'បើក', 'primary'], ['Counting', 'កំពុងរាប់', 'info'], ['Review', 'ពិនិត្យ', 'info'], ['Pending owner approval', 'រង់ចាំម្ចាស់អនុម័ត', 'warning'], ['Approved', 'បានអនុម័ត', 'success']]],
+      ['Sale order', [['Quote', 'សម្រង់តម្លៃ', 'neutral'], ['Order', 'បញ្ជាទិញ', 'primary'], ['Partly fulfilled', 'បំពេញខ្លះ', 'warning'], ['Closed', 'បានបិទ', 'success'], ['Cancelled', 'បានលុបចោល', 'cancelled']]],
+      ['Batch', [['Available', 'មាន', 'success'], ['Near expiry', 'ជិតផុតកំណត់', 'warning'], ['Expired', 'ផុតកំណត់', 'danger'], ['Quarantined', 'ដាក់ដាច់ដោយឡែក', 'warning'], ['Recalled', 'បានរំលឹកមកវិញ', 'danger']]],
+    ];
+    const statusGroups = groups.map(([name, items]) => ({ name, items: items.map(([en, km, t]) => pill(en, km, t)) }));
+
+    const km = this.state.lang === 'km';
+    return {
+      showGrid: !!this.props.showGrid,
+      twelve: Array.from({ length: 12 }, (_, i) => i),
+      palettes, typeScale, spacing, btnStates, buttons, tabs, permCols, permRows, kpis, tableHead, tableRows, alerts,
+      pinDots, pinKeys, steps, timeline, bars, errors, statusGroups,
+      safety: Object.values(S),
+      skeletonRows: [{ a: 62, b: 38 }, { a: 48, b: 30 }, { a: 70, b: 44 }, { a: 54, b: 26 }],
+      kmBg: km ? '#0E7470' : '#fff', kmFg: km ? '#fff' : '#3A4645', enBg: km ? '#fff' : '#0E7470', enFg: km ? '#3A4645' : '#fff',
+      toggleLang: () => this.setState(s => ({ lang: s.lang === 'km' ? 'en' : 'km' })),
+    };
+  }
+}
+</script>
+</body>
+</html>

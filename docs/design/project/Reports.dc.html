@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Kantumruy+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E9EDEC;color:#17201F;font-family:'Inter','Kantumruy Pro',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0E7470}a:hover{color:#0B5F5C}
+*{box-sizing:border-box}
+</style>
+</helmet>
+<div style="padding:48px;display:flex;flex-direction:column;gap:40px;font-variant-numeric:tabular-nums">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#66706F">DELIVERABLE 4 · REPORTS</div>
+    <h1 style="margin:0;font-size:28px;line-height:36px;font-weight:600">Reports · one template, four examples</h1>
+    <div style="font-size:14px;color:#3A4645;max-width:860px;line-height:22px">Every report uses the same five rows: filter bar → summary tiles → chart → table → export. Only the filters, tiles and columns change. Cost and profit columns are removed (not blanked) for users without cost permission.</div>
+  </div>
+
+  <section style="display:flex;flex-wrap:wrap;gap:48px 40px;align-items:flex-start">
+  <sc-for list="{{ frames }}" as="f" hint-placeholder-count="3">
+    <div id="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px;width:1366px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">{{ f.id }}</span>
+        <span style="font-size:14px;font-weight:600">{{ f.frameName }}</span>
+        <span style="flex:none;white-space:nowrap;font-size:12px;line-height:18px;background:#fff;border:1px solid #DDE2E1;padding:2px 8px;border-radius:4px">Role: {{ f.roleNote }}</span>
+        <span style="font-family:'JetBrains Mono';font-size:11px;color:#0B5F5C;background:#DDF1EF;padding:3px 8px;border-radius:4px">{{ f.api }}</span>
+      </div>
+      <div style="width:1366px;min-height:768px;background:#F6F8F7;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(23,32,31,.08),0 24px 60px rgba(23,32,31,.12);display:flex;position:relative">
+        <aside style="width:64px;flex:none;background:#fff;border-right:1px solid #DDE2E1;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px">
+          <span style="width:32px;height:32px;border-radius:8px;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;margin-bottom:12px">+</span>
+          <sc-for list="{{ nav }}" as="n" hint-placeholder-count="10"><span style="width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;background:{{ n.bg }};color:{{ n.fg }}">{{ n.icon }}</span></sc-for>
+        </aside>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <header style="height:56px;flex:none;background:#fff;border-bottom:1px solid #DDE2E1;display:flex;align-items:center;gap:12px;padding:0 24px">
+            <span style="height:36px;padding:0 12px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap"><span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#DDF1EF;color:#0B5F5C;font-weight:500">{{ f.br }}</span>{{ f.brName }} ▾</span>
+            <span style="height:36px;flex:1;max-width:440px;padding:0 12px;border:1px solid #DDE2E1;background:#F6F8F7;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px;color:#66706F">⌕ {{ f.L.search }}<span style="margin-left:auto;font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#fff;border:1px solid #DDE2E1">Ctrl K</span></span>
+            <span style="margin-left:auto;display:flex;border:1px solid #C4CBCA;border-radius:6px;overflow:hidden;font-size:13px;font-weight:500"><span style="padding:7px 10px;background:{{ f.kmBg }};color:{{ f.kmFg }};font-family:'Kantumruy Pro'">ខ្មែរ</span><span style="padding:7px 10px;background:{{ f.enBg }};color:{{ f.enFg }}">EN</span></span>
+            <span style="width:36px;height:36px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;justify-content:center">🔔</span>
+            <span style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:32px;height:32px;border-radius:50%;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px">{{ f.ini }}</span><span style="display:flex;flex-direction:column;line-height:17px"><b>{{ f.user }}</b><span style="color:#66706F;font-size:12px">{{ f.role }}</span></span></span>
+          </header>
+          <div style="padding:22px 28px 28px;display:flex;flex-direction:column;gap:16px;flex:1">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px">
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#66706F;line-height:{{ f.lh }}px">{{ f.crumb }}</span><h2 style="margin:0;font-size:28px;line-height:{{ f.titleLh }}px;font-weight:600">{{ f.title }}</h2></div>
+              <div style="display:flex;gap:8px;position:relative">
+                <span style="height:36px;padding:0 14px;border-radius:6px;border:1px solid #C4CBCA;background:#fff;display:flex;align-items:center;font-size:14px;font-weight:500;white-space:nowrap">{{ f.L.save }}</span>
+                <span style="height:36px;padding:0 14px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;font-size:14px;font-weight:500;white-space:nowrap">{{ f.L.export }} ▾</span>
+                <sc-if value="{{ f.exportOpen }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;top:42px;right:0;width:260px;background:#fff;border:1px solid #DDE2E1;border-radius:10px;box-shadow:0 12px 40px rgba(23,32,31,.16);padding:6px;display:flex;flex-direction:column;font-size:13px;z-index:5">
+                    <span style="padding:9px 10px;border-radius:6px;background:#EFF8F7;display:flex;justify-content:space-between">CSV<span style="color:#66706F;font-size:12px">raw rows</span></span>
+                    <span style="padding:9px 10px;display:flex;justify-content:space-between">Excel (.xlsx)<span style="color:#66706F;font-size:12px">with totals</span></span>
+                    <span style="padding:9px 10px;display:flex;justify-content:space-between">PDF<span style="color:#66706F;font-size:12px">A4 landscape</span></span>
+                    <span style="padding:8px 10px;border-top:1px solid #EEF1F0;margin-top:4px;font-size:12px;color:#66706F;line-height:18px">Exports respect your filters and cost permission. Logged in User Log.</span>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+
+            <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:10px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px">
+              <sc-for list="{{ f.filters }}" as="fl" hint-placeholder-count="5"><span style="height:34px;padding:0 10px;border:1px solid {{ fl.bd }};background:{{ fl.bg }};border-radius:6px;display:flex;align-items:center;gap:6px;white-space:nowrap"><span style="color:#66706F">{{ fl.k }}</span><b style="font-weight:500;color:{{ fl.fg }}">{{ fl.v }}</b><span style="color:#66706F">▾</span></span></sc-for>
+              <span style="height:34px;padding:0 10px;border:1px dashed #C4CBCA;border-radius:6px;display:flex;align-items:center;color:#3A4645">{{ f.L.more }}</span>
+              <span style="margin-left:auto;color:#0E7470;font-weight:500">{{ f.L.reset }}</span>
+            </div>
+
+            <sc-if value="{{ f.costHidden }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:10px 14px;background:#EEF1F0;border-radius:8px;display:flex;gap:10px;align-items:center;font-size:13px;color:#3A4645"><span>🔒</span><span><b>Cost hidden.</b> Your role (Branch manager) does not have "See cost". Cost, margin and profit columns and tiles are removed from screen and exports.</span><span style="margin-left:auto;color:#0E7470;font-weight:500;white-space:nowrap">Request access</span></div>
+            </sc-if>
+
+            <div style="display:grid;grid-template-columns:repeat({{ f.tileCols }},minmax(0,1fr));gap:12px">
+              <sc-for list="{{ f.tiles }}" as="t" hint-placeholder-count="4"><div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#66706F;line-height:{{ f.lh }}px">{{ t.l }}</span><b style="font-size:22px;line-height:30px;color:{{ t.c }}">{{ t.v }}</b><span style="font-size:12px;color:#66706F">{{ t.s }}</span></div></sc-for>
+            </div>
+
+            <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;justify-content:space-between;font-size:13px"><b style="font-size:14px">{{ f.chartTitle }}</b><span style="display:flex;gap:14px;color:#3A4645;font-size:12px"><sc-for list="{{ f.legend }}" as="lg" hint-placeholder-count="2"><span style="display:flex;gap:5px;align-items:center"><span style="width:10px;height:10px;border-radius:2px;background:{{ lg.c }}"></span>{{ lg.l }}</span></sc-for></span></div>
+              <div style="height:130px;display:flex;align-items:flex-end;gap:6px;border-bottom:1px solid #C4CBCA">
+                <sc-for list="{{ f.bars }}" as="b" hint-placeholder-count="20"><div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;gap:1px"><div style="height:{{ b.b }}%;background:{{ b.cb }};border-radius:2px 2px 0 0"></div><div style="height:{{ b.a }}%;background:{{ b.ca }}"></div></div></sc-for>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:#66706F"><sc-for list="{{ f.axis }}" as="x" hint-placeholder-count="5"><span>{{ x }}</span></sc-for></div>
+            </div>
+
+            <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+              <div style="display:grid;grid-template-columns:{{ f.cols }};font-size:13px">
+                <sc-for list="{{ f.head }}" as="h" hint-placeholder-count="7"><div style="padding:10px 12px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645;text-align:{{ h.a }};white-space:nowrap;line-height:{{ f.lh }}px">{{ h.l }}</div></sc-for>
+                <sc-for list="{{ f.cells }}" as="c" hint-placeholder-count="35"><div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;text-align:{{ c.a }};color:{{ c.c }};font-weight:{{ c.w }};font-family:{{ c.ff }};font-size:{{ c.fs }}px;background:{{ c.bg }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.v }}</div></sc-for>
+                <sc-for list="{{ f.totals }}" as="c" hint-placeholder-count="7"><div style="padding:11px 12px;background:#F6F8F7;border-top:1px solid #DDE2E1;text-align:{{ c.a }};font-weight:700;white-space:nowrap">{{ c.v }}</div></sc-for>
+              </div>
+              <div style="padding:10px 14px;display:flex;align-items:center;gap:12px;font-size:13px;color:#3A4645"><span>{{ f.L.perPage }}</span><span style="display:flex;border:1px solid #C4CBCA;border-radius:6px;overflow:hidden"><span style="padding:3px 9px;background:#0E7470;color:#fff">20</span><span style="padding:3px 9px;border-left:1px solid #C4CBCA">50</span><span style="padding:3px 9px;border-left:1px solid #C4CBCA">100</span></span><span style="margin-left:auto">{{ f.count }}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:#3A4645;max-width:1000px;line-height:20px">{{ f.note }}</div>
+    </div>
+  </sc-for>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const tog = lang => lang === 'km' ? { kmBg: '#0E7470', kmFg: '#fff', enBg: '#fff', enFg: '#3A4645' } : { kmBg: '#fff', kmFg: '#3A4645', enBg: '#0E7470', enFg: '#fff' };
+    const nav = ['▦', '◎', '℞', '◆', '▤', '▣', '⊕', '⇄', '☰', '▥'].map((icon, i) => ({ icon, bg: i === 9 ? '#DDF1EF' : 'transparent', fg: i === 9 ? '#0B5F5C' : '#3A4645' }));
+    const L = {
+      en: { search: 'Search…', save: 'Save view', export: 'Export', more: '+ Filter', reset: 'Reset', perPage: 'Rows per page' },
+      km: { search: 'ស្វែងរក…', save: 'រក្សាទុកទិដ្ឋភាព', export: 'នាំចេញ', more: '+ តម្រង', reset: 'កំណត់ឡើងវិញ', perPage: 'ជួរក្នុងមួយទំព័រ' },
+    };
+    const fl = (k, v, on) => ({ k, v, bd: on ? '#0E7470' : '#C4CBCA', bg: on ? '#EFF8F7' : '#fff', fg: on ? '#0B5F5C' : '#17201F' });
+    const G = '#1E6B3F', R = '#A3201A', A = '#7A4F00', K = '#17201F';
+    const cell = (v, o = {}) => ({ v, a: o.a || 'left', c: o.c || K, w: o.w || 400, ff: o.mono ? "'JetBrains Mono',monospace" : 'inherit', fs: o.mono ? 12 : 13, bg: o.bg || '#fff' });
+    const build = (head, rows) => ({ head: head.map(([l, a]) => ({ l, a: a || 'left' })), cells: rows.flat() });
+    const series = (a, b, ca, cb) => a.map((x, i) => ({ a: x, b: b ? b[i] : 0, ca: ca || '#13908A', cb: cb || '#C4DCDA' }));
+    const days = Array.from({ length: 31 }, (_, i) => i);
+    const F = o => ({ lang: 'en', user: 'Heng Sovann', ini: 'HS', role: 'Owner', br: 'ALL', brName: 'All branches', exportOpen: false, costHidden: false, ...o, L: L[o.lang || 'en'], ...tog(o.lang || 'en'), lh: o.lang === 'km' ? 22 : 18, titleLh: o.lang === 'km' ? 44 : 36, tileCols: o.tiles.length });
+
+    // Sale detail
+    const sdRows = (km) => [
+      ['31/10 14:05', 'PP1-INV-000482', 'PP1', km ? 'មាស វិបុល' : 'Meas Vibol', km ? 'អតិថិជនទូទៅ' : 'Walk-in', 'Cash', '4', '$12.50', '−$0.40'],
+      ['31/10 13:52', 'PP1-INV-000481', 'PP1', km ? 'លឹម ស្រីនាង' : 'Lim Srey Neang', 'Keo Malis', 'KHQR', '2', '$3.60', '—'],
+      ['31/10 13:40', 'PP2-INV-000433', 'PP2', km ? 'ទេព សុជាតា' : 'Tep Sochea', 'Sen Sok Clinic', 'Credit', '6', '$48.20', '−$2.41'],
+      ['31/10 13:31', 'SR1-INV-000290', 'SR1', km ? 'ហេង រិទ្ធី' : 'Heng Rithy', km ? 'អតិថិជនទូទៅ' : 'Walk-in', 'Cash', '1', '$1.20', '—'],
+      ['31/10 13:15', 'PP1-INV-000480', 'PP1', km ? 'លឹម ស្រីនាង' : 'Lim Srey Neang', 'Nhem Bopha', 'Cash', '1', '$1.50', '—'],
+    ].map(r => [cell(r[0]), cell(r[1], { mono: 1 }), cell(r[2], { mono: 1 }), cell(r[3]), cell(r[4]), cell(r[5]), cell(r[6], { a: 'right' }), cell(r[7], { a: 'right', w: 600 }), cell(r[8], { a: 'right', c: r[8] === '—' ? '#8C9594' : '#6D3FB0' })]);
+    const sdHead = km => (km ? [['ពេលវេលា'], ['វិក្កយបត្រ'], ['សាខា'], ['អ្នកលក់'], ['អតិថិជន'], ['ការទូទាត់'], ['មុខ', 'right'], ['សរុប', 'right'], ['បញ្ចុះ', 'right']] : [['Time'], ['Invoice'], ['Branch'], ['Staff'], ['Customer'], ['Payment'], ['Lines', 'right'], ['Total', 'right'], ['Discount', 'right']]);
+    const sdTot = km => [km ? 'សរុប ៤១២ វិក្កយបត្រ' : 'Total · 412 invoices', '', '', '', '', '', '1,288', '$7,284.60', '−$212.30'].map((v, i) => ({ v, a: i >= 6 ? 'right' : 'left' }));
+    const sdCols = '120px 150px 70px minmax(0,1fr) minmax(0,1fr) 90px 70px 110px 100px';
+    const sdBars = series([30, 42, 38, 55, 48, 60, 72, 50, 44, 58, 66, 70, 62, 54, 49, 61, 68, 75, 70, 64, 58, 66, 72, 80, 74, 69, 63, 71, 78, 84, 88]);
+
+    // Margin
+    const mgRows = (hide) => [
+      ['Paracetamol 500 mg', 'Analgesic', '4,820 tab', '$612.40', '$308.50', '$303.90', '49.6%'],
+      ['Amoxicillin 500 mg', 'Antibiotic', '2,710 cap', '$488.10', '$325.20', '$162.90', '33.4%'],
+      ['ORS sachet', 'Rehydration', '1,240', '$301.20', '$248.00', '$53.20', '17.7%'],
+      ['Omeprazole 20 mg', 'Antacid', '30 box', '$285.00', '$225.00', '$60.00', '21.1%'],
+      ['First-aid kit', 'Hamper', '18 kit', '$144.00', '$143.10', '$0.90', '0.6%'],
+    ].map(r => {
+      const m = parseFloat(r[6]);
+      const base = [cell(r[0], { w: 500 }), cell(r[1]), cell(r[2], { a: 'right' }), cell(r[3], { a: 'right', w: 600 })];
+      return hide ? base : base.concat([cell(r[4], { a: 'right' }), cell(r[5], { a: 'right', w: 600, c: G }), cell(r[6], { a: 'right', w: 600, c: m < 5 ? R : m < 20 ? A : G, bg: m < 5 ? '#FFF8F7' : '#fff' })]);
+    });
+    const mgHead = hide => [['Medicine'], ['Category'], ['Qty sold', 'right'], ['Revenue', 'right']].concat(hide ? [] : [['Cost', 'right'], ['Gross profit', 'right'], ['Margin', 'right']]);
+    const mgTot = hide => (hide ? ['Total · 312 items', '', '', '$7,284.60'] : ['Total · 312 items', '', '', '$7,284.60', '$5,253.20', '$2,031.40', '27.9%']).map((v, i) => ({ v, a: i >= 2 ? 'right' : 'left' }));
+
+    // Expire alert
+    const exRows = [
+      ['Amoxicillin 500 mg', 'SR1', 'AMX-2609', '30/09/2026', 'Expired', '60 cap', '$9.00', 'Write off'],
+      ['Paracetamol 500 mg', 'PP1', 'PCM-2611', '30/11/2026', '30 d', '1,240 tab', '$39.68', 'Transfer to PP2'],
+      ['Omeprazole 20 mg', 'PP2', 'OMP-2612', '15/12/2026', '45 d', '120 cap', '$18.00', 'Recalled'],
+      ['Cetirizine 10 mg', 'PP1', 'CTZ-2701', '31/01/2027', '92 d', '410 tab', '$29.52', 'Promote'],
+      ['Diazepam 5 mg', 'PP1', 'DZP-2702', '28/02/2027', '120 d', '169 tab', '$16.90', '—'],
+    ].map(r => { const exp = r[4] === 'Expired'; const d = parseInt(r[4], 10); const c = exp ? R : d <= 60 ? R : d <= 90 ? A : A; return [cell(r[0], { w: 500 }), cell(r[1], { mono: 1 }), cell(r[2], { mono: 1 }), cell(r[3], { c }), cell(r[4], { a: 'right', w: 700, c, bg: exp ? '#FFF8F7' : '#fff' }), cell(r[5], { a: 'right' }), cell(r[6], { a: 'right' }), cell(r[7], { c: '#0E7470', w: 500 })]; });
+
+    // Controlled summary
+    const csRows = [
+      ['Diazepam 5 mg', 'PP1', '210', '+100', '−120', '−20', '170', '170', '✓ match', '✓'],
+      ['Diazepam 5 mg', 'PP2', '160', '0', '−20', '0', '140', '138', '−2 open', '✓'],
+      ['Diazepam 5 mg', 'SR1', '80', '+20', '−30', '0', '70', '70', '✓ match', '✓'],
+      ['Morphine 10 mg/ml', 'SR1', '50 amp', '0', '−8', '0', '42', '44', '+2 open', '✕ broken'],
+      ['Tramadol 50 mg', 'PP1', '300', '+200', '−180', '0', '320', '320', '✓ match', '✓'],
+    ].map(r => [cell(r[0], { w: 500 }), cell(r[1], { mono: 1 }), cell(r[2], { a: 'right' }), cell(r[3], { a: 'right', c: G }), cell(r[4], { a: 'right', c: R }), cell(r[5], { a: 'right', c: '#A01D52' }), cell(r[6], { a: 'right', w: 700 }), cell(r[7], { a: 'right' }), cell(r[8], { c: r[8].startsWith('✓') ? G : R, w: 600, bg: r[8].startsWith('✓') ? '#fff' : '#FFF8F7' }), cell(r[9], { c: r[9].startsWith('✓') ? G : R, w: 600 })]);
+
+    const frames = [
+      F({ id: '13a', frameName: 'Report / Sale Detail / Desktop 1366 / EN', roleNote: 'Owner, Manager (own branches) · Cashier: own sales only', api: 'GET /api/reports/v1/sales/detail', crumb: 'Report  /  Sale Detail', title: 'Sale Detail', filters: [fl('Date', '31/10/2026', 1), fl('Branch', 'All', 0), fl('Staff', 'All', 0), fl('Payment', 'All', 0), fl('Customer', 'All', 0)], tiles: [{ l: 'Sales', v: '$7,284.60', s: '៛29,866,900', c: K }, { l: 'Invoices', v: '412', s: '▲ 5.4% vs yesterday', c: K }, { l: 'Discounts & promotions', v: '−$212.30', s: '2.8% of gross', c: '#6D3FB0' }, { l: 'Returns', v: '−$18.40', s: '3 invoices', c: R }], chartTitle: 'Sales by day · October', legend: [{ l: 'Sales', c: '#13908A' }], bars: sdBars, axis: ['01/10', '08/10', '15/10', '22/10', '31/10'], cols: sdCols, ...build(sdHead(false), sdRows(false)), totals: sdTot(false), count: '1–20 of 412', exportOpen: true, note: 'Export menu open: CSV, XLSX, PDF. Totals row is pinned at the bottom of the table.' }),
+      F({ id: '13b', lang: 'km', user: 'ហេង សុវណ្ណ', role: 'ម្ចាស់', brName: 'សាខាទាំងអស់', frameName: 'Report / Sale Detail / Desktop 1366 / KM', roleNote: 'Owner, Manager', api: 'GET /api/reports/v1/sales/detail?lang=km', crumb: 'របាយការណ៍  /  លម្អិតការលក់', title: 'លម្អិតការលក់', filters: [fl('កាលបរិច្ឆេទ', '31/10/2026', 1), fl('សាខា', 'ទាំងអស់', 0), fl('បុគ្គលិក', 'ទាំងអស់', 0), fl('ការទូទាត់', 'ទាំងអស់', 0), fl('អតិថិជន', 'ទាំងអស់', 0)], tiles: [{ l: 'ការលក់', v: '$7,284.60', s: '៛29,866,900', c: K }, { l: 'វិក្កយបត្រ', v: '412', s: '▲ 5.4% ធៀបម្សិល', c: K }, { l: 'បញ្ចុះតម្លៃ និងប្រូម៉ូសិន', v: '−$212.30', s: '2.8%', c: '#6D3FB0' }, { l: 'ការប្រគល់វិញ', v: '−$18.40', s: '៣ វិក្កយបត្រ', c: R }], chartTitle: 'ការលក់តាមថ្ងៃ · តុលា', legend: [{ l: 'ការលក់', c: '#13908A' }], bars: sdBars, axis: ['01/10', '08/10', '15/10', '22/10', '31/10'], cols: sdCols, ...build(sdHead(true), sdRows(true)), totals: sdTot(true), count: '១–២០ នៃ ៤១២', note: 'Same report in Khmer. Headers and filter keys translated; codes, numbers and medicine names stay Latin.' }),
+      F({ id: '13c', frameName: 'Report / Sale Margin By Item / Desktop 1366 / EN', roleNote: 'Owner (cost permission)', api: 'GET /api/reports/v1/sales/margin-by-item', crumb: 'Report  /  Sale Margin By Item', title: 'Sale Margin By Item', filters: [fl('Date', '01/10 – 31/10/2026', 1), fl('Branch', 'All', 0), fl('Category', 'All', 0), fl('Supplier', 'All', 0)], tiles: [{ l: 'Revenue', v: '$198,420', s: 'October', c: K }, { l: 'Cost of goods', v: '$143,060', s: '', c: K }, { l: 'Gross profit', v: '$55,360', s: '▲ 4.1% vs Sep', c: G }, { l: 'Margin', v: '27.9%', s: '12 items below 5%', c: K }], chartTitle: 'Revenue vs gross profit by day', legend: [{ l: 'Gross profit', c: '#0B5F5C' }, { l: 'Cost', c: '#C4DCDA' }], bars: series(sdBars.map(b => Math.round(b.a * 0.28)), sdBars.map(b => Math.round(b.a * 0.72)), '#0B5F5C', '#C4DCDA'), axis: ['01/10', '08/10', '15/10', '22/10', '31/10'], cols: 'minmax(0,1.6fr) 120px 110px 110px 110px 120px 90px', ...build(mgHead(false), mgRows(false)), totals: mgTot(false), count: '1–20 of 312 (today shown)', note: 'Margin cell colour: red below 5%, amber below 20%. Rows sorted by revenue.' }),
+      F({ id: '13d', user: 'Chan Sophea', ini: 'CS', role: 'Branch manager', br: 'PP1', brName: 'Toul Kork', frameName: 'Report / Sale Margin By Item – cost hidden / Desktop 1366 / EN', roleNote: 'Branch manager without cost permission', api: 'GET /api/reports/v1/sales/margin-by-item (cost fields omitted by API)', crumb: 'Report  /  Sale Margin By Item', title: 'Sale Margin By Item', costHidden: true, filters: [fl('Date', '01/10 – 31/10/2026', 1), fl('Branch', 'PP1', 1), fl('Category', 'All', 0), fl('Supplier', 'All', 0)], tiles: [{ l: 'Revenue', v: '$91,280', s: 'PP1 · October', c: K }, { l: 'Qty sold', v: '41,620', s: 'base units', c: K }, { l: 'Top category', v: 'Analgesic', s: '22% of revenue', c: K }], chartTitle: 'Revenue by day', legend: [{ l: 'Revenue', c: '#13908A' }], bars: sdBars, axis: ['01/10', '08/10', '15/10', '22/10', '31/10'], cols: 'minmax(0,1.6fr) 160px 140px 140px', ...build(mgHead(true), mgRows(true)), totals: mgTot(true), count: '1–20 of 288', note: 'Same report for a manager without cost permission: cost, profit and margin columns and tiles are gone, not blanked. The API never sends the fields.' }),
+      F({ id: '13e', user: 'Chan Sophea', ini: 'CS', role: 'Branch manager', frameName: 'Report / Expire Alert / Desktop 1366 / EN', roleNote: 'Pharmacist, Manager, Owner · value with cost permission', api: 'GET /api/reports/v1/expiry?within_days=120', crumb: 'Report  /  Expire Alert', title: 'Expire Alert', filters: [fl('Expires within', '120 days', 1), fl('Branch', 'All', 0), fl('Category', 'All', 0), fl('Supplier', 'All', 0), fl('Include expired', 'Yes', 1)], tiles: [{ l: 'Expired', v: '3 batches', s: '$27.40', c: R }, { l: '≤ 30 days', v: '4 batches', s: '$61.20', c: R }, { l: '31–90 days', v: '14 batches', s: '$318.70', c: A }, { l: '91–120 days', v: '9 batches', s: '$140.10', c: A }], chartTitle: 'Value expiring per week (next 17 weeks)', legend: [{ l: '≤ 30 d', c: '#B42318' }, { l: '31–120 d', c: '#E9B949' }], bars: Array.from({ length: 17 }, (_, i) => ({ a: [60, 30, 10, 45, 22, 30, 55, 18, 12, 40, 26, 20, 35, 15, 28, 10, 22][i], b: 0, ca: i < 5 ? '#B42318' : '#E9B949', cb: 'transparent' })), axis: ['This week', '+4 w', '+8 w', '+12 w', '+17 w'], cols: 'minmax(0,1.5fr) 70px 120px 110px 90px 110px 100px 140px', ...build([['Medicine'], ['Branch'], ['Batch'], ['Expiry'], ['Days left', 'right'], ['Qty', 'right'], ['Value', 'right'], ['Suggested action']], exRows), totals: ['Total · 30 batches', '', '', '', '', '', '$547.40', ''].map((v, i) => ({ v, a: i >= 4 && i <= 6 ? 'right' : 'left' })), count: '1–20 of 30', note: 'Days left uses the same red/amber thresholds as badges. Suggested action links to transfer, promotion or write-off.' }),
+      F({ id: '13f', frameName: 'Report / Controlled Summary / Desktop 1366 / EN', roleNote: 'Pharmacist, Manager, Owner', api: 'GET /api/reports/v1/controlled/summary', crumb: 'Report  /  Controlled Summary', title: 'Controlled Summary', filters: [fl('Period', 'October 2026', 1), fl('Branch', 'All', 0), fl('Medicine', 'All controlled', 0)], tiles: [{ l: 'Controlled items', v: '3', s: '5 registers', c: K }, { l: 'Dispensed', v: '378 units', s: '214 Rx', c: K }, { l: 'Destroyed', v: '20 tab', s: '1 witnessed event', c: '#A01D52' }, { l: 'Open discrepancies', v: '2', s: '1 broken chain', c: R }], chartTitle: 'Dispensed per day', legend: [{ l: 'Units', c: '#A01D52' }], bars: series(sdBars.map(b => Math.round(b.a * 0.5)), null, '#A01D52', 'transparent'), axis: ['01/10', '08/10', '15/10', '22/10', '31/10'], cols: 'minmax(0,1.4fr) 70px 90px 80px 80px 90px 90px 90px 110px 100px', ...build([['Medicine'], ['Branch'], ['Opening', 'right'], ['In', 'right'], ['Out', 'right'], ['Destroyed', 'right'], ['Closing', 'right'], ['Stock', 'right'], ['Match'], ['Chain']], csRows), totals: ['5 registers', '', '', '', '', '', '', '', '2 open', '1 broken'].map((v, i) => ({ v, a: i >= 2 && i <= 7 ? 'right' : 'left' })), count: '1–5 of 5', note: 'Closing = opening + in − out − destroyed. Match compares register closing with stock on hand. Chain links to verification.' }),
+    ];
+    const RX = (id, title, api, roleNote, filters, tiles, chartTitle, legend, bars, axis, cols, head, rows, totals, count, note, o = {}) => {
+      const aR = head.map(h => h[1] === 'right');
+      const cells = rows.map(r => r.map((v, i) => typeof v === 'object' ? cell(v.v, { a: aR[i] ? 'right' : 'left', ...v }) : cell(v, { a: aR[i] ? 'right' : 'left', w: i === 0 ? 500 : 400 })));
+      return F({ id, frameName: `Report / ${title} / Desktop 1366 / EN`, roleNote, api, crumb: `Report  /  ${title}`, title, filters, tiles, chartTitle, legend, bars, axis, cols, ...build(head, cells), totals: totals.map((v, i) => ({ v, a: aR[i] ? 'right' : 'left' })), count, note, ...o });
+    };
+    const T = (l, v, s, c) => ({ l, v, s: s || '', c: c || K });
+    const mon = ['01/10', '08/10', '15/10', '22/10', '31/10'];
+    const fD = fl('Date', '01/10 – 31/10/2026', 1), fB = fl('Branch', 'All', 0);
+    const hb = vals => vals.map((a, i) => ({ a, b: 0, ca: '#13908A', cb: 'transparent' }));
+    frames.push(
+      RX('13g', 'Sales Summary', 'GET /api/reports/v1/sales/summary?group_by=day', 'Owner, Manager (own branches)', [fD, fB, fl('Group by', 'Day', 1)], [T('Sales', '$198,420', '៛813,522,000'), T('Invoices', '11,284'), T('Avg basket', '$17.58', '▲ 2.1%', G), T('Returns', '−$612.40', '0.3%', R)], 'Sales by day', [{ l: 'Sales', c: '#13908A' }], sdBars, mon, '120px 110px 110px 110px 110px 110px', [['Day'], ['Invoices', 'right'], ['Gross', 'right'], ['Discounts', 'right'], ['Returns', 'right'], ['Net', 'right']], [['31/10/2026', '412', '$7,496.90', '−$212.30', '−$18.40', { v: '$7,266.20', w: 600 }], ['30/10/2026', '398', '$7,120.40', '−$198.10', '$0.00', { v: '$6,922.30', w: 600 }], ['29/10/2026', '371', '$6,640.00', '−$180.60', '−$9.50', { v: '$6,449.90', w: 600 }], ['28/10/2026', '402', '$7,210.80', '−$205.00', '−$22.10', { v: '$6,983.70', w: 600 }]], ['31 days', '11,284', '$204,830', '−$5,798', '−$612', '$198,420'], '1–20 of 31', 'Group by day, week, month, branch or staff. Same template as Sale Detail.'),
+      RX('13h', 'Profit', 'GET /api/reports/v1/sales/profit?group_by=branch', 'Owner · Manager with cost permission', [fD, fB, fl('Group by', 'Branch', 1)], [T('Revenue', '$198,420'), T('Cost of goods', '$143,060'), T('Gross profit', '$55,360', '▲ 4.1% vs Sep', G), T('Margin', '27.9%')], 'Gross profit by branch', [{ l: 'Gross profit', c: '#0B5F5C' }, { l: 'Cost', c: '#C4DCDA' }], series([28, 22, 12], [72, 58, 30], '#0B5F5C', '#C4DCDA'), ['PP1', 'PP2', 'SR1'], 'minmax(0,1.4fr) 130px 130px 130px 110px', [['Branch'], ['Revenue', 'right'], ['Cost', 'right'], ['Gross profit', 'right'], ['Margin', 'right']], [['PP1 Toul Kork', '$91,280', '$65,170', { v: '$26,110', c: G, w: 600 }, '28.6%'], ['PP2 BKK1', '$71,600', '$52,040', { v: '$19,560', c: G, w: 600 }, '27.3%'], ['SR1 Siem Reap', '$35,540', '$25,850', { v: '$9,690', c: G, w: 600 }, '27.3%']], ['3 branches', '$198,420', '$143,060', '$55,360', '27.9%'], '1–3 of 3', 'Hidden from the menu for users without cost permission (403 if opened by link).'),
+      RX('13i', 'Sale Cancellations', 'GET /api/reports/v1/sales/cancellations', 'Owner, Manager', [fD, fB, fl('Staff', 'All', 0)], [T('Cancelled invoices', '14', '0.12% of invoices', R), T('Value', '$186.40'), T('Top reason', 'Wrong item', '6 of 14'), T('By one cashier', '5', 'Meas Vibol', A)], 'Cancellations per day', [{ l: 'Count', c: '#B42318' }], series([0, 1, 0, 2, 0, 1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 2, 0, 0, 1, 0, 0, 0, 1].map(x => x * 30), null, '#B42318', 'transparent'), mon, '150px 120px minmax(0,1fr) 120px 100px minmax(0,1.4fr)', [['Invoice'], ['Cancelled'], ['Staff'], ['Approved by'], ['Value', 'right'], ['Reason']], [[{ v: 'PP1-INV-000476', mono: 1 }, '31/10 09:52', 'Meas Vibol', 'Chan Sophea', '$9.50', 'Wrong item scanned'], [{ v: 'PP1-INV-000471', mono: 1 }, '31/10 08:41', 'Meas Vibol', 'Chan Sophea', '$3.10', 'Customer changed mind'], [{ v: 'PP2-INV-000418', mono: 1 }, '28/10 17:20', 'Tep Sochea', 'Meas Vibol', '$54.00', 'Duplicate invoice']], ['14 invoices', '', '', '', '$186.40', ''], '1–14 of 14', 'Reason always shown. Repeated cancellations by one person are flagged in the tile.'),
+      RX('13j', 'Discounts', 'GET /api/reports/v1/sales/discounts', 'Owner, Manager', [fD, fB, fl('Type', 'All', 0)], [T('Manual discounts', '−$1,240.10', '402 lines'), T('Promotions', '−$4,558.20', '3,912 lines', '#6D3FB0'), T('Above role cap', '18', 'approved with PIN', A), T('Share of gross', '2.8%')], 'Discount value by day', [{ l: 'Promotion', c: '#6D3FB0' }, { l: 'Manual', c: '#C4DCDA' }], series(sdBars.map(b => Math.round(b.a * 0.6)), sdBars.map(b => Math.round(b.a * 0.2)), '#6D3FB0', '#C4DCDA'), mon, 'minmax(0,1.4fr) 110px 90px 120px 120px', [['Promotion / staff'], ['Type'], ['Lines', 'right'], ['Value', 'right'], ['Approved by']], [['ORS buy 2 get 1', 'Promotion', '1,240', { v: '−$496.00', c: '#6D3FB0' }, '—'], ['Clinic group 5%', 'Group price', '612', { v: '−$1,820.40', c: '#6D3FB0' }, '—'], ['Lim Srey Neang · manual', 'Manual', '84', '−$312.20', '12 by Chan Sophea'], ['Meas Vibol · manual', 'Manual', '61', '−$140.50', '3 by Chan Sophea']], ['', '', '4,314', '−$5,798.30', ''], '1–20 of 46', 'Approvals come from the discount_approval_token recorded on each invoice.'),
+      RX('13k', 'Slow-moving Stock', 'GET /api/reports/v1/stock/slow-moving?days=90', 'Owner, Manager · value with cost permission', [fl('No sale for', '90 days', 1), fB, fl('Category', 'All', 0)], [T('Slow items', '64'), T('Stock value', '$3,412.80', 'at cost'), T('Near expiry among them', '11', '≤ 90 days', R), T('Oldest last sale', '212 days')], 'Value by days since last sale', [{ l: 'Value', c: '#E9B949' }], series([80, 62, 40, 28, 18, 10], null, '#E9B949', 'transparent'), ['90–120', '120–150', '150–180', '180–240', '240–365', '365+'], 'minmax(0,1.4fr) 70px 110px 100px 100px 140px', [['Medicine'], ['Branch'], ['Last sale'], ['On hand', 'right'], ['Value', 'right'], ['Suggestion']], [['Salbutamol syrup', { v: 'SR1', mono: 1 }, '12/04/2026', '48', '$86.40', { v: 'Transfer to PP1', c: '#0E7470', w: 500 }], ['Vitamin B complex inj.', { v: 'PP2', mono: 1 }, '30/06/2026', '120 amp', '$144.00', { v: 'Promote', c: '#0E7470', w: 500 }], ['Loratadine syrup', { v: 'PP1', mono: 1 }, '02/07/2026', '22', '$39.60', { v: 'Supplier return', c: '#0E7470', w: 500 }]], ['64 items', '', '', '', '$3,412.80', ''], '1–20 of 64', 'Suggestion links to transfer request, promotion editor or supplier return.'),
+      RX('13l', 'ABC Analysis', 'GET /api/reports/v1/stock/abc', 'Owner, Manager', [fl('Period', 'Last 90 days', 1), fB, fl('By', 'Revenue', 1)], [T('A items', '58', '80% of revenue', G), T('B items', '112', '15%'), T('C items', '642', '5%', A), T('C stock value', '$21,380', 'at cost', A)], 'Cumulative revenue share', [{ l: 'Revenue share', c: '#13908A' }], hb([20, 38, 52, 64, 72, 80, 85, 89, 92, 95, 97, 98, 99, 100]), ['Top 1%', '7%', '20%', '50%', '100%'], '60px minmax(0,1.4fr) 120px 110px 110px', [['Class'], ['Medicine'], ['Revenue', 'right'], ['Share', 'right'], ['Cumulative', 'right']], [[{ v: 'A', w: 700, c: G }, 'Paracetamol 500 mg', '$18,420', '3.1%', '3.1%'], [{ v: 'A', w: 700, c: G }, 'Amoxicillin 500 mg', '$14,610', '2.5%', '5.6%'], [{ v: 'B', w: 700 }, 'Cetirizine 10 mg', '$2,980', '0.5%', '81.2%'], [{ v: 'C', w: 700, c: A }, 'Loratadine syrup', '$42', '0.01%', '99.9%']], ['812 items', '', '$592,880', '100%', ''], '1–20 of 812', 'Class thresholds 80 / 95 / 100%. Used by re-order settings to set review frequency.'),
+      RX('13m', 'Purchase By Supplier', 'GET /api/reports/v1/purchases/by-supplier', 'Owner, Manager (cost permission)', [fD, fB, fl('Supplier', 'All', 0)], [T('Purchased', '$121,840'), T('Suppliers', '9'), T('Bills unpaid', '$6,935.40', '2 overdue', A), T('Avg lead time', '2.4 days')], 'Purchases by supplier', [{ l: 'Value', c: '#13908A' }], series([90, 52, 30, 14], null, '#13908A', 'transparent'), ['Zuellig', 'DKSH', 'Mekong', 'Other'], 'minmax(0,1.4fr) 80px 120px 110px 110px', [['Supplier'], ['POs', 'right'], ['Purchased', 'right'], ['Returned', 'right'], ['Balance', 'right']], [['Zuellig Pharma Cambodia', '18', '$62,400', '−$120.00', '$4,820.00'], ['DKSH Cambodia', '11', '$35,120', '$0.00', { v: '$2,115.40', c: R }], ['Mekong Medical Supply', '22', '$19,880', '−$46.00', '$0.00']], ['9 suppliers', '58', '$121,840', '−$166.00', '$6,935.40'], '1–9 of 9', 'Balance links to supplier statement.'),
+      RX('13n', 'Top Customers', 'GET /api/reports/v1/customers/top?limit=50', 'Owner, Manager', [fD, fB, fl('Group', 'All', 0)], [T('Named customers', '1,218', '41% of sales'), T('Top 50 share', '18.4%'), T('Credit customers', '34'), T('Receivable', '$8,214.60', '', A)], 'Top 10 by sales', [{ l: 'Sales', c: '#13908A' }], series([90, 74, 60, 52, 44, 40, 36, 30, 26, 22], null, '#13908A', 'transparent'), ['#1', '#3', '#5', '#8', '#10'], 'minmax(0,1.4fr) 120px 80px 110px 110px', [['Customer'], ['Group'], ['Invoices', 'right'], ['Sales', 'right'], ['Balance', 'right']], [['Sen Sok Clinic', 'Clinic', '22', '$3,412.80', { v: '$492.30', c: A }], ['Mekong Care NGO', 'NGO', '4', '$2,890.00', '$596.16'], ['Keo Malis', 'Retail', '9', '$214.60', '$0.00']], ['50 customers', '', '418', '$36,510', '$3,840'], '1–20 of 50', 'Patients are not shown here; only customer records. Cashiers cannot open this report.'),
+      RX('13o', 'Stock Count Variances', 'GET /api/reports/v1/counts/variances', 'Owner, Manager · value with cost permission', [fl('Period', 'Last 6 months', 1), fB, fl('Count type', 'All', 0)], [T('Counts approved', '9'), T('Lines with variance', '142', '3.1%'), T('Net variance', '−$412.60', '', R), T('Controlled variances', '2', 'resolved with witness', '#A01D52')], 'Net variance value per count', [{ l: 'Loss', c: '#B42318' }], series([40, 22, 60, 18, 30, 12, 48, 20, 26], null, '#B42318', 'transparent'), ['May', 'Jun', 'Jul', 'Aug', 'Oct'], '150px 110px 70px 90px 100px 110px', [['Count'], ['Approved'], ['Branch'], ['Lines', 'right'], ['Variance qty', 'right'], ['Value', 'right']], [[{ v: 'SC-PP1-0012', mono: 1 }, '30/10/2026', 'PP1', '418', '−36', { v: '−$48.20', c: R }], [{ v: 'SC-PP2-0009', mono: 1 }, '15/10/2026', 'PP2', '1,120', '+4', '$6.40'], [{ v: 'SC-SR1-0006', mono: 1 }, '02/10/2026', 'SR1', '640', '−22', { v: '−$31.10', c: R }]], ['9 counts', '', '', '4,612', '−188', '−$412.60'], '1–9 of 9', 'Opens the stock-take review for each count.'),
+      RX('13p', 'Transfers In Transit', 'GET /api/reports/v1/transfers/in-transit', 'Owner, Manager', [fB, fl('Older than', 'Any', 0)], [T('In transit', '3 transfers'), T('Value', '$204.45', 'at cost'), T('Over 48 h', '1', 'TR-PP1-SR1-0027', R), T('With controlled', '2', '', '#A01D52')], 'Days in transit', [{ l: 'Transfers', c: '#1F5FA8' }], series([60, 30, 30], null, '#1F5FA8', 'transparent'), ['< 1 d', '1–2 d', '> 2 d'], '170px 140px 120px 90px 100px 90px', [['Transfer'], ['Route'], ['Dispatched'], ['Lines', 'right'], ['Value', 'right'], ['Age', 'right']], [[{ v: 'TR-PP1-SR1-0027', mono: 1 }, 'PP1 → SR1', '29/10 15:10', '6', '$118.40', { v: '2.1 d', c: R, w: 700 }], [{ v: 'TR-PP2-SR1-0031', mono: 1 }, 'PP2 → SR1', '31/10 16:20', '4', '$62.05', '0.4 d'], [{ v: 'TR-PP1-PP2-0058', mono: 1 }, 'PP1 → PP2', '31/10 11:00', '2', '$24.00', '0.6 d']], ['3 transfers', '', '', '12', '$204.45', ''], '1–3 of 3', 'Age over 48 h is also sent as a Telegram alert.'),
+    );
+    return { frames, nav };
+  }
+}
+</script>
+</body>
+</html>

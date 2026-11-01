@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Kantumruy+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E9EDEC;color:#17201F;font-family:'Inter','Kantumruy Pro',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0E7470}a:hover{color:#0B5F5C}
+*{box-sizing:border-box}
+</style>
+</helmet>
+<div style="padding:48px;display:flex;flex-direction:column;gap:40px;font-variant-numeric:tabular-nums">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#66706F">DELIVERABLE 3–4 · GAP FILL</div>
+    <h1 style="margin:0;font-size:28px;line-height:36px;font-weight:600">POS back office &amp; remaining screens</h1>
+    <div style="font-size:14px;color:#3A4645;max-width:860px;line-height:22px">Screens found missing in the audit: POS secondary screens (templates, suspended, sale order, list sale, invoice detail, return, commission, promotion editor), Dispense from Rx, Purchase Order create, Transfer Request, Suppliers + groups. One language each (EN) per brief; Khmer strings follow the shell pattern.</div>
+  </div>
+
+  <section style="display:flex;flex-wrap:wrap;gap:48px 40px;align-items:flex-start">
+  <sc-for list="{{ frames }}" as="f" hint-placeholder-count="3">
+    <div id="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px;width:1366px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">{{ f.id }}</span>
+        <span style="font-size:14px;font-weight:600">{{ f.frameName }}</span>
+        <span style="flex:none;white-space:nowrap;font-size:12px;line-height:18px;background:#fff;border:1px solid #DDE2E1;padding:2px 8px;border-radius:4px">Role: {{ f.roleNote }}</span>
+        <span style="font-family:'JetBrains Mono';font-size:11px;color:#0B5F5C;background:#DDF1EF;padding:3px 8px;border-radius:4px">{{ f.api }}</span>
+      </div>
+      <div style="width:1366px;min-height:768px;background:#F6F8F7;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(23,32,31,.08),0 24px 60px rgba(23,32,31,.12);display:flex">
+        <aside style="width:64px;flex:none;background:#fff;border-right:1px solid #DDE2E1;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px">
+          <span style="width:32px;height:32px;border-radius:8px;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;margin-bottom:12px">+</span>
+          <sc-for list="{{ f.nav }}" as="n" hint-placeholder-count="10"><span style="width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;background:{{ n.bg }};color:{{ n.fg }}">{{ n.icon }}</span></sc-for>
+        </aside>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <header style="height:56px;flex:none;background:#fff;border-bottom:1px solid #DDE2E1;display:flex;align-items:center;gap:12px;padding:0 24px">
+            <span style="height:36px;padding:0 12px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap"><span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#DDF1EF;color:#0B5F5C;font-weight:500">{{ f.br }}</span>{{ f.brName }} ▾</span>
+            <span style="height:36px;flex:1;max-width:440px;padding:0 12px;border:1px solid #DDE2E1;background:#F6F8F7;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px;color:#66706F">⌕ Search…<span style="margin-left:auto;font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#fff;border:1px solid #DDE2E1">Ctrl K</span></span>
+            <span style="margin-left:auto;display:flex;border:1px solid #C4CBCA;border-radius:6px;overflow:hidden;font-size:13px;font-weight:500"><span style="padding:7px 10px;font-family:'Kantumruy Pro';color:#3A4645">ខ្មែរ</span><span style="padding:7px 10px;background:#0E7470;color:#fff">EN</span></span>
+            <span style="width:36px;height:36px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;justify-content:center">🔔</span>
+            <span style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:32px;height:32px;border-radius:50%;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px">{{ f.ini }}</span><span style="display:flex;flex-direction:column;line-height:17px"><b>{{ f.user }}</b><span style="color:#66706F;font-size:12px">{{ f.role }}</span></span></span>
+          </header>
+          <div style="padding:22px 28px 28px;display:flex;flex-direction:column;gap:16px;flex:1">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px">
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#66706F">{{ f.crumb }}</span><div style="display:flex;gap:10px;align-items:center"><h2 style="margin:0;font-size:28px;line-height:36px;font-weight:600">{{ f.title }}</h2><sc-if value="{{ f.hasPill }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 10px 2px 8px;border-radius:999px;background:{{ f.pill.bg }};color:{{ f.pill.fg }};border:1px solid {{ f.pill.bd }};font-size:12px;font-weight:500;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:{{ f.pill.dot }}"></span>{{ f.pill.l }}</span></sc-if></div></div>
+              <div style="display:flex;gap:8px"><sc-for list="{{ f.actions }}" as="a" hint-placeholder-count="2"><span style="height:36px;padding:0 14px;border-radius:6px;border:1px solid {{ a.bd }};background:{{ a.bg }};color:{{ a.fg }};display:flex;align-items:center;font-size:14px;font-weight:500;white-space:nowrap">{{ a.label }}</span></sc-for></div>
+            </div>
+
+            <sc-if value="{{ f.hasChips }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:6px;flex-wrap:wrap;font-size:13px"><sc-for list="{{ f.chips }}" as="c" hint-placeholder-count="5"><span style="height:32px;padding:0 12px;border-radius:6px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};display:flex;align-items:center;font-weight:500;white-space:nowrap">{{ c.l }}</span></sc-for></div></sc-if>
+
+            <sc-if value="{{ f.hasTiles }}" hint-placeholder-val="{{ false }}"><div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px"><sc-for list="{{ f.tiles }}" as="t" hint-placeholder-count="4"><div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#66706F">{{ t.k }}</span><b style="font-size:22px;line-height:30px;color:{{ t.c }}">{{ t.v }}</b><span style="font-size:12px;color:#3A4645">{{ t.s }}</span></div></sc-for></div></sc-if>
+
+            <div style="display:grid;grid-template-columns:{{ f.bodyCols }};gap:16px;align-items:start">
+              <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+                <sc-if value="{{ f.hasForm }}" hint-placeholder-val="{{ false }}">
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:18px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;font-size:13px">
+                    <sc-for list="{{ f.fields }}" as="x" hint-placeholder-count="4"><label style="display:flex;flex-direction:column;gap:6px;grid-column:span {{ x.span }}"><span style="font-weight:500">{{ x.l }}</span>
+                      <sc-if value="{{ x.isChips }}" hint-placeholder-val="{{ false }}"><span style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ x.chips }}" as="c" hint-placeholder-count="4"><span style="height:34px;padding:0 12px;border-radius:17px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};display:flex;align-items:center;font-weight:500;white-space:nowrap">{{ c.l }}</span></sc-for></span></sc-if>
+                      <sc-if value="{{ x.isInput }}" hint-placeholder-val="{{ true }}"><span style="min-height:38px;border:{{ x.bw }}px solid {{ x.bd }};box-shadow:{{ x.sh }};border-radius:6px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px;line-height:20px;background:{{ x.bg }}">{{ x.v }}<span style="color:#66706F">{{ x.suf }}</span></span></sc-if>
+                      <sc-if value="{{ x.hasHelp }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:{{ x.hc }}">{{ x.help }}</span></sc-if>
+                    </label></sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ f.hasTable }}" hint-placeholder-val="{{ true }}">
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                    <sc-if value="{{ f.hasTableTitle }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 14px;border-bottom:1px solid #DDE2E1;display:flex;justify-content:space-between;font-size:14px"><b>{{ f.tableTitle }}</b><span style="font-size:12px;color:#66706F">{{ f.tableMeta }}</span></div></sc-if>
+                    <div style="display:grid;grid-template-columns:{{ f.cols }};font-size:13px">
+                      <sc-for list="{{ f.head }}" as="h" hint-placeholder-count="6"><div style="padding:10px 12px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645;text-align:{{ h.a }}">{{ h.l }}</div></sc-for>
+                      <sc-for list="{{ f.cells }}" as="c" hint-placeholder-count="30"><div style="padding:11px 12px;border-bottom:1px solid #EEF1F0;background:{{ c.bg }};text-align:{{ c.a }};font-weight:{{ c.w }};font-family:{{ c.ff }};font-size:{{ c.fs }}px;color:{{ c.c }};display:flex;flex-direction:column;justify-content:center;align-items:{{ c.ai }};line-height:18px">
+                        <sc-if value="{{ c.isPill }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 10px 2px 8px;border-radius:999px;background:{{ c.pill.bg }};color:{{ c.pill.fg }};border:1px solid {{ c.pill.bd }};font-size:12px;font-weight:500;white-space:nowrap;text-decoration:{{ c.pill.deco }};font-family:Inter"><span style="width:6px;height:6px;border-radius:50%;background:{{ c.pill.dot }}"></span>{{ c.pill.l }}</span></sc-if>
+                        <sc-if value="{{ c.isText }}" hint-placeholder-val="{{ true }}"><span>{{ c.v }}</span></sc-if>
+                        <sc-if value="{{ c.hasSub }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;color:{{ c.sc }};font-family:Inter;font-weight:400">{{ c.sub }}</span></sc-if>
+                      </div></sc-for>
+                    </div>
+                    <sc-if value="{{ f.hasFoot }}" hint-placeholder-val="{{ false }}"><div style="padding:10px 14px;display:flex;justify-content:space-between;font-size:12px;color:#66706F"><span>{{ f.foot }}</span><span>20 · 50 · 100 per page</span></div></sc-if>
+                  </div>
+                </sc-if>
+              </div>
+              <sc-if value="{{ f.hasSide }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:12px">
+                  <sc-for list="{{ f.side }}" as="s" hint-placeholder-count="2">
+                    <div style="background:{{ s.bg }};border:1px solid {{ s.bd }};border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;font-size:13px">
+                      <b style="font-size:14px;color:{{ s.tc }}">{{ s.t }}</b>
+                      <sc-for list="{{ s.rows }}" as="r" hint-placeholder-count="3"><div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline"><span style="color:#66706F">{{ r.k }}</span><span style="font-weight:{{ r.w }};color:{{ r.c }};text-align:right;font-size:{{ r.fs }}px">{{ r.v }}</span></div></sc-for>
+                      <sc-for list="{{ s.tl }}" as="t" hint-placeholder-count="0"><div style="display:flex;gap:10px"><span style="width:10px;height:10px;border-radius:50%;margin-top:5px;flex:none;background:{{ t.dot }}"></span><div style="display:flex;flex-direction:column"><span style="font-weight:500">{{ t.t }}</span><span style="font-size:12px;color:#66706F">{{ t.m }}</span></div></div></sc-for>
+                      <sc-if value="{{ s.hasNote }}" hint-placeholder-val="{{ false }}"><span style="color:#3A4645;line-height:20px">{{ s.note }}</span></sc-if>
+                      <sc-if value="{{ s.hasInput }}" hint-placeholder-val="{{ false }}"><span style="min-height:44px;border:2px solid #0E7470;box-shadow:0 0 0 3px #CDEBE8;background:#fff;border-radius:6px;padding:8px 12px;line-height:20px">{{ s.input }}</span></sc-if>
+                      <sc-for list="{{ s.btns }}" as="b" hint-placeholder-count="0"><span style="height:40px;border-radius:6px;border:1px solid {{ b.bd }};background:{{ b.bg }};color:{{ b.fg }};display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px">{{ b.label }}</span></sc-for>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:#3A4645;max-width:1000px;line-height:20px">{{ f.note }}</div>
+    </div>
+  </sc-for>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const T = { neutral: ['#3A4645', '#EEF1F0', '#DDE2E1', '#8C9594'], info: ['#1F5FA8', '#E4EEFA', '#C3D7F0', '#1F5FA8'], primary: ['#0B5F5C', '#DDF1EF', '#B8E0DC', '#13908A'], warning: ['#7A4F00', '#FDF1D6', '#F0D48E', '#D99A1E'], success: ['#1E6B3F', '#E3F3E9', '#BFE2CC', '#2E9B5C'], danger: ['#A3201A', '#FDE8E6', '#F4C3BD', '#D23C2F'], cancelled: ['#A3201A', '#fff', '#E8A39C', '#D23C2F'], purple: ['#5B2A86', '#F1E8FA', '#DCC8EF', '#7A3FB0'] };
+    const P = (l, t) => ({ pill: { l, fg: T[t][0], bg: T[t][1], bd: T[t][2], dot: T[t][3], deco: t === 'cancelled' ? 'line-through' : 'none' } });
+    const btn = (label, k) => k === 'p' ? { label, bg: '#0E7470', fg: '#fff', bd: '#0E7470' } : k === 'd' ? { label, bg: '#fff', fg: '#B42318', bd: '#E8A39C' } : { label, bg: '#fff', fg: '#17201F', bd: '#C4CBCA' };
+    const chip = (l, on, warn) => ({ l, bd: on ? '#0E7470' : warn ? '#F4C3BD' : '#C4CBCA', bg: on ? '#0E7470' : '#fff', fg: on ? '#fff' : warn ? '#A3201A' : '#17201F' });
+    const navAt = i => ['▦', '◎', '℞', '◆', '▤', '▣', '⊕', '⇄', '☰', '⚙'].map((icon, j) => ({ icon, bg: j === i ? '#DDF1EF' : 'transparent', fg: j === i ? '#0B5F5C' : '#3A4645' }));
+    const H = arr => arr.map(x => typeof x === 'string' ? { l: x, a: 'left' } : { l: x[0], a: 'right' });
+    const cellsOf = (rows, o = {}) => rows.flatMap((row, ri) => row.map((v, ci) => {
+      const obj = v && typeof v === 'object' ? v : { v };
+      const right = (o.right || []).includes(ci);
+      const base = { v: '', a: right ? 'right' : 'left', ai: right ? 'flex-end' : 'flex-start', w: (o.bold || []).includes(ci) ? 600 : 400, ff: (o.mono || []).includes(ci) ? "'JetBrains Mono',monospace" : 'inherit', fs: (o.mono || []).includes(ci) ? 12 : 13, c: '#17201F', bg: (o.hl || []).includes(ri) ? '#EFF8F7' : '#fff', sub: '', sc: '#66706F' };
+      const m = { ...base, ...obj };
+      return { ...m, isPill: !!m.pill, isText: !m.pill, hasSub: !!m.sub, pill: m.pill || P('', 'neutral').pill };
+    }));
+    const fld = (l, v, o = {}) => ({ l, v, span: o.span || 1, suf: o.suf || '', isChips: !!o.chips, isInput: !o.chips, chips: o.chips || [], bw: o.focus ? 2 : 1, bd: o.focus ? '#0E7470' : o.err ? '#B42318' : '#C4CBCA', sh: o.focus ? '0 0 0 3px #CDEBE8' : 'none', bg: o.ro ? '#F6F8F7' : '#fff', hasHelp: !!o.help, help: o.help || '', hc: o.err ? '#B42318' : '#66706F' });
+    const row = (k, v, o = {}) => ({ k, v, w: o.w || 500, c: o.c || '#17201F', fs: o.fs || 13 });
+    const side = (t, o = {}) => ({ t, rows: o.rows || [], tl: o.tl || [], btns: o.btns || [], hasNote: !!o.note, note: o.note || '', hasInput: !!o.input, input: o.input || '', bg: o.warn ? '#FFFBF0' : o.danger ? '#FFF8F7' : '#fff', bd: o.warn ? '#E9B949' : o.danger ? '#F4C3BD' : '#DDE2E1', tc: o.warn ? '#7A4F00' : o.danger ? '#A3201A' : '#17201F' });
+    const tile = (k, v, s, c) => ({ k, v, s: s || '', c: c || '#17201F' });
+    const F = o => ({ br: 'PP1', brName: 'Toul Kork', user: 'Chan Sophea', ini: 'CS', role: 'Branch manager', nav: navAt(1), hasPill: false, pill: P('', 'neutral').pill, actions: [], hasChips: false, chips: [], hasTiles: false, tiles: [], hasForm: false, fields: [], hasTable: true, hasTableTitle: false, tableTitle: '', tableMeta: '', head: [], cells: [], cols: '1fr', hasFoot: false, foot: '', hasSide: false, side: [], ...o, hasChips: !!(o.chips && o.chips.length), hasTiles: !!(o.tiles && o.tiles.length), hasForm: !!(o.fields && o.fields.length), hasSide: !!(o.side && o.side.length), hasTableTitle: !!o.tableTitle, hasFoot: !!o.foot, bodyCols: o.side && o.side.length ? 'minmax(0,1fr) 380px' : 'minmax(0,1fr)' });
+    const ghost = v => ({ v, c: '#0E7470', w: 600 });
+    const tl = (t, m, dot) => ({ t, m, dot: dot || '#13908A' });
+
+    const frames = [
+      F({ id: '12a', frameName: 'POS / Sale Template list + load / Desktop 1366 / EN', roleNote: 'Cashier, Pharmacist, Manager', api: 'GET /api/sales/v1/sale-templates · POST …/{template_id}/load', user: 'Meas Vibol', ini: 'MV', role: 'Cashier', crumb: 'POS  /  Sale Template', title: 'Sale templates', actions: [btn('+ New template', 'p')],
+        cols: 'minmax(0,1.4fr) 70px 90px 90px 90px 110px 130px', head: H(['Template', ['Items'], 'Branch', ['Total'], ['Used 30 d'], 'Last used', '']),
+        cells: cellsOf([[{ v: 'Cold & flu pack', sub: 'Paracetamol, Cetirizine, ORS ×2' }, '4', 'All', '$3.10', '42', '31/10/2026', ghost('Load into cart ›')], [{ v: 'Clinic restock – Sen Sok', sub: 'Customer: Sen Sok Clinic · group price' }, '6', 'PP2', '$154.85', '3', '28/10/2026', ghost('Load into cart ›')], [{ v: 'Travel kit', sub: 'ORS, plasters, antiseptic' }, '5', 'SR1', '$6.40', '17', '30/10/2026', ghost('Load into cart ›')], [{ v: 'Diarrhoea adult', sub: 'ORS ×3, zinc' }, '2', 'All', '$1.60', '25', '31/10/2026', ghost('Load into cart ›')]], { right: [1, 3, 4], hl: [0] }),
+        side: [side('Cold & flu pack', { rows: [row('Paracetamol 500 mg · strip', '2 × $0.50'), row('Cetirizine 10 mg · strip', '1 × $1.20'), row('ORS sachet · Buy 2 get 1', '3 × $0.40'), row('Total at today’s prices', '$3.10', { w: 700, fs: 16 })], note: 'Prices, stock and promotions are taken at load time, not when the template was saved. Rx-only items load with RX_REQUIRED.', btns: [btn('Load into cart', 'p')] })], note: 'Templates hold items and quantities only. Loading never bypasses Rx, batch or stock checks.' }),
+
+      F({ id: '12b', frameName: 'POS / Suspended carts / Desktop 1366 / EN', roleNote: 'Cashier, Pharmacist, Manager', api: 'GET /api/sales/v1/carts', user: 'Meas Vibol', ini: 'MV', role: 'Cashier', crumb: 'POS  /  Sale Suspend', title: 'Suspended carts', chips: [chip('My carts (2)', 1), chip('This branch (4)'), chip('Expired today (1)')],
+        cols: '110px minmax(0,1.6fr) 120px 140px 60px 90px 100px 110px 100px', head: H(['Cart', 'Note', 'By', 'Customer', ['Lines'], ['Total'], 'Suspended', 'Expires', '']),
+        cells: cellsOf([['SUS-PP1-0094', 'Lady in blue shirt, getting cash', 'Meas Vibol', 'Walk-in', '3', '$12.50', '13:52', 'End of shift', ghost('Resume F8 ›')], ['SUS-PP1-0093', 'Waiting for doctor to call back', 'Meas Vibol', 'Keo Malis', '2', '$18.20', '13:10', 'End of shift', ghost('Resume ›')], ['SUS-PP1-0091', 'Clinic driver collects 15:00', 'Sok Dara', 'Sen Sok Clinic', '6', '$154.85', '11:40', 'End of shift', ghost('Resume ›')], [{ v: 'SUS-PP1-0088', c: '#66706F' }, { v: 'Phone order', c: '#66706F' }, 'Sok Dara', 'Walk-in', '1', '$4.50', 'Yesterday', P('Expired', 'danger'), { v: 'Stock released', c: '#66706F' }]], { right: [4, 5], mono: [0], hl: [0] }),
+        foot: 'Suspended carts do not hold stock. Resume re-checks price and stock (see POS 3j).', note: 'Each cashier sees own carts by default; managers can resume any cart in the branch.' }),
+
+      F({ id: '12c', frameName: 'POS / Sale Order detail (quote → order) / Desktop 1366 / EN', roleNote: 'Manager, Pharmacist, Cashier (no cost)', api: 'GET /api/sales/v1/sale-orders/{order_id} · POST …/invoice · POST …/cancel', crumb: 'POS  /  Sale Order  /  SO-PP1-0021', title: 'SO-PP1-0021', hasPill: true, pill: P('Partly fulfilled', 'warning').pill, actions: [btn('Print A4', 's'), btn('Cancel order', 'd'), btn('Create partial invoice', 'p')],
+        tiles: [tile('Order total', '$745.20', '៛3,055,300'), tile('Deposit paid', '$149.04', '20% · ABA 31/10'), tile('Invoiced', '$300.00', 'PP1-INV-000470'), tile('Stock held until', '05/11/2026', '5 days left', '#7A4F00')],
+        cols: 'minmax(0,1.4fr) 80px 80px 80px 90px 80px 90px', head: H(['Item', ['Ordered'], ['Held'], ['Invoiced'], ['Remaining'], ['Price'], ['Amount']]),
+        cells: cellsOf([['ORS sachet · box 20', '40', '40', '40', { v: '0', c: '#1E6B3F' }, '$7.50', '$300.00'], ['Paracetamol 500 mg · box', '60', '60', '0', '60', '$4.50', '$270.00'], [{ v: 'First-aid kit · hamper', sub: 'Components held per kit' }, '30', '30', '0', '30', '$8.00', '$240.00']], { right: [1, 2, 3, 4, 5, 6], bold: [4] }),
+        side: [side('Status history', { tl: [tl('Partial invoice PP1-INV-000470', 'Chan Sophea · 31/10 15:30', '#D99A1E'), tl('Deposit $149.04 received', 'ABA · 31/10 11:05'), tl('Converted to order · stock held', 'Chan Sophea · 31/10 11:02'), tl('Quote Q-PP1-0034 created', 'Chan Sophea · 30/10 09:40', '#8C9594')] }), side('Deposit rule (PP1)', { warn: 1, note: 'Cancel before 05/11/2026: deposit refunded. Cancel after: deposit kept. Cancelling needs a reason and releases held stock.' })], note: 'Quote has no stock hold. Order holds stock until the date; each partial invoice deducts from held stock.' }),
+
+      F({ id: '12d', frameName: 'POS / List Sale + cancel with reason / Desktop 1366 / EN', roleNote: 'Manager, Owner (cancel); Cashier (own, reprint only)', api: 'GET /api/sales/v1/invoices · POST …/{id}/cancel', crumb: 'POS  /  List Sale', title: 'Sales', actions: [btn('Export ▾', 's')], chips: [chip('31/10/2026', 1), chip('PP1 Toul Kork'), chip('All cashiers'), chip('All payment types'), chip('Status: any')],
+        cols: '140px 90px minmax(0,1.2fr) 110px 100px 90px 130px 70px', head: H(['Invoice', 'Time', 'Customer', 'Cashier', 'Payment', ['Total'], 'Status', '']),
+        cells: cellsOf([['PP1-INV-000482', '14:05', 'Walk-in', 'Meas Vibol', 'Cash mixed', '$12.50', P('Completed', 'success'), ghost('⋯')], ['PP1-INV-000481', '13:58', 'Keo Malis', 'Lim Srey Neang', 'KHQR', '$18.20', P('Completed', 'success'), ghost('⋯')], ['PP1-INV-000479', '10:14', 'Keo Malis', 'Lim Srey Neang', 'Cash', '$24.60', P('Partly returned', 'warning'), ghost('⋯')], ['PP1-INV-000476', '09:40', 'Walk-in', 'Meas Vibol', 'Cash', '$9.50', P('Completed', 'success'), ghost('⋯')], ['PP1-INV-000474', '09:12', 'Sen Sok Clinic', 'Sok Dara', 'Credit', '$154.85', P('Returned', 'neutral'), ghost('⋯')], ['PP1-INV-000471', '08:30', 'Walk-in', 'Meas Vibol', 'Cash', '$3.10', P('Cancelled', 'cancelled'), ghost('⋯')]], { right: [5], mono: [0], hl: [3] }),
+        foot: 'Showing 1–6 of 64 · total $1,284.60',
+        side: [side('Cancel PP1-INV-000476', { danger: 1, note: 'Stock returns to batch OMP-2703. Cash refund $9.50 must be paid from the drawer. Cancelled invoices stay in the list.', input: 'Customer changed mind before leaving counter; wrong item scanned', btns: [btn('Keep invoice', 's'), btn('Cancel invoice', 'd')] })], note: 'Row menu: View · Reprint receipt · Reprint A4 · Return · Cancel (reason required). No delete.' }),
+
+      F({ id: '12e', frameName: 'POS / Invoice detail / Desktop 1366 / EN', roleNote: 'All (cost/profit rows: Owner, granted Manager)', api: 'GET /api/sales/v1/invoices/{id}', user: 'Heng Sovann', ini: 'HS', role: 'Owner', crumb: 'POS  /  List Sale  /  PP1-INV-000479', title: 'PP1-INV-000479', hasPill: true, pill: P('Partly returned', 'warning').pill, actions: [btn('Reprint', 's'), btn('Return', 's'), btn('Cancel', 'd')],
+        tiles: [tile('Total', '$24.60', '៛100,900'), tile('Paid', '$24.60', 'Cash USD'), tile('Promotion savings', '$0.40', 'ORS buy 2 get 1', '#1E6B3F'), tile('Gross profit', '$7.85', '31.9% · owner only')],
+        cols: 'minmax(0,1.3fr) 150px 60px 70px 80px minmax(0,1fr)', head: H(['Item', 'Batch · expiry', ['Qty'], ['Price'], ['Amount'], 'Links']),
+        cells: cellsOf([['Amoxicillin 500 mg ℞', 'AMX-2702 · 02/2027', '10', '$1.60', '$16.00', { v: 'RX-PP1-00918', c: '#0E7470', sub: 'Dispensed by Lim Srey Neang' }], ['Omeprazole 20 mg · strip', 'OMP-2703 · 03/2027', '1', '$6.50', '$6.50', { v: 'RX-PP1-00918', c: '#0E7470' }], [{ v: 'ORS sachet', sub: '★ Buy 2 get 1 · −$0.40' }, 'ORS-2801 · 01/2028', '3', '$0.40', '$0.80', '—'], [{ v: 'Cetirizine 10 mg', sub: 'Returned 1 · SR-PP1-0012', sc: '#7A4F00' }, 'CTZ-2808 · 08/2028', '1', '$1.30', '$1.30', { v: 'Return → quarantine', c: '#7A4F00' }]], { right: [2, 3, 4], mono: [1] }),
+        side: [side('Status history', { tl: [tl('Partly returned · $1.30 refunded', 'Chan Sophea · 31/10 12:20', '#D99A1E'), tl('Completed · paid cash', 'Lim Srey Neang · 31/10 10:14', '#2E9B5C'), tl('Rx RX-PP1-00918 linked', 'Lim Srey Neang · PIN', '#13908A')] }), side('Audit', { rows: [row('Device', 'POS-01 · PP1'), row('Rate', '៛4,100 / USD'), row('Reprints', '1 · Meas Vibol 11:02'), row('Price overrides', 'None')] })], note: 'Cashier view hides the Gross profit tile and Links column details for patients.' }),
+
+      F({ id: '12f', frameName: 'POS / Sale Return / Desktop 1366 / EN', roleNote: 'Pharmacist, Manager (refund > $20 needs Manager)', api: 'POST /api/sales/v1/invoices/{invoice_id}/returns', user: 'Lim Srey Neang', ini: 'LN', role: 'Pharmacist', crumb: 'POS  /  Sale Return  /  from PP1-INV-000479', title: 'Return items', actions: [],
+        cols: '40px minmax(0,1.3fr) 150px 70px 80px 110px 90px', head: H(['', 'Item', 'Batch', ['Sold'], ['Returned'], ['Return qty'], ['Refund']]),
+        cells: cellsOf([[{ v: '☐', c: '#8C9594' }, { v: 'Amoxicillin 500 mg ℞', sub: 'Opened pack · not returnable (PP1 rule)', sc: '#A3201A' }, 'AMX-2702', '10', '0', { v: '—', c: '#8C9594' }, '—'], [{ v: '☑', c: '#0E7470' }, { v: 'Omeprazole 20 mg · strip', sub: 'Sealed' }, 'OMP-2703', '1', '0', { v: '1', w: 700 }, '$6.50'], [{ v: '☐', c: '#8C9594' }, { v: 'ORS sachet', sub: 'Free item from promotion recalculated' }, 'ORS-2801', '3', '0', '0', '—'], [{ v: '☐', c: '#8C9594' }, 'Cetirizine 10 mg', 'CTZ-2808', '1', '1', { v: 'Fully returned', c: '#66706F' }, '—']], { right: [3, 4, 5, 6], mono: [2], hl: [1] }),
+        side: [side('Refund', { rows: [row('Refund total', '$6.50', { w: 700, fs: 18 }), row('', '៛26,700'), row('Method', 'Cash ▾'), row('Or', 'Customer credit (Keo Malis)')], btns: [btn('Confirm return', 'p')] }), side('Reason · required', { input: 'Doctor stopped omeprazole; strip unopened' }), side('Returned stock goes to Quarantine', { warn: 1, note: 'A pharmacist must inspect and release it in Batches & expiry before it can be sold again.' })], note: 'Opened-pack rule comes from Branch settings. Rx-linked returns add back to the Rx remaining balance.' }),
+
+      F({ id: '12g', frameName: 'POS / Commission list / Desktop 1366 / EN', roleNote: 'All staff (own) · Manager (branch) · Owner (all)', api: 'GET /api/sales/v1/commission/report · POST …/periods/{branch_id}/{month}/paid', crumb: 'POS  /  List Commission', title: 'Commission', actions: [btn('Export ▾', 's'), btn('Mark period paid', 'p')], chips: [chip('Own'), chip('Branch PP1', 1), chip('Period: 10/2026')],
+        tiles: [tile('Period 10/2026', 'Closed', 'Closed 31/10 by Chan Sophea', '#1F5FA8'), tile('Commission total', '$186.40', '4 staff'), tile('Sales counted', '$9,320', 'Excludes returns, cancelled'), tile('Paid', '$0.00', 'Pay by 05/11/2026')],
+        cols: 'minmax(0,1.2fr) 120px 110px 100px 110px 110px 120px', head: H(['Staff', 'Role', ['Sales'], ['Returns'], ['Rule'], ['Commission'], 'Status']),
+        cells: cellsOf([[{ v: 'Lim Srey Neang', sub: 'លឹម ស្រីនាង' }, 'Pharmacist', '$3,840', '−$42', '2% + Rx $0.20', '$84.60', P('Closed', 'info')], [{ v: 'Meas Vibol', sub: 'មាស វិបុល' }, 'Cashier', '$2,960', '−$18', '1.5%', '$44.10', P('Closed', 'info')], [{ v: 'Sok Dara', sub: 'សុខ ដារ៉ា' }, 'Pharmacist', '$2,120', '$0', '2%', '$42.40', P('Closed', 'info')], [{ v: 'Ros Chenda', sub: 'រស់ ចិន្តា' }, 'Cashier', '$400', '$0', '1.5% (from 20/10)', '$15.30', P('Closed', 'info')]], { right: [2, 3, 4, 5], bold: [5] }),
+        foot: 'Periods: Open → Closed (locked, PERIOD_LOCKED on edits) → Paid', note: 'Own view shows a single row and the rule explanation. Rules are edited in User Management / Commission rules.' }),
+
+      F({ id: '12h', frameName: 'POS / Promotion editor / Desktop 1366 / EN', roleNote: 'Owner, Manager (own branches)', api: 'POST /api/catalog/v1/promotions · POST …/preview · ⚠ API pending', user: 'Heng Sovann', ini: 'HS', role: 'Owner', br: 'ALL', brName: 'All branches', crumb: 'POS  /  Items Promotion  /  New', title: 'New promotion', actions: [btn('Save draft', 's'), btn('Activate', 'p')], hasTable: false,
+        fields: [fld('Name', 'ORS rainy season · buy 2 get 1', { span: 2, focus: 1 }), fld('Code', 'PRM-2026-014', { ro: 1 }), fld('Priority', '10'),
+          fld('Type', '', { span: 4, chips: [chip('% off'), chip('Amount off'), chip('Buy X get Y', 1), chip('Bundle price'), chip('Quantity tiers'), chip('Customer-group price')] }),
+          fld('Buy', '2', { suf: 'sachet' }), fld('Get free', '1', { suf: 'sachet' }), fld('Items', 'ORS sachet', { span: 2 }),
+          fld('Valid', '01/11/2026 → 31/12/2026', { span: 2 }), fld('Time window', '07:00 → 21:00'), fld('Days', 'Every day'),
+          fld('Branches', 'PP1 · PP2 · SR1', { span: 2 }), fld('Customer groups', 'All', { span: 2 }),
+          fld('Limit per invoice', '3', { suf: 'free' }), fld('Total limit', '2,000', { suf: 'free' }), fld('Combination', '', { span: 2, chips: [chip('Stackable'), chip('Exclusive', 1)] })],
+        side: [side('Preview', { rows: [row('Cart: ORS sachet × 3', '$1.20'), row('Buy 2 get 1', '−$0.40', { c: '#1E6B3F' }), row('Customer pays', '$0.80', { w: 700, fs: 18 }), row('Cart: ORS × 7', '2 free (limit 3)')], note: 'Exclusive: other promotions on ORS are skipped. Below-cost check still applies to the line after discount.' }), side('Conflicts', { warn: 1, note: 'PRM-2026-009 "Clinic 5%" also covers ORS for group Clinic. Exclusive wins; customers in Clinic get buy 2 get 1 only.' })], note: 'Each type swaps the middle row of fields: % / amount → value + cap; bundle → items + bundle price; tiers → qty/price table; group price → group + price.' }),
+
+      F({ id: '12i', frameName: 'Prescriptions / Dispense from Rx / Desktop 1366 / EN', roleNote: 'Pharmacist', api: 'GET /api/prescription/v1/prescriptions?status=active · GET …/{rx_id}/remaining', user: 'Lim Srey Neang', ini: 'LN', role: 'Pharmacist', nav: navAt(2), crumb: 'Prescriptions  /  Dispense from Rx', title: 'Dispense from Rx', chips: [chip('Active (12)', 1), chip('Partly dispensed (5)'), chip('Expiring in 3 days (2)', 0, 1)],
+        cols: '130px minmax(0,1.1fr) minmax(0,1.3fr) 110px 100px 160px', head: H(['Rx', 'Patient', 'Items', 'Valid until', ['Remaining'], 'Status']),
+        cells: cellsOf([['RX-PP1-00918', { v: 'Keo Malis', sub: '012 888 204 · ⚠ Penicillin? no' }, 'Amoxicillin, Omeprazole', '23/11/2026', '2 items', P('Partly dispensed', 'warning')], ['RX-PP1-00931', { v: 'Chhim Rotha', sub: '092 330 118' }, '◆ Diazepam 5 mg', { v: '02/11/2026', c: '#A3201A', sub: 'Controlled · 2 days left', sc: '#A3201A' }, '1 item', P('Active', 'primary')], ['RX-PP1-00927', { v: 'Nhem Sophal', sub: '017 662 450' }, 'Metformin 500 mg ×3 repeats', '30/01/2027', 'Repeat 2 of 3', P('Partly dispensed', 'warning')], ['RX-PP1-00925', { v: 'Pich Dalin', sub: '011 902 377' }, 'Salbutamol inhaler', '20/11/2026', '1 item', P('Active', 'primary')]], { mono: [0], right: [4], hl: [0] }),
+        side: [side('RX-PP1-00918 · Keo Malis', { rows: [row('Amoxicillin 500 mg', '4 of 21 cap left'), row('Omeprazole 20 mg', '14 of 28 tab left'), row('Allergies', 'Sulfa drugs', { c: '#A3201A' }), row('Repeats', 'None')], btns: [btn('Add remaining to POS cart', 'p'), btn('Open Rx detail', 's')] })], note: 'Queue view for pharmacists. "Add to cart" opens POS with Rx already linked, so allergy and quantity checks run as in POS 3b–3d.' }),
+
+      F({ id: '12j', frameName: 'Purchase / Purchase Order – create / Desktop 1366 / EN', roleNote: 'Manager, Owner', api: 'POST /api/purchasing/v1/purchase-orders · POST …/{po_id}/send', nav: navAt(6), crumb: 'Purchase  /  Purchase Order  /  New', title: 'New purchase order', hasPill: true, pill: P('Draft', 'neutral').pill, actions: [btn('Save draft', 's'), btn('Send PDF to supplier', 'p')],
+        fields: [fld('Supplier', 'Zuellig Pharma Cambodia', { span: 2, focus: 1 }), fld('Deliver to', 'PP1 Toul Kork'), fld('Deliver by', '04/11/2026'), fld('Terms', 'Net 30', { ro: 1, help: 'From supplier' }), fld('From request', 'PR-PP1-0071', { help: 'Lines copied, editable' }), fld('Supplier ref.', ''), fld('Currency', 'USD', { ro: 1 })],
+        cols: 'minmax(0,1.4fr) 110px 80px 80px 90px 90px 80px', head: H(['Item', 'Pack', ['On hand'], ['Qty'], ['Last cost'], ['Cost'], ['Amount']]),
+        cells: cellsOf([['Omeprazole 20 mg', 'box 3×10', '6', { v: '30', w: 700 }, '$15.00', '$15.00', '$450.00'], ['Cetirizine 10 mg', 'box 10×10', '2', { v: '20', w: 700 }, '$8.10', { v: '$8.40', c: '#7A4F00', sub: '+3.7% vs last', sc: '#7A4F00' }, '$168.00'], ['Paracetamol 500 mg', 'box 10×10', '41', { v: '40', w: 700 }, '$3.20', '$3.20', '$128.00'], [{ v: '+ Add item (scan or search)', c: '#0E7470' }, '', '', '', '', '', '']], { right: [2, 3, 4, 5, 6] }),
+        side: [side('Totals', { rows: [row('Lines', '3'), row('Subtotal', '$746.00'), row('', '៛3,058,600'), row('Approval', 'Not needed (< $1,000)')], note: 'Cost changes over 3% are flagged and logged in Cost Change report on receiving.' }), side('Cancel rule', { note: 'Sent POs can be cancelled with a reason until goods are received. No delete.' })], note: 'Group POs for several branches: see Purchase 9b.' }),
+
+      F({ id: '12k', frameName: 'Transfer / Stock Transfer Request – create / Desktop 1366 / EN', roleNote: 'Pharmacist, Manager (requesting branch)', api: 'POST /api/inventory/v1/transfer-requests', br: 'SR1', brName: 'Siem Reap', user: 'Heng Rithy', ini: 'HR', role: 'Branch manager', nav: navAt(7), crumb: 'Transfer  /  Stock Transfer Request  /  New', title: 'Request stock', actions: [btn('Save draft', 's'), btn('Submit request', 'p')],
+        fields: [fld('Request to', 'PP2 BKK1', { span: 2, focus: 1, help: 'Suggested: most stock with longest expiry' }), fld('Needed by', '02/11/2026'), fld('Priority', 'Normal ▾'), fld('Note', 'Weekend tourist demand; low on allergy stock', { span: 4 })],
+        cols: 'minmax(0,1.3fr) 90px 100px 100px 100px 90px', head: H(['Item', ['SR1 on hand'], ['PP2 on hand'], ['PP1 on hand'], ['Suggested'], ['Request']]),
+        cells: cellsOf([['Cetirizine 10 mg', { v: '18', c: '#A3201A' }, '1,240', '860', '300', { v: '300', w: 700 }], ['ORS sachet', '40', '610', '900', '120', { v: '120', w: 700 }], ['Paracetamol 500 mg · strip', '12', '300', '95', '20', { v: '20', w: 700 }], [{ v: '◆ Diazepam 5 mg', sub: 'Controlled · dispatch needs PIN + witness', sc: '#A01D52' }, '4', '120', '40', '20', { v: '20', w: 700 }]], { right: [1, 2, 3, 4, 5] }),
+        side: [side('Approval', { rows: [row('Approver', 'Meas Vibol · Manager PP2'), row('Then', 'PP2 picks (FEFO)')], note: 'Cross-branch requests above $200 also need Owner approval. This request: $62.05 est.' }), side('Or buy instead', { note: 'Items with no stock at any branch move to Purchase Request with one tap.', btns: [btn('Convert lines to purchase request', 's')] })], note: 'After submit, follows TR flow in Transfer 11a–11g.' }),
+
+      F({ id: '12l', frameName: 'Contacts / Suppliers + supplier groups / Desktop 1366 / EN', roleNote: 'Manager, Owner (balances: cost permission)', api: 'GET /api/purchasing/v1/suppliers · GET /api/purchasing/v1/supplier-groups', user: 'Heng Sovann', ini: 'HS', role: 'Owner', br: 'ALL', brName: 'All branches', nav: navAt(8), crumb: 'Contacts  /  Supplier', title: 'Suppliers', actions: [btn('+ Supplier', 'p')], chips: [chip('All groups', 1), chip('Distributor'), chip('Manufacturer'), chip('Local wholesaler'), chip('Show deactivated')],
+        cols: 'minmax(0,1.4fr) 130px 80px 100px 100px 110px 140px', head: H(['Supplier', 'Group', 'Terms', ['Balance'], ['Overdue'], 'Last bill', 'Status']),
+        cells: cellsOf([[{ v: 'Zuellig Pharma Cambodia', sub: 'Sophal · 012 440 118' }, 'Distributor', 'Net 30', '$4,820.00', '$0.00', '28/10/2026', P('Active', 'success')], [{ v: 'DKSH Cambodia', sub: 'Vanna · 023 216 900' }, 'Distributor', 'Net 45', '$2,115.40', { v: '$610.00', c: '#A3201A' }, '12/10/2026', P('Active', 'success')], [{ v: 'Mekong Medical Supply', sub: 'Dara · 016 777 210' }, 'Local wholesaler', 'COD', '$0.00', '$0.00', '30/10/2026', P('Active', 'success')], [{ v: 'Angkor Pharma Trading', sub: 'Deactivated 01/09/2026 · licence expired', sc: '#66706F' }, 'Local wholesaler', 'Net 15', '$0.00', '$0.00', '14/08/2026', P('Deactivated', 'neutral')]], { right: [3, 4] }),
+        side: [side('Supplier groups', { rows: [row('Distributor', '2 suppliers · Net 30 default'), row('Manufacturer', '0 suppliers'), row('Local wholesaler', '2 suppliers · COD default')], btns: [btn('+ Group', 's')] }), side('Supplier detail', { note: 'Terms, balance, bills and payments: see Contacts 10d. Suppliers are deactivated, never deleted.' })], note: 'Managers without cost permission see Balance and Overdue as "hidden".' }),
+      F({ id: '12n', frameName: 'Warehouse / Medicine detail – info, ingredients, price history / Desktop 1366 / EN', roleNote: 'Manager, Owner (cost: permission)', api: 'GET /api/catalog/v1/medicines/{medicine_id} · GET …/price-history · ⚠ API pending', user: 'Heng Sovann', ini: 'HS', role: 'Owner', br: 'ALL', brName: 'All branches', nav: navAt(5), crumb: 'Warehouse  /  Product  /  Amoxicillin 500 mg', title: 'Amoxicillin 500 mg', hasPill: true, pill: P('℞ Rx-only', 'purple').pill, actions: [btn('Deactivate', 'd'), btn('Edit', 'p')], chips: [chip('Info', 1), chip('Pack units & prices'), chip('Batches'), chip('Ingredients & classes'), chip('Rx / controlled flags'), chip('Price history')],
+        fields: [fld('Name (EN)', 'Amoxicillin 500 mg', { span: 2, ro: 1 }), fld('Name (KM)', 'អាម៉ុកស៊ីស៊ីលីន ៥០០ មក', { span: 2, ro: 1 }), fld('Generic', 'Amoxicillin', { ro: 1 }), fld('Form', 'Capsule', { ro: 1 }), fld('Category', 'Antibiotic', { ro: 1 }), fld('Manufacturer', 'Medochemie', { ro: 1 }), fld('Barcode', '5290665001214', { ro: 1 }), fld('Shelf', 'A1-4', { ro: 1 }), fld('Storage', 'Below 25 °C', { ro: 1 }), fld('Re-order point', '5 box / branch', { ro: 1 })],
+        tableTitle: 'Price history', tableMeta: 'Sell price · box 10×10',
+        cols: '110px 100px 100px 100px minmax(0,1fr) 130px', head: H(['From', ['Cost'], ['Sell'], ['Margin'], 'Reason', 'Changed by']),
+        cells: cellsOf([['01/10/2026', '$11.20', '$16.00', '30.0%', 'Supplier increase (Zuellig)', 'Heng Sovann'], ['15/06/2026', '$10.60', '$15.00', '29.3%', 'Annual review', 'Heng Sovann'], ['02/01/2026', '$10.60', '$14.50', '26.9%', 'Opening price', 'System · Initialize']], { right: [1, 2, 3] }),
+        side: [side('Ingredients & drug classes', { rows: [row('Amoxicillin trihydrate', '500 mg'), row('Class', 'Penicillins · β-lactam'), row('Allergy check', 'Penicillin, β-lactam')], note: 'Used by POS allergy and duplicate-therapy checks (POS 3c).' }), side('Rx / controlled flags', { rows: [row('Rx-only', 'Yes'), row('Controlled', 'No'), row('Max per sale without Rx', '—')] })], note: 'Tabs share one header. Cost and margin columns are hidden for users without cost permission.' }),
+    ];
+    return { frames };
+  }
+}
+</script>
+</body>
+</html>

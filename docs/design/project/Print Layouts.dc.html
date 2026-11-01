@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Kantumruy+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#D6DCDB;color:#17201F;font-family:'Inter','Kantumruy Pro',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0E7470}a:hover{color:#0B5F5C}
+*{box-sizing:border-box}
+</style>
+</helmet>
+<div style="padding:48px;display:flex;flex-direction:column;gap:40px;font-variant-numeric:tabular-nums">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#3A4645">DELIVERABLE 5 · PRINT LAYOUTS</div>
+    <h1 style="margin:0;font-size:28px;line-height:36px;font-weight:600">Print layouts</h1>
+    <div style="font-size:14px;color:#3A4645;max-width:860px;line-height:22px">Shown at screen scale (A4 = 794 px wide, labels at 4 px/mm). Black on white only, so thermal and laser printers render the same. Khmer and English on every customer-facing document. The controlled register PDF is in <a href="Controlled Drugs.dc.html#7f">Controlled 7f</a>.</div>
+  </div>
+
+  <!-- Receipts + labels -->
+  <section style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+    <sc-for list="{{ receipts }}" as="r" hint-placeholder-count="2">
+      <div id="{{ r.id }}" style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:8px;align-items:center"><span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">{{ r.id }}</span><b style="font-size:14px">{{ r.name }}</b></div>
+        <span style="align-self:flex-start;font-family:'JetBrains Mono';font-size:11px;color:#0B5F5C;background:#DDF1EF;padding:3px 8px;border-radius:4px">POST /api/documents/v1/render (receipt_80mm, lang={{ r.lang }})</span>
+        <div style="width:302px;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.15);padding:16px 14px;font-size:11px;line-height:{{ r.lh }}px;display:flex;flex-direction:column;gap:6px;font-family:{{ r.font }}">
+          <div style="text-align:center;display:flex;flex-direction:column;gap:1px"><b style="font-size:14px;line-height:20px">{{ r.shop }}</b><span>{{ r.addr }}</span><span>VAT TIN K001-100288412 · 023 888 204</span><b style="margin-top:4px">{{ r.title }}</b></div>
+          <div style="border-top:1px dashed #17201F;padding-top:6px;display:grid;grid-template-columns:auto 1fr;gap:0 8px;font-family:Inter"><span>{{ r.lInv }}</span><span style="text-align:right">PP1-INV-000482</span><span>{{ r.lDate }}</span><span style="text-align:right">31/10/2026 14:05</span><span>{{ r.lCashier }}</span><span style="text-align:right">{{ r.cashier }}</span></div>
+          <div style="border-top:1px dashed #17201F;padding-top:6px;display:flex;flex-direction:column;gap:5px">
+            <sc-for list="{{ r.lines }}" as="l" hint-placeholder-count="4"><div style="display:flex;flex-direction:column"><span style="font-weight:600">{{ l.n }}</span><span style="display:flex;justify-content:space-between;font-family:Inter"><span>{{ l.q }}</span><span>{{ l.t }}</span></span><sc-if value="{{ l.hasP }}" hint-placeholder-val="{{ false }}"><span style="display:flex;justify-content:space-between"><span>  ★ {{ l.p }}</span><span style="font-family:Inter">{{ l.pv }}</span></span></sc-if></div></sc-for>
+          </div>
+          <div style="border-top:1px dashed #17201F;padding-top:6px;display:flex;flex-direction:column;gap:2px">
+            <sc-for list="{{ r.totals }}" as="t" hint-placeholder-count="7"><div style="display:flex;justify-content:space-between;font-weight:{{ t.w }};font-size:{{ t.fs }}px;line-height:{{ t.lh }}px"><span>{{ t.l }}</span><span style="font-family:Inter">{{ t.v }}</span></div></sc-for>
+          </div>
+          <div style="border:1px solid #17201F;padding:4px 6px;text-align:center;font-weight:600">{{ r.saved }}</div>
+          <div style="border-top:1px dashed #17201F;padding-top:8px;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:80px;height:80px;border:1px solid #17201F;background:repeating-linear-gradient(0deg,#fff 0 4px,#E1E6E5 4px 8px);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono';font-size:8px">QR</div>
+            <span style="font-family:'JetBrains Mono';font-size:9px">PP1-INV-000482</span>
+            <span style="text-align:center">{{ r.footer }}</span>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+
+    <div id="17c" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:8px;align-items:center"><span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">17c</span><b style="font-size:14px">Labels · dispensing, shelf, barcode</b></div>
+      <span style="align-self:flex-start;font-family:'JetBrains Mono';font-size:11px;color:#0B5F5C;background:#DDF1EF;padding:3px 8px;border-radius:4px">POST /api/documents/v1/render (dispensing_label · label)</span>
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:#3A4645">Dispensing 70 × 40 mm · KM + EN</span>
+          <div style="width:280px;height:160px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15);border-radius:3px;padding:9px 11px;display:flex;flex-direction:column;gap:2px;font-size:10px;line-height:13px">
+            <div style="display:flex;justify-content:space-between;font-weight:700"><span>PHARMACY · PP1</span><span>31/10/2026</span></div>
+            <b style="font-size:13px;line-height:17px">Amoxicillin 500 mg × 10 cap</b>
+            <span style="font-family:'Kantumruy Pro';font-size:12px;line-height:18px;font-weight:600">លេប ១ គ្រាប់ · ៣ ដង/ថ្ងៃ · ក្រោយអាហារ</span>
+            <span>Take 1 capsule 3 times a day after food</span>
+            <span style="font-family:'Kantumruy Pro';line-height:16px">ប្រើរហូតអស់ · Finish the course</span>
+            <div style="margin-top:auto;display:flex;justify-content:space-between;border-top:1px solid #17201F;padding-top:3px"><span>Keo Malis · RX-PP1-00918</span><span>AMX-2702 · 02/2027 · LN</span></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:20px;align-items:flex-start">
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:#3A4645">Dispensing 50 × 30 mm</span>
+            <div style="width:200px;height:120px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15);border-radius:3px;padding:7px 9px;display:flex;flex-direction:column;gap:1px;font-size:9px;line-height:12px">
+              <b style="font-size:11px;line-height:14px">Cetirizine 10 mg × 10</b>
+              <span style="font-family:'Kantumruy Pro';font-size:11px;line-height:16px;font-weight:600">លេប ១ គ្រាប់ ពេលយប់</span>
+              <span>1 tablet at night · may cause drowsiness</span>
+              <div style="margin-top:auto;display:flex;justify-content:space-between"><span>PP1 · 31/10/26</span><span>CTZ-2808</span></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:#3A4645">Shelf 50 × 30 mm</span>
+            <div style="width:200px;height:120px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15);border-radius:3px;padding:8px 10px;display:flex;flex-direction:column;gap:1px">
+              <b style="font-size:12px;line-height:15px">Paracetamol 500 mg</b>
+              <span style="font-family:'Kantumruy Pro';font-size:10px;line-height:15px">ប៉ារ៉ាសេតាម៉ុល ៥០០ មក</span>
+              <div style="display:flex;align-items:baseline;gap:4px;margin-top:2px"><b style="font-size:24px;line-height:28px">$0.50</b><span style="font-size:10px">/ strip</span></div>
+              <span style="font-size:10px">៛2,100</span>
+              <div style="margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end"><span style="display:flex;gap:1px;height:16px"><span style="width:2px;background:#17201F"></span><span style="width:1px;background:#17201F"></span><span style="width:3px;background:#17201F"></span><span style="width:1px;background:#17201F"></span><span style="width:2px;background:#17201F"></span><span style="width:1px;background:#17201F"></span><span style="width:3px;background:#17201F"></span></span><span style="font-family:'JetBrains Mono';font-size:8px">A2-2</span></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:#3A4645">Barcode 38 × 25 mm · for packs without manufacturer barcode</span>
+          <div style="width:152px;height:100px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15);border-radius:3px;padding:6px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:8px">
+            <b style="font-size:9px">First-aid kit</b>
+            <div style="height:44px;width:120px;background:repeating-linear-gradient(90deg,#17201F 0 2px,#fff 2px 3px,#17201F 3px 4px,#fff 4px 6px,#17201F 6px 9px,#fff 9px 10px)"></div>
+            <span style="font-family:'JetBrains Mono'">HMP-0001</span><b style="font-size:10px">$8.00 · ៛32,800</b>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- A4 documents -->
+  <section style="display:flex;flex-wrap:wrap;gap:48px 40px;align-items:flex-start">
+    <sc-for list="{{ docs }}" as="d" hint-placeholder-count="2">
+      <div id="{{ d.id }}" style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:8px;align-items:center"><span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">{{ d.id }}</span><b style="font-size:14px">{{ d.name }}</b><span style="font-size:12px;color:#3A4645">A4 portrait</span></div>
+        <span style="align-self:flex-start;font-family:'JetBrains Mono';font-size:11px;color:#0B5F5C;background:#DDF1EF;padding:3px 8px;border-radius:4px">{{ d.api }}</span>
+        <div style="width:794px;min-height:1123px;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.15);padding:56px 56px 48px;display:flex;flex-direction:column;gap:22px;font-size:11px;line-height:16px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:24px">
+            <div style="display:flex;gap:12px;align-items:flex-start"><span style="width:44px;height:44px;border:2px solid #17201F;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px">+</span><div style="display:flex;flex-direction:column;gap:1px"><b style="font-size:15px;line-height:20px">Pharmacy · {{ d.branch }}</b><span style="font-family:'Kantumruy Pro';font-size:12px;line-height:18px">ឱសថស្ថាន · {{ d.branchKm }}</span><span>{{ d.addr }}</span><span>VAT TIN K001-100288412 · 023 888 204</span></div></div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right"><b style="font-size:20px;line-height:26px;letter-spacing:.02em">{{ d.title }}</b><span style="font-family:'Kantumruy Pro';font-size:14px;line-height:22px;font-weight:600">{{ d.titleKm }}</span>
+              <div style="display:grid;grid-template-columns:auto auto;gap:0 12px;margin-top:6px;text-align:left"><sc-for list="{{ d.meta }}" as="m" hint-placeholder-count="3"><span style="color:#3A4645">{{ m.k }}</span><b style="font-weight:600">{{ m.v }}</b></sc-for></div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+            <sc-for list="{{ d.parties }}" as="p" hint-placeholder-count="2"><div style="border:1px solid #17201F;padding:10px 12px;display:flex;flex-direction:column;gap:2px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">{{ p.k }}</span><b style="font-size:13px;line-height:18px">{{ p.name }}</b><sc-for list="{{ p.lines }}" as="x" hint-placeholder-count="2"><span>{{ x }}</span></sc-for></div></sc-for>
+          </div>
+          <sc-if value="{{ d.hasBanner }}" hint-placeholder-val="{{ false }}"><div style="border:2px solid #17201F;padding:8px 12px;font-weight:600;display:flex;justify-content:space-between;gap:12px"><span>{{ d.banner }}</span><span style="font-family:'Kantumruy Pro';font-weight:600">{{ d.bannerKm }}</span></div></sc-if>
+          <div style="display:grid;grid-template-columns:{{ d.cols }}">
+            <sc-for list="{{ d.head }}" as="h" hint-placeholder-count="6"><div style="padding:6px 6px;border-top:2px solid #17201F;border-bottom:1px solid #17201F;font-weight:700;text-align:{{ h.a }};display:flex;flex-direction:column;justify-content:flex-end"><span>{{ h.l }}</span><span style="font-family:'Kantumruy Pro';font-weight:600;font-size:10px;line-height:15px">{{ h.km }}</span></div></sc-for>
+            <sc-for list="{{ d.cells }}" as="c" hint-placeholder-count="30"><div style="padding:6px 6px;border-bottom:1px solid #C4CBCA;text-align:{{ c.a }};font-weight:{{ c.w }};font-family:{{ c.ff }}">{{ c.v }}</div></sc-for>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:32px;align-items:flex-start">
+            <div style="flex:1;display:flex;flex-direction:column;gap:6px"><sc-for list="{{ d.notes }}" as="n" hint-placeholder-count="2"><span style="line-height:16px">{{ n }}</span></sc-for></div>
+            <div style="width:280px;display:flex;flex-direction:column;gap:3px"><sc-for list="{{ d.totals }}" as="t" hint-placeholder-count="5"><div style="display:flex;justify-content:space-between;font-weight:{{ t.w }};font-size:{{ t.fs }}px;line-height:{{ t.lh }}px;border-top:{{ t.bt }}"><span>{{ t.l }}</span><span>{{ t.v }}</span></div></sc-for></div>
+          </div>
+          <div style="margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;gap:24px">
+            <div style="display:flex;gap:32px;flex:1"><sc-for list="{{ d.signs }}" as="s" hint-placeholder-count="2"><div style="flex:1;border-top:1px solid #17201F;padding-top:4px;display:flex;flex-direction:column"><span>{{ s.l }}</span><span style="font-family:'Kantumruy Pro';line-height:16px">{{ s.km }}</span><span style="color:#3A4645">{{ s.n }}</span></div></sc-for></div>
+            <sc-if value="{{ d.qr }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;align-items:center;gap:3px"><div style="width:84px;height:84px;border:1px solid #17201F;background:repeating-linear-gradient(0deg,#fff 0 4px,#E1E6E5 4px 8px);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono';font-size:8px">QR</div><span style="font-family:'JetBrains Mono';font-size:9px">{{ d.qrText }}</span></div></sc-if>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:#3A4645;border-top:1px solid #C4CBCA;padding-top:6px"><span>{{ d.footer }}</span><span>Page 1 of 1</span></div>
+        </div>
+      </div>
+    </sc-for>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const tot = (l, v, o = {}) => ({ l, v, w: o.w || 400, fs: o.fs || 11, lh: o.lh || 16, bt: o.bt ? '1px solid #17201F' : 'none' });
+    const rLines = km => [
+      { n: km ? 'ប៉ារ៉ាសេតាម៉ុល 500 mg (បន្ទះ)' : 'Paracetamol 500 mg (strip)', q: '2 × $0.50', t: '$1.00', hasP: false },
+      { n: km ? 'សេទីរីស៊ីន 10 mg (បន្ទះ)' : 'Cetirizine 10 mg (strip)', q: '1 × $1.20', t: '$1.20', hasP: false },
+      { n: km ? 'អូអរអេស (កញ្ចប់)' : 'ORS sachet', q: '3 × $0.40', t: '$1.20', hasP: true, p: km ? 'ទិញ ២ ថែម ១' : 'Buy 2 get 1', pv: '−$0.40' },
+      { n: km ? 'អូមេប្រាហ្សូល 20 mg (ប្រអប់)' : 'Omeprazole 20 mg (box)', q: '1 × $9.50', t: '$9.50', hasP: false },
+    ];
+    const rTot = km => [
+      tot(km ? 'សរុបរង' : 'Subtotal', '$12.90'), tot(km ? 'ប្រូម៉ូសិន' : 'Promotions', '−$0.40'),
+      tot(km ? 'សរុប' : 'TOTAL', '$12.50', { w: 700, fs: 15, lh: 22 }), tot('', '៛51,300', { w: 700, fs: 13, lh: 18 }),
+      tot(km ? 'សាច់ប្រាក់ USD' : 'Cash USD', '$10.00'), tot(km ? 'សាច់ប្រាក់ KHR' : 'Cash KHR', '៛20,000'), tot(km ? 'ប្រាក់អាប់' : 'Change', '៛9,800', { w: 700 }),
+      tot(km ? 'អត្រា 1 USD' : 'Rate 1 USD', '៛4,100'),
+    ];
+    const receipts = [
+      { id: '17a', lang: 'km', name: 'Receipt 80 mm · KM', font: "'Kantumruy Pro','Inter',sans-serif", lh: 17, shop: 'ឱសថស្ថាន · PP1', addr: 'ទួលគោក ភ្នំពេញ', title: 'វិក្កយបត្រ', lInv: 'លេខ', lDate: 'កាលបរិច្ឆេទ', lCashier: 'អ្នកគិតលុយ', cashier: 'មាស វិបុល', lines: rLines(true), totals: rTot(true), saved: 'អ្នកសន្សំបាន $0.40', footer: 'សូមអរគុណ · ប្រគល់វិញក្នុង ៧ ថ្ងៃ ជាមួយវិក្កយបត្រ' },
+      { id: '17b', lang: 'en', name: 'Receipt 80 mm · EN', font: "'Inter','Kantumruy Pro',sans-serif", lh: 15, shop: 'PHARMACY · PP1', addr: 'Toul Kork, Phnom Penh', title: 'RECEIPT · វិក្កយបត្រ', lInv: 'Invoice', lDate: 'Date', lCashier: 'Cashier', cashier: 'Meas Vibol', lines: rLines(false), totals: rTot(false), saved: 'You saved $0.40', footer: 'Thank you · Returns within 7 days with receipt' },
+    ];
+
+    const cell = (v, a, o = {}) => ({ v, a: a || 'left', w: o.w || 400, ff: o.mono ? "'JetBrains Mono',monospace" : 'inherit' });
+    const H = arr => arr.map(([l, km, a]) => ({ l, km, a: a || 'left' }));
+    const sig = (l, km, n) => ({ l, km, n });
+
+    const invRows = [
+      ['1', 'Omeprazole 20 mg', 'OMP-2703 · 03/2027', 'box', '5', '$19.00', '$95.00'],
+      ['2', 'Paracetamol 500 mg', 'PCM-2803 · 03/2028', 'box', '4', '$4.50', '$18.00'],
+      ['3', 'Amoxicillin 500 mg ℞', 'AMX-2702 · 02/2027', 'box', '2', '$16.00', '$32.00'],
+      ['4', 'Nitrile gloves', 'NG-2611 · 11/2029', 'box', '3', '$6.00', '$18.00'],
+    ];
+    const lineCells = (rows, alignR) => rows.flat().map((v, i) => { const col = i % rows[0].length; return cell(v, alignR.includes(col) ? 'right' : 'left', { mono: col === 2, w: col === rows[0].length - 1 ? 600 : 400 }); });
+    const lineHead = H([['#', '', 'left'], ['Item', 'មុខទំនិញ'], ['Batch · expiry', 'ឡូត៍ · ផុតកំណត់'], ['Unit', 'ឯកតា'], ['Qty', 'ចំនួន', 'right'], ['Price', 'តម្លៃ', 'right'], ['Amount', 'សរុប', 'right']]);
+    const lineCols = '28px minmax(0,1.6fr) 150px 50px 50px 70px 80px';
+
+    const docs = [
+      { id: '17d', name: 'A4 invoice', api: 'POST /api/documents/v1/render (invoice_a4)', branch: 'PP2 BKK1', branchKm: 'BKK1', addr: '#45 St. 278, BKK1, Phnom Penh', title: 'TAX INVOICE', titleKm: 'វិក្កយបត្រអាករ',
+        meta: [{ k: 'No.', v: 'PP2-INV-000433' }, { k: 'Date', v: '31/10/2026' }, { k: 'Due', v: '30/11/2026' }, { k: 'Terms', v: 'Net 30' }],
+        parties: [{ k: 'Bill to · អតិថិជន', name: 'Sen Sok Clinic · គ្លីនិក សែនសុខ', lines: ['#12 St. 1986, Sen Sok, Phnom Penh', '023 990 120 · CUS-0142'] }, { k: 'Sold by · អ្នកលក់', name: 'Tep Sochea · Pharmacist', lines: ['PP2 BKK1 · POS-03', 'Rx linked: none'] }],
+        hasBanner: false, cols: lineCols, head: lineHead, cells: lineCells(invRows, [4, 5, 6]),
+        notes: ['Group discount Clinic 5% applied.', 'Payment: ABA 000 123 456 · KHQR on request.', 'Exchange rate 1 USD = ៛4,100 on invoice date.'],
+        totals: [tot('Subtotal · សរុបរង', '$163.00'), tot('Discount 5% · បញ្ចុះ', '−$8.15'), tot('VAT 0% (medicines exempt)', '$0.00'), tot('TOTAL · សរុប', '$154.85', { w: 700, fs: 14, lh: 22, bt: 1 }), tot('', '៛634,900', { w: 700 }), tot('Paid · បានបង់', '$0.00'), tot('Balance due · នៅជំពាក់', '$154.85', { w: 700 })],
+        signs: [sig('Received by', 'អ្នកទទួល', 'Name / date'), sig('Authorised', 'អ្នកអនុញ្ញាត', 'Tep Sochea')], qr: true, qrText: 'PP2-INV-000433', footer: 'Pharmacy System Management · printed 31/10/2026 14:10 by Tep Sochea' },
+      { id: '17e', name: 'A4 quote / sale order', api: 'POST /api/documents/v1/render (sale_order)', branch: 'PP1 Toul Kork', branchKm: 'ទួលគោក', addr: '#88 St. 289, Toul Kork, Phnom Penh', title: 'SALE ORDER', titleKm: 'បញ្ជាលក់',
+        meta: [{ k: 'No.', v: 'SO-PP1-0021' }, { k: 'Date', v: '31/10/2026' }, { k: 'Valid until', v: '07/11/2026' }, { k: 'Stock held to', v: '05/11/2026' }],
+        parties: [{ k: 'Customer · អតិថិជន', name: 'Mekong Care NGO', lines: ['#7 St. 63, Chamkarmon, Phnom Penh', '023 211 908 · CUS-0088'] }, { k: 'Prepared by · រៀបចំដោយ', name: 'Chan Sophea · Branch manager', lines: ['PP1 Toul Kork', 'From quote Q-PP1-0034'] }],
+        hasBanner: true, banner: 'Deposit 20% required to hold stock. Deposit is not refunded if the order is cancelled after 05/11/2026.', bannerKm: 'ប្រាក់កក់ ២០%',
+        cols: lineCols, head: lineHead, cells: lineCells([['1', 'ORS sachet', 'ORS-2801 · 01/2028', 'box 20', '40', '$7.50', '$300.00'], ['2', 'Paracetamol 500 mg', 'PCM-2803 · 03/2028', 'box', '60', '$4.50', '$270.00'], ['3', 'First-aid kit', '— hamper', 'kit', '30', '$8.00', '$240.00']], [4, 5, 6]),
+        notes: ['NGO partner price level, 8% discount.', 'Partial delivery allowed; each delivery is invoiced separately.', 'Prices in USD; KHR at rate on invoice date.'],
+        totals: [tot('Subtotal · សរុបរង', '$810.00'), tot('Discount 8%', '−$64.80'), tot('TOTAL · សរុប', '$745.20', { w: 700, fs: 14, lh: 22, bt: 1 }), tot('Deposit due · ប្រាក់កក់', '$149.04', { w: 700 }), tot('Paid', '$0.00')],
+        signs: [sig('Customer acceptance', 'អតិថិជនយល់ព្រម', 'Name / stamp / date'), sig('Pharmacy', 'ឱសថស្ថាន', 'Chan Sophea')], qr: true, qrText: 'SO-PP1-0021', footer: 'Quote converted to order 31/10/2026 · stock reserved at PP1' },
+      { id: '17i', name: 'Purchase order (single)', api: 'POST /api/documents/v1/render (purchase_order)', branch: 'PP1 Toul Kork', branchKm: 'ទួលគោក', addr: '#88 St. 289, Toul Kork, Phnom Penh', title: 'PURCHASE ORDER', titleKm: 'បញ្ជាទិញ',
+        meta: [{ k: 'No.', v: 'PO-PP1-0418' }, { k: 'Date', v: '31/10/2026' }, { k: 'Deliver by', v: '04/11/2026' }, { k: 'Terms', v: 'Net 30' }],
+        parties: [{ k: 'Supplier · អ្នកផ្គត់ផ្គង់', name: 'Zuellig Pharma Cambodia', lines: ['Sophal · 012 440 118', 'orders.kh@zuellig.example'] }, { k: 'Deliver to · ដឹកទៅ', name: 'PP1 Toul Kork', lines: ['#88 St. 289, Toul Kork, Phnom Penh', 'Receiving: Sok Dara · 012 555 091'] }],
+        hasBanner: false, cols: '28px minmax(0,1.6fr) 110px 90px 60px 80px 90px', head: H([['#', ''], ['Item', 'មុខទំនិញ'], ['SKU', 'លេខកូដ'], ['Pack', 'កញ្ចប់'], ['Qty', 'ចំនួន', 'right'], ['Cost', 'ថ្លៃ', 'right'], ['Amount', 'សរុប', 'right']]),
+        cells: [['1', 'Omeprazole 20 mg', 'OMP20', 'box 3×10', '30', '$15.00', '$450.00'], ['2', 'Cetirizine 10 mg', 'CTZ10', 'box 10×10', '20', '$8.10', '$162.00']].flat().map((v, i) => cell(v, i % 7 >= 4 ? 'right' : 'left', { mono: i % 7 === 2, w: i % 7 === 6 ? 600 : 400 })),
+        notes: ['Part of group POG-2026-0031.', 'Minimum 12 months shelf life on delivery. Lot and expiry must be printed on the delivery note.', 'Quote PO number on the bill.'],
+        totals: [tot('Subtotal · សរុបរង', '$612.00'), tot('VAT 0%', '$0.00'), tot('TOTAL · សរុប', '$612.00', { w: 700, fs: 14, lh: 22, bt: 1 }), tot('', '៛2,509,200', { w: 700 })],
+        signs: [sig('Approved', 'អនុម័ត', 'Chan Sophea · Manager'), sig('Supplier confirmation', 'អ្នកផ្គត់ផ្គង់', 'Name / date')], qr: true, qrText: 'PO-PP1-0418', footer: 'Sent as PDF to orders.kh@zuellig.example on 31/10/2026 15:02' },
+      { id: '17f', name: 'PO group printout', api: 'POST /api/documents/v1/render (purchase_order_group)', branch: 'Head office', branchKm: 'ការិយាល័យកណ្តាល', addr: '#88 St. 289, Toul Kork, Phnom Penh', title: 'PURCHASE ORDER GROUP', titleKm: 'ក្រុមបញ្ជាទិញ',
+        meta: [{ k: 'Group', v: 'POG-2026-0031' }, { k: 'Date', v: '31/10/2026' }, { k: 'Deliver by', v: '04/11/2026' }, { k: 'Terms', v: 'Net 30' }],
+        parties: [{ k: 'Supplier · អ្នកផ្គត់ផ្គង់', name: 'Zuellig Pharma Cambodia', lines: ['Sophal · 012 440 118', 'orders.kh@zuellig.example'] }, { k: 'Deliver to · ដឹកទៅ', name: '3 branches (one PO each)', lines: ['PP1 #88 St. 289 · PP2 #45 St. 278', 'SR1 Sivatha Blvd, Siem Reap'] }],
+        hasBanner: false, cols: '90px 110px minmax(0,1.6fr) 90px 50px 70px 80px', head: H([['PO', 'លេខ'], ['Deliver to', 'ដឹកទៅ'], ['Item', 'មុខទំនិញ'], ['Pack', 'កញ្ចប់'], ['Qty', 'ចំនួន', 'right'], ['Cost', 'ថ្លៃ', 'right'], ['Amount', 'សរុប', 'right']]),
+        cells: [['PO-PP1-0418', 'PP1 Toul Kork', 'Omeprazole 20 mg', 'box 3×10', '30', '$15.00', '$450.00'], ['', '', 'Cetirizine 10 mg', 'box 10×10', '20', '$8.10', '$162.00'], ['PO-PP2-0233', 'PP2 BKK1', 'Paracetamol 500 mg', 'box 10×10', '80', '$3.20', '$256.00'], ['', '', 'Omeprazole 20 mg', 'box 3×10', '18', '$15.00', '$270.00'], ['PO-SR1-0090', 'SR1 Siem Reap', 'Omeprazole 20 mg', 'box 3×10', '5', '$15.00', '$75.00'], ['', '', 'Paracetamol 500 mg', 'box 10×10', '85', '$3.20', '$272.00']].flat().map((v, i) => cell(v, i % 7 >= 4 ? 'right' : 'left', { mono: i % 7 === 0, w: i % 7 === 6 ? 600 : 400 })),
+        notes: ['Subtotals: PP1 $612.00 · PP2 $526.00 · SR1 $347.00.', 'Each branch receives and is billed against its own PO number.', 'Minimum 12 months shelf life on delivery.'],
+        totals: [tot('PP1', '$612.00'), tot('PP2', '$526.00'), tot('SR1', '$347.00'), tot('GROUP TOTAL', '$1,485.00', { w: 700, fs: 14, lh: 22, bt: 1 }), tot('', '៛6,088,500', { w: 700 })],
+        signs: [sig('Approved', 'អនុម័ត', 'Heng Sovann · Owner'), sig('Supplier confirmation', 'អ្នកផ្គត់ផ្គង់', 'Name / date')], qr: false, qrText: '', footer: 'Sent as PDF to orders.kh@zuellig.example on 31/10/2026 15:02' },
+      { id: '17g', name: 'Transfer note with QR', api: 'POST /api/documents/v1/render (transfer_note)', branch: 'PP2 BKK1', branchKm: 'BKK1', addr: '#45 St. 278, BKK1, Phnom Penh', title: 'TRANSFER NOTE', titleKm: 'កំណត់ចំណាំផ្ទេរស្តុក',
+        meta: [{ k: 'No.', v: 'TR-PP2-SR1-0031' }, { k: 'Dispatched', v: '31/10/2026 16:20' }, { k: 'Carrier', v: 'Virak Buntham' }, { k: 'Cartons', v: '2' }],
+        parties: [{ k: 'From · ពី', name: 'PP2 BKK1', lines: ['Picked: Tep Sochea', 'Witness: Meas Vibol (controlled)'] }, { k: 'To · ទៅ', name: 'SR1 Siem Reap', lines: ['Sivatha Blvd, Siem Reap', 'Receiver scans QR → enter quantities'] }],
+        hasBanner: true, banner: '◆ Contains controlled drugs. Hand to pharmacist only. Count and sign on receipt.', bannerKm: 'មានឱសថគ្រប់គ្រង',
+        cols: '28px minmax(0,1.6fr) 150px 70px 80px 90px', head: H([['#', ''], ['Item', 'មុខទំនិញ'], ['Batch · expiry', 'ឡូត៍ · ផុតកំណត់'], ['Sent', 'បញ្ជូន', 'right'], ['Received', 'ទទួល', 'right'], ['Check', 'ពិនិត្យ']]),
+        cells: [['1', 'Cetirizine 10 mg', 'CTZ-2808 · 08/2028', '300 tab', '', '☐'], ['2', 'ORS sachet', 'ORS-2801 · 01/2028', '120', '', '☐'], ['3', 'Paracetamol 500 mg', 'PCM-2611 · 11/2026', '20 strips', '', '☐'], ['4', '◆ Diazepam 5 mg', 'DZP-2702 · 02/2027', '20 tab', '', '☐']].flat().map((v, i) => cell(v, i % 6 === 3 || i % 6 === 4 ? 'right' : 'left', { mono: i % 6 === 2, w: i % 6 === 3 ? 600 : 400 })),
+        notes: ['Write received quantity if different and note damage on the back.', 'Scan the QR with the app to receive; paper copy stays with the receiving branch.'],
+        totals: [tot('Lines', '4'), tot('Value at cost', '$62.05', { w: 700, bt: 1 })],
+        signs: [sig('Dispatched by', 'អ្នកបញ្ជូន', 'Tep Sochea · PIN ✓'), sig('Received by', 'អ្នកទទួល', 'Name / PIN / date')], qr: true, qrText: 'TR-PP2-SR1-0031', footer: 'Transfer created from PR-SR1-0044' },
+      { id: '17h', name: 'Customer statement', api: 'POST /api/documents/v1/render (customer_statement) · ⚠ API pending', branch: 'PP2 BKK1', branchKm: 'BKK1', addr: '#45 St. 278, BKK1, Phnom Penh', title: 'STATEMENT OF ACCOUNT', titleKm: 'របាយការណ៍គណនី',
+        meta: [{ k: 'Customer', v: 'CUS-0142' }, { k: 'Period', v: '01/10 – 31/10/2026' }, { k: 'Printed', v: '31/10/2026' }],
+        parties: [{ k: 'Customer · អតិថិជន', name: 'Sen Sok Clinic · គ្លីនិក សែនសុខ', lines: ['#12 St. 1986, Sen Sok, Phnom Penh', 'Credit limit $500.00 · Net 30'] }, { k: 'Remit to · បង់ទៅ', name: 'Pharmacy PP2 BKK1', lines: ['ABA 000 123 456', 'KHQR available at counter'] }],
+        hasBanner: false, cols: '90px 140px minmax(0,1fr) 90px 90px 100px', head: H([['Date', 'កាលបរិច្ឆេទ'], ['Reference', 'យោង'], ['Description', 'ការពិពណ៌នា'], ['Charges', 'ជំពាក់', 'right'], ['Payments', 'បានបង់', 'right'], ['Balance', 'សមតុល្យ', 'right']]),
+        cells: [['01/10/2026', '—', 'Opening balance', '', '', '$282.00'], ['06/10/2026', 'PP2-INV-000356', 'Invoice', '$96.40', '', '$378.40'], ['11/10/2026', 'PP2-INV-000371', 'Invoice', '$25.50', '', '$403.90'], ['15/10/2026', 'PAY-PP2-0211', 'ABA transfer', '', '$100.00', '$303.90'], ['22/10/2026', 'PP2-INV-000402', 'Invoice', '$121.90', '', '$425.80'], ['30/10/2026', 'PP2-INV-000431', 'Invoice', '$66.50', '', '$492.30']].flat().map((v, i) => cell(v, i % 6 >= 3 ? 'right' : 'left', { mono: i % 6 === 1, w: i % 6 === 5 ? 600 : 400 })),
+        notes: ['Overdue: PP2-INV-000311 $182.00 (due 19/10/2026).', 'Please pay overdue amounts to keep credit active.'],
+        totals: [tot('Current', '$310.30'), tot('1–30 days overdue', '$182.00'), tot('31+ days overdue', '$0.00'), tot('BALANCE DUE · សមតុល្យ', '$492.30', { w: 700, fs: 14, lh: 22, bt: 1 }), tot('', '៛2,018,400', { w: 700 })],
+        signs: [sig('Prepared by', 'រៀបចំដោយ', 'Chan Sophea'), sig('', '', '')], qr: true, qrText: 'KHQR · CUS-0142', footer: 'Questions about this statement: 023 888 204 · PP2' },
+    ];
+    return { receipts, docs };
+  }
+}
+</script>
+</body>
+</html>

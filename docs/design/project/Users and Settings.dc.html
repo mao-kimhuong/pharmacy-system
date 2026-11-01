@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Kantumruy+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E9EDEC;color:#17201F;font-family:'Inter','Kantumruy Pro',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0E7470}a:hover{color:#0B5F5C}
+*{box-sizing:border-box}
+</style>
+</helmet>
+<div style="padding:48px;display:flex;flex-direction:column;gap:40px;font-variant-numeric:tabular-nums">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#66706F">DELIVERABLE 4 · USER MANAGEMENT &amp; SETTINGS</div>
+    <h1 style="margin:0;font-size:28px;line-height:36px;font-weight:600">User management &amp; settings</h1>
+    <div style="font-size:14px;color:#3A4645;max-width:820px;line-height:22px">Owner only, except My profile (all users) and branch settings (Manager for own branch, read-only fields marked).</div>
+  </div>
+
+  <section style="display:flex;flex-wrap:wrap;gap:48px 40px;align-items:flex-start">
+  <sc-for list="{{ frames }}" as="f" hint-placeholder-count="3">
+    <div id="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px;width:1366px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">{{ f.id }}</span>
+        <span style="font-size:14px;font-weight:600">{{ f.frameName }}</span>
+        <span style="flex:none;white-space:nowrap;font-size:12px;line-height:18px;background:#fff;border:1px solid #DDE2E1;padding:2px 8px;border-radius:4px">Role: {{ f.roleNote }}</span>
+        <span style="font-family:'JetBrains Mono';font-size:11px;color:#0B5F5C;background:#DDF1EF;padding:3px 8px;border-radius:4px">{{ f.api }}</span>
+      </div>
+      <div style="width:1366px;min-height:768px;background:#F6F8F7;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(23,32,31,.08),0 24px 60px rgba(23,32,31,.12);display:flex;position:relative">
+        <aside style="width:64px;flex:none;background:#fff;border-right:1px solid #DDE2E1;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px">
+          <span style="width:32px;height:32px;border-radius:8px;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;margin-bottom:12px">+</span>
+          <sc-for list="{{ f.nav }}" as="n" hint-placeholder-count="12"><span style="width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;background:{{ n.bg }};color:{{ n.fg }}">{{ n.icon }}</span></sc-for>
+        </aside>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <header style="height:56px;flex:none;background:#fff;border-bottom:1px solid #DDE2E1;display:flex;align-items:center;gap:12px;padding:0 24px">
+            <span style="height:36px;padding:0 12px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap"><span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#DDF1EF;color:#0B5F5C;font-weight:500">{{ f.br }}</span>{{ f.brName }} ▾</span>
+            <span style="height:36px;flex:1;max-width:440px;padding:0 12px;border:1px solid #DDE2E1;background:#F6F8F7;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px;color:#66706F">⌕ {{ f.search }}<span style="margin-left:auto;font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#fff;border:1px solid #DDE2E1">Ctrl K</span></span>
+            <span style="margin-left:auto;display:flex;border:1px solid #C4CBCA;border-radius:6px;overflow:hidden;font-size:13px;font-weight:500"><span style="padding:7px 10px;background:{{ f.kmBg }};color:{{ f.kmFg }};font-family:'Kantumruy Pro'">ខ្មែរ</span><span style="padding:7px 10px;background:{{ f.enBg }};color:{{ f.enFg }}">EN</span></span>
+            <span style="width:36px;height:36px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;justify-content:center">🔔</span>
+            <span style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:32px;height:32px;border-radius:50%;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px">{{ f.ini }}</span><span style="display:flex;flex-direction:column;line-height:17px"><b>{{ f.user }}</b><span style="color:#66706F;font-size:12px">{{ f.role }}</span></span></span>
+          </header>
+          <div style="padding:22px 28px 28px;display:flex;flex-direction:column;gap:16px;flex:1">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px">
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#66706F;line-height:{{ f.lh }}px">{{ f.crumb }}</span><h2 style="margin:0;font-size:28px;line-height:{{ f.titleLh }}px;font-weight:600">{{ f.title }}</h2></div>
+              <div style="display:flex;gap:8px"><sc-for list="{{ f.actions }}" as="a" hint-placeholder-count="2"><span style="height:36px;padding:0 14px;border-radius:6px;border:1px solid {{ a.bd }};background:{{ a.bg }};color:{{ a.fg }};display:flex;align-items:center;font-size:14px;font-weight:500;white-space:nowrap">{{ a.label }}</span></sc-for></div>
+            </div>
+
+            <!-- Users -->
+            <sc-if value="{{ f.s.users }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                <div style="display:grid;grid-template-columns:minmax(0,1.5fr) 120px 130px 110px 90px 100px;font-size:13px">
+                  <sc-for list="{{ userHead }}" as="h" hint-placeholder-count="6"><div style="padding:10px 14px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645">{{ h }}</div></sc-for>
+                  <sc-for list="{{ users }}" as="u" hint-placeholder-count="7">
+                    <div style="padding:10px 14px;border-bottom:1px solid #EEF1F0;background:{{ u.bg }};display:flex;gap:10px;align-items:center"><span style="width:32px;height:32px;border-radius:50%;background:{{ u.av }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex:none">{{ u.ini }}</span><div style="display:flex;flex-direction:column;min-width:0"><b style="font-weight:500;color:{{ u.nc }}">{{ u.name }}</b><span style="font-family:'Kantumruy Pro';font-size:12px;color:#66706F;line-height:18px">{{ u.km }}</span></div></div>
+                    <div style="padding:10px 14px;border-bottom:1px solid #EEF1F0;background:{{ u.bg }};display:flex;align-items:center;gap:6px">{{ u.role }}<sc-if value="{{ u.ph }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;height:18px;padding:0 5px;border-radius:4px;background:#3438A0;color:#fff;font-size:10px;font-weight:600">℞</span></sc-if></div>
+                    <div style="padding:10px 14px;border-bottom:1px solid #EEF1F0;background:{{ u.bg }};display:flex;align-items:center;font-family:'JetBrains Mono';font-size:11px">{{ u.br }}</div>
+                    <div style="padding:10px 14px;border-bottom:1px solid #EEF1F0;background:{{ u.bg }};display:flex;align-items:center;font-size:12px;color:#3A4645">{{ u.last }}</div>
+                    <div style="padding:10px 14px;border-bottom:1px solid #EEF1F0;background:{{ u.bg }};display:flex;align-items:center;font-size:12px;color:{{ u.fc }};font-weight:500">{{ u.fa }}</div>
+                    <div style="padding:10px 14px;border-bottom:1px solid #EEF1F0;background:{{ u.bg }};display:flex;align-items:center"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px 2px 7px;border-radius:999px;background:{{ u.sBg }};color:{{ u.sFg }};font-size:12px;font-weight:500;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:{{ u.sDot }}"></span>{{ u.st }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="position:absolute;inset:0;background:rgba(23,32,31,.35)"></div>
+              <div style="position:absolute;top:0;right:0;bottom:0;width:420px;background:#fff;box-shadow:-12px 0 40px rgba(23,32,31,.18);display:flex;flex-direction:column">
+                <div style="padding:18px 20px;border-bottom:1px solid #EEF1F0;display:flex;gap:12px;align-items:center"><span style="width:44px;height:44px;border-radius:50%;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600">LN</span><div style="display:flex;flex-direction:column;flex:1"><b style="font-size:16px">Lim Srey Neang</b><span style="font-size:12px;color:#66706F">+855 12 334 551 · since 03/2024</span></div><span style="color:#66706F">✕</span></div>
+                <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;font-size:13px;flex:1">
+                  <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Role</span><span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center;justify-content:space-between">Pharmacist<span style="color:#66706F">▾</span></span></label>
+                  <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Branches</span><span style="min-height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:4px 6px;display:flex;flex-wrap:wrap;gap:4px"><span style="padding:3px 8px;border-radius:4px;background:#DDF1EF;color:#0B5F5C">PP1 Toul Kork ×</span><span style="padding:3px 8px;border-radius:4px;background:#DDF1EF;color:#0B5F5C">PP2 BKK1 ×</span></span></label>
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#F6F8F7;border-radius:8px"><span style="display:flex;flex-direction:column"><b style="font-weight:500">Licensed pharmacist</b><span style="font-size:12px;color:#66706F">License PH-KH-22041 · exp 12/2027</span></span><span style="width:36px;height:20px;border-radius:10px;background:#0E7470;position:relative"><span style="position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff"></span></span></div>
+                  <div style="display:grid;grid-template-columns:1fr auto;gap:6px;font-size:13px"><span style="color:#66706F">PIN</span><span style="color:#1E6B3F">Set · 14/09/2026</span><span style="color:#66706F">2FA</span><span style="color:#1E6B3F">On · authenticator</span><span style="color:#66706F">Last login</span><span>31/10/2026 07:28 · POS-01</span></div>
+                  <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px"><span style="font-weight:500">Account actions</span>
+                    <span style="height:36px;border:1px solid #C4CBCA;border-radius:6px;padding:0 12px;display:flex;align-items:center;justify-content:space-between">Reset password<span style="color:#66706F;font-size:12px">sends SMS</span></span>
+                    <span style="height:36px;border:1px solid #C4CBCA;border-radius:6px;padding:0 12px;display:flex;align-items:center;justify-content:space-between">Reset 2FA<span style="color:#66706F;font-size:12px">forces setup at next login</span></span>
+                    <span style="height:36px;border:1px solid #C4CBCA;border-radius:6px;padding:0 12px;display:flex;align-items:center;justify-content:space-between">Unlock PIN<span style="color:#66706F;font-size:12px">not locked</span></span>
+                    <span style="height:36px;border:1px solid #E8A39C;color:#B42318;border-radius:6px;padding:0 12px;display:flex;align-items:center">Deactivate user (reason required)</span>
+                  </div>
+                </div>
+                <div style="padding:12px 20px;border-top:1px solid #EEF1F0;display:flex;justify-content:flex-end;gap:8px"><span style="height:38px;padding:0 14px;border-radius:6px;border:1px solid #C4CBCA;display:flex;align-items:center;font-size:13px">Cancel</span><span style="height:38px;padding:0 14px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;font-size:13px;font-weight:600">Save</span></div>
+              </div>
+            </sc-if>
+
+            <!-- Roles -->
+            <sc-if value="{{ f.s.roles }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:240px minmax(0,1fr);gap:16px;align-items:start">
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:6px;display:flex;flex-direction:column;font-size:13px">
+                  <sc-for list="{{ roleList }}" as="r" hint-placeholder-count="5"><div style="padding:10px 12px;border-radius:6px;background:{{ r.bg }};display:flex;justify-content:space-between;align-items:center"><span style="display:flex;flex-direction:column"><b style="font-weight:{{ r.w }};color:{{ r.fg }}">{{ r.l }}</b><span style="font-size:12px;color:#66706F">{{ r.n }}</span></span><span style="font-size:12px">{{ r.lock }}</span></div></sc-for>
+                  <span style="padding:10px 12px;color:#0E7470;font-weight:500">+ New role</span>
+                </div>
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                  <div style="padding:12px 18px;border-bottom:1px solid #EEF1F0;display:flex;justify-content:space-between;align-items:center"><div style="display:flex;flex-direction:column"><b style="font-size:15px">Branch manager</b><span style="font-size:12px;color:#66706F">6 users · changed 02/10/2026 by Heng Sovann</span></div><span style="font-size:12px;color:#3A4645;background:#EEF1F0;padding:4px 8px;border-radius:4px">Owner role is locked and has every permission</span></div>
+                  <div style="display:grid;grid-template-columns:minmax(0,2fr) repeat(6,minmax(70px,1fr));font-size:13px">
+                    <sc-for list="{{ permCols }}" as="c" hint-placeholder-count="7"><div style="padding:9px 12px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:11px;font-weight:600;color:#3A4645;text-transform:uppercase;letter-spacing:.04em;text-align:{{ c.a }}">{{ c.l }}</div></sc-for>
+                    <sc-for list="{{ permRows }}" as="p" hint-placeholder-count="12">
+                      <div style="padding:9px 12px;padding-left:{{ p.pad }}px;border-bottom:1px solid #EEF1F0;background:{{ p.bg }};font-weight:{{ p.w }};display:flex;align-items:center">{{ p.l }}</div>
+                      <sc-for list="{{ p.cells }}" as="c" hint-placeholder-count="6"><div style="padding:9px 12px;border-bottom:1px solid #EEF1F0;background:{{ p.bg }};display:flex;justify-content:center;align-items:center"><span style="width:18px;height:18px;border-radius:4px;border:1.5px solid {{ c.bd }};background:{{ c.bg }};color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ c.m }}</span></div></sc-for>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- User log -->
+            <sc-if value="{{ f.s.log }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:8px;align-items:center;font-size:13px;flex-wrap:wrap">
+                <span style="height:34px;padding:0 10px;border:1px solid #0E7470;background:#EFF8F7;border-radius:6px;display:flex;align-items:center;gap:6px"><span style="color:#66706F">Date</span><b style="font-weight:500;color:#0B5F5C">31/10/2026</b></span>
+                <span style="height:34px;padding:0 10px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;display:flex;align-items:center">User: All ▾</span>
+                <span style="height:34px;padding:0 10px;border:1px solid #0E7470;background:#EFF8F7;border-radius:6px;display:flex;align-items:center;color:#0B5F5C">Area: Products, Settings ▾</span>
+                <span style="height:34px;padding:0 10px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;display:flex;align-items:center">Action ▾</span>
+                <span style="height:34px;width:240px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;padding:0 10px;display:flex;align-items:center;color:#8C9594">⌕ Record ID or text</span>
+              </div>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 480px;gap:16px;align-items:start">
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                  <div style="display:grid;grid-template-columns:90px minmax(0,1fr) 110px minmax(0,1.4fr) 70px;font-size:13px">
+                    <sc-for list="{{ logHead }}" as="h" hint-placeholder-count="5"><div style="padding:9px 12px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645">{{ h }}</div></sc-for>
+                    <sc-for list="{{ logs }}" as="l" hint-placeholder-count="7">
+                      <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;background:{{ l.bg }};font-size:12px">{{ l.t }}</div>
+                      <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;background:{{ l.bg }}">{{ l.u }}</div>
+                      <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;background:{{ l.bg }}"><span style="padding:2px 8px;border-radius:4px;background:{{ l.aBg }};color:{{ l.aFg }};font-size:12px;font-weight:500">{{ l.a }}</span></div>
+                      <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;background:{{ l.bg }};display:flex;flex-direction:column"><span>{{ l.what }}</span><span style="font-family:'JetBrains Mono';font-size:11px;color:#66706F">{{ l.id }}</span></div>
+                      <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;background:{{ l.bg }};font-family:'JetBrains Mono';font-size:11px">{{ l.dev }}</div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                  <div style="padding:14px 18px;border-bottom:1px solid #EEF1F0;display:flex;flex-direction:column;gap:2px"><b style="font-size:15px">Update · Omeprazole 20 mg</b><span style="font-size:12px;color:#66706F">Chan Sophea · 31/10/2026 11:02:41 · PP1 · Chrome on POS-02 · 10.0.1.22</span></div>
+                  <div style="display:grid;grid-template-columns:130px 1fr 1fr;font-size:13px">
+                    <div style="padding:9px 14px;background:#F6F8F7;font-size:12px;font-weight:600;color:#3A4645">Field</div><div style="padding:9px 14px;background:#F6F8F7;font-size:12px;font-weight:600;color:#3A4645">Before</div><div style="padding:9px 14px;background:#F6F8F7;font-size:12px;font-weight:600;color:#3A4645">After</div>
+                    <sc-for list="{{ diff }}" as="d" hint-placeholder-count="4"><div style="padding:9px 14px;border-top:1px solid #EEF1F0;font-family:'JetBrains Mono';font-size:12px">{{ d.f }}</div><div style="padding:9px 14px;border-top:1px solid #EEF1F0;background:#FDE8E6;color:#7A1610;text-decoration:line-through">{{ d.b }}</div><div style="padding:9px 14px;border-top:1px solid #EEF1F0;background:#E3F3E9;color:#164E2E">{{ d.a }}</div></sc-for>
+                  </div>
+                  <div style="padding:10px 18px;border-top:1px solid #EEF1F0;font-size:12px;color:#66706F">Reason entered: "Supplier price increase from 01/11"</div>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- Commission -->
+            <sc-if value="{{ f.s.comm }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                <div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1.3fr) 140px 120px 130px 110px;font-size:13px">
+                  <sc-for list="{{ commHead }}" as="h" hint-placeholder-count="6"><div style="padding:10px 14px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645">{{ h }}</div></sc-for>
+                  <sc-for list="{{ comm }}" as="c" hint-placeholder-count="5">
+                    <div style="padding:12px 14px;border-bottom:1px solid #EEF1F0"><b style="font-weight:500">{{ c.name }}</b></div>
+                    <div style="padding:12px 14px;border-bottom:1px solid #EEF1F0;color:#3A4645">{{ c.applies }}</div>
+                    <div style="padding:12px 14px;border-bottom:1px solid #EEF1F0">{{ c.basis }}</div>
+                    <div style="padding:12px 14px;border-bottom:1px solid #EEF1F0;font-weight:600">{{ c.rate }}</div>
+                    <div style="padding:12px 14px;border-bottom:1px solid #EEF1F0">{{ c.period }}</div>
+                    <div style="padding:12px 14px;border-bottom:1px solid #EEF1F0"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px 2px 7px;border-radius:999px;background:{{ c.sBg }};color:{{ c.sFg }};font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:{{ c.sDot }}"></span>{{ c.st }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:13px">
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:4px"><b>Rules apply in order</b><span style="color:#3A4645;line-height:20px">Item rule → category rule → default. Only one rule pays per invoice line.</span></div>
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:4px"><b>Excluded</b><span style="color:#3A4645;line-height:20px">Controlled drugs, returned lines, sales below cost overrides.</span></div>
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:4px"><b>Period October 2026</b><span style="color:#3A4645;line-height:20px">Open · closes 05/11 · paid with November payroll.</span></div>
+              </div>
+            </sc-if>
+
+            <!-- Branch settings KM -->
+            <sc-if value="{{ f.s.branch }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:260px minmax(0,1fr);gap:16px;align-items:start;font-family:'Kantumruy Pro','Inter'">
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:6px;display:flex;flex-direction:column;font-size:13px">
+                  <sc-for list="{{ branches }}" as="b" hint-placeholder-count="3"><div style="padding:10px 12px;border-radius:6px;background:{{ b.bg }};display:flex;gap:10px;align-items:center"><span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#DDF1EF;color:#0B5F5C">{{ b.code }}</span><span style="display:flex;flex-direction:column;line-height:20px"><b style="font-weight:{{ b.w }}">{{ b.name }}</b><span style="font-size:12px;color:#66706F">{{ b.meta }}</span></span></div></sc-for>
+                  <span style="padding:10px 12px;color:#0E7470;font-weight:500">+ សាខាថ្មី</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                  <sc-for list="{{ settingsGroups }}" as="g" hint-placeholder-count="4">
+                    <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:12px;font-size:13px">
+                      <b style="font-size:14px;line-height:24px">{{ g.t }}</b>
+                      <sc-for list="{{ g.items }}" as="i" hint-placeholder-count="3"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><span style="display:flex;flex-direction:column;line-height:22px"><span>{{ i.l }}</span><span style="font-size:12px;color:#66706F">{{ i.h }}</span></span><span style="flex:none;min-width:100px;height:36px;border:1px solid {{ i.bd }};background:{{ i.bg }};border-radius:6px;padding:0 10px;display:flex;align-items:center;justify-content:flex-end;font-family:Inter;font-weight:600;white-space:nowrap">{{ i.v }}</span></div></sc-for>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- Exchange rate -->
+            <sc-if value="{{ f.s.fx }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:380px minmax(0,1fr);gap:16px;align-items:start">
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:12px;font-size:13px">
+                  <span style="font-size:12px;color:#66706F">Current rate · since 15/10/2026 08:00</span>
+                  <b style="font-size:30px">1 USD = ៛4,100</b>
+                  <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">New rate (KHR per USD)</span><span style="height:44px;border:2px solid #0E7470;box-shadow:0 0 0 3px #CDEBE8;border-radius:6px;padding:0 12px;display:flex;align-items:center;justify-content:space-between;font-size:18px"><span style="color:#66706F;font-size:13px">៛</span><b>4,120</b></span></label>
+                  <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Effective</span><span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center">01/11/2026 07:00</span></label>
+                  <div style="padding:10px 12px;background:#FDF1D6;border-radius:8px;color:#5C3B00;line-height:20px">Change of +0.5%. Applies to new sales at all branches; open carts re-price on next action. Shelf labels with KHR need reprinting (214 labels).</div>
+                  <span style="height:42px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600">Schedule rate</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:16px">
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+                    <b style="font-size:14px">Last 12 months</b>
+                    <svg viewBox="0 0 400 120" preserveAspectRatio="none" style="width:100%;height:120px"><line x1="0" y1="30" x2="400" y2="30" stroke="#EEF1F0"></line><line x1="0" y1="60" x2="400" y2="60" stroke="#EEF1F0"></line><line x1="0" y1="90" x2="400" y2="90" stroke="#EEF1F0"></line><polyline fill="none" stroke="#13908A" stroke-width="2.5" points="0,70 36,70 36,64 110,64 110,72 180,72 180,60 260,60 260,52 330,52 330,46 400,46"></polyline></svg>
+                    <div style="display:flex;justify-content:space-between;font-size:11px;color:#66706F"><span>11/2025 · ៛4,060</span><span>10/2026 · ៛4,100</span></div>
+                  </div>
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                    <div style="display:grid;grid-template-columns:160px 120px 100px minmax(0,1fr);font-size:13px">
+                      <sc-for list="{{ fxHead }}" as="h" hint-placeholder-count="4"><div style="padding:9px 14px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645">{{ h }}</div></sc-for>
+                      <sc-for list="{{ fx }}" as="x" hint-placeholder-count="5"><div style="padding:10px 14px;border-bottom:1px solid #EEF1F0">{{ x.d }}</div><div style="padding:10px 14px;border-bottom:1px solid #EEF1F0;font-weight:600">{{ x.r }}</div><div style="padding:10px 14px;border-bottom:1px solid #EEF1F0;color:{{ x.c }}">{{ x.ch }}</div><div style="padding:10px 14px;border-bottom:1px solid #EEF1F0;color:#3A4645">{{ x.by }}</div></sc-for>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- Telegram -->
+            <sc-if value="{{ f.s.tg }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:16px;align-items:start">
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                  <div style="padding:12px 18px;border-bottom:1px solid #EEF1F0;display:flex;justify-content:space-between;align-items:center"><b style="font-size:14px">Chats</b><span style="font-size:13px;color:#0E7470;font-weight:500">+ Add chat</span></div>
+                  <div style="display:grid;grid-template-columns:minmax(0,1.2fr) 150px minmax(0,1.6fr) 110px;font-size:13px">
+                    <sc-for list="{{ tgHead }}" as="h" hint-placeholder-count="4"><div style="padding:9px 14px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645">{{ h }}</div></sc-for>
+                    <sc-for list="{{ tg }}" as="t" hint-placeholder-count="4">
+                      <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;flex-direction:column"><b style="font-weight:500">{{ t.name }}</b><span style="font-size:12px;color:#66706F">{{ t.scope }}</span></div>
+                      <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;font-family:'JetBrains Mono';font-size:12px">{{ t.id }}</div>
+                      <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;gap:4px;flex-wrap:wrap"><sc-for list="{{ t.events }}" as="e" hint-placeholder-count="2"><span style="padding:2px 7px;border-radius:4px;background:#EEF1F0;font-size:11px">{{ e }}</span></sc-for></div>
+                      <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;color:{{ t.c }};font-size:12px;font-weight:500">{{ t.st }}</div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                  <div style="padding:12px 18px;border-bottom:1px solid #EEF1F0;display:flex;justify-content:space-between;align-items:center"><b style="font-size:14px">Message log</b><span style="height:32px;padding:0 10px;border-radius:6px;border:1px solid #C4CBCA;display:flex;align-items:center;font-size:12px">Send test message</span></div>
+                  <sc-for list="{{ tgLog }}" as="m" hint-placeholder-count="5"><div style="padding:10px 18px;border-top:1px solid #F1F3F2;display:flex;gap:10px;font-size:13px"><span style="width:8px;height:8px;border-radius:50%;background:{{ m.c }};margin-top:6px;flex:none"></span><div style="display:flex;flex-direction:column;gap:2px;flex:1"><span>{{ m.text }}</span><span style="font-size:12px;color:#66706F">{{ m.meta }}</span></div></div></sc-for>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- Feature switches -->
+            <sc-if value="{{ f.s.features }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                <div style="display:grid;grid-template-columns:minmax(0,2fr) 90px 90px 90px;font-size:13px">
+                  <div style="padding:10px 18px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645">Feature</div>
+                  <div style="padding:10px 18px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645;text-align:center">PP1</div><div style="padding:10px 18px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645;text-align:center">PP2</div><div style="padding:10px 18px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645;text-align:center">SR1</div>
+                  <sc-for list="{{ features }}" as="x" hint-placeholder-count="7">
+                    <div style="padding:12px 18px;border-bottom:1px solid #EEF1F0;display:flex;flex-direction:column"><b style="font-weight:500">{{ x.l }}</b><span style="font-size:12px;color:#66706F">{{ x.h }}</span></div>
+                    <sc-for list="{{ x.on }}" as="o" hint-placeholder-count="3"><div style="padding:12px 18px;border-bottom:1px solid #EEF1F0;display:flex;justify-content:center;align-items:center"><span style="width:36px;height:20px;border-radius:10px;background:{{ o.bg }};position:relative;display:block"><span style="position:absolute;left:{{ o.x }}px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff"></span></span></div></sc-for>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- My profile -->
+            <sc-if value="{{ f.s.profile }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start">
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:12px;font-size:13px">
+                  <b style="font-size:15px">Password</b>
+                  <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Current password</span><span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center;letter-spacing:4px">••••••••</span></label>
+                  <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">New password</span><span style="height:38px;border:2px solid #0E7470;box-shadow:0 0 0 3px #CDEBE8;border-radius:6px;padding:0 10px;display:flex;align-items:center;letter-spacing:4px">••••••••••</span><span style="display:flex;gap:4px"><span style="flex:1;height:4px;border-radius:2px;background:#1E7B47"></span><span style="flex:1;height:4px;border-radius:2px;background:#1E7B47"></span><span style="flex:1;height:4px;border-radius:2px;background:#1E7B47"></span><span style="flex:1;height:4px;border-radius:2px;background:#DDE2E1"></span></span><span style="font-size:12px;color:#1E6B3F">Strong · 10+ characters, number, symbol</span></label>
+                  <span style="height:40px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600">Change password</span>
+                </div>
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:12px;font-size:13px">
+                  <b style="font-size:15px">PIN</b>
+                  <span style="color:#3A4645;line-height:20px">Used for controlled drugs, approvals and witness sign-offs. 6 digits. Locks for 15 minutes after 5 wrong tries.</span>
+                  <div style="display:grid;grid-template-columns:1fr auto;gap:6px"><span style="color:#66706F">Status</span><span style="color:#1E6B3F;font-weight:500">Set · 14/09/2026</span><span style="color:#66706F">Last used</span><span>31/10/2026 10:41</span></div>
+                  <span style="height:40px;border-radius:6px;border:1px solid #C4CBCA;display:flex;align-items:center;justify-content:center;font-weight:500">Change PIN</span>
+                </div>
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:12px;font-size:13px">
+                  <b style="font-size:15px">Two-factor authentication</b>
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#E3F3E9;border-radius:8px;color:#164E2E"><span><b>On</b> · Google Authenticator</span><span style="font-size:12px">since 03/2024</span></div>
+                  <span style="color:#3A4645;line-height:20px">Required for Owner and Manager. 8 backup codes left.</span>
+                  <div style="display:flex;gap:8px"><span style="flex:1;height:40px;border-radius:6px;border:1px solid #C4CBCA;display:flex;align-items:center;justify-content:center;font-weight:500">Backup codes</span><span style="flex:1;height:40px;border-radius:6px;border:1px solid #C4CBCA;display:flex;align-items:center;justify-content:center;font-weight:500">Move to new phone</span></div>
+                </div>
+                <div style="grid-column:span 3;background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                  <div style="padding:12px 18px;border-bottom:1px solid #EEF1F0;display:flex;justify-content:space-between;align-items:center"><b style="font-size:14px">Active sessions</b><span style="font-size:13px;color:#B42318;font-weight:500">Log out all other sessions</span></div>
+                  <sc-for list="{{ sessions }}" as="s" hint-placeholder-count="3"><div style="padding:10px 18px;border-top:1px solid #F1F3F2;display:flex;gap:12px;align-items:center;font-size:13px"><span style="flex:1">{{ s.d }}</span><span style="color:#66706F">{{ s.m }}</span><span style="color:{{ s.c }};font-weight:500;width:120px;text-align:right">{{ s.a }}</span></div></sc-for>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:#3A4645;max-width:1000px;line-height:20px">{{ f.note }}</div>
+    </div>
+  </sc-for>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const tog = lang => lang === 'km' ? { kmBg: '#0E7470', kmFg: '#fff', enBg: '#fff', enFg: '#3A4645' } : { kmBg: '#fff', kmFg: '#3A4645', enBg: '#0E7470', enFg: '#fff' };
+    const navFor = k => ['▦', '◎', '℞', '◆', '▤', '▣', '⊕', '⇄', '☰', '▥', '◐', '⚙'].map((icon, i) => ({ icon, bg: i === k ? '#DDF1EF' : 'transparent', fg: i === k ? '#0B5F5C' : '#3A4645' }));
+    const btn = (label, kind) => kind === 'p' ? { label, bg: '#0E7470', fg: '#fff', bd: '#0E7470' } : { label, bg: '#fff', fg: '#17201F', bd: '#C4CBCA' };
+    const S = { users: 0, roles: 0, log: 0, comm: 0, branch: 0, fx: 0, tg: 0, features: 0, profile: 0 };
+    const F = o => ({ lang: 'en', user: 'Heng Sovann', ini: 'HS', role: 'Owner', search: 'Search…', br: 'ALL', brName: 'All branches', nav: navFor(o.um ? 10 : 11), ...o, s: { ...S, ...o.s }, ...tog(o.lang || 'en'), lh: o.lang === 'km' ? 22 : 18, titleLh: o.lang === 'km' ? 44 : 36 });
+
+    const frames = [
+      F({ id: '14a', um: 1, frameName: 'User Management / Users + edit / Desktop 1366 / EN', roleNote: 'Owner', api: 'PATCH /api/auth/v1/users/{user_id} · POST …/deactivate · …/reset-password · …/2fa/reset', crumb: 'User Management  /  User', title: 'Users', actions: [btn('+ New user', 'p')], s: { users: 1 }, note: 'Pharmacist flag requires a license number. Reset 2FA forces setup on next login. Users are deactivated, never deleted.' }),
+      F({ id: '14b', um: 1, frameName: 'User Management / Roles – permission matrix / Desktop 1366 / EN', roleNote: 'Owner', api: 'GET /api/auth/v1/permissions · PATCH /api/auth/v1/roles/{key}', crumb: 'User Management  /  Role', title: 'Roles', actions: [btn('Save changes', 'p')], s: { roles: 1 }, note: 'Grouped by area; group rows toggle all children. "See cost" sits in its own column because it hides cost/profit everywhere.' }),
+      F({ id: '14c', um: 1, frameName: 'User Management / User Log – before/after / Desktop 1366 / EN', roleNote: 'Owner', api: 'GET /api/auth/v1/audit-logs', crumb: 'User Management  /  User Log', title: 'User log', actions: [btn('Export CSV', 's')], s: { log: 1 }, note: 'Every write, export, PIN use and cross-branch lookup is recorded. Selecting a row shows a field-level diff.' }),
+      F({ id: '14d', um: 1, frameName: 'User Management / Commission rules / Desktop 1366 / EN', roleNote: 'Owner', api: 'GET /api/sales/v1/commission/rules · POST …/rules', crumb: 'User Management  /  Commission rules', title: 'Commission rules', actions: [btn('+ New rule', 'p')], s: { comm: 1 }, note: 'Rules are versioned by period; editing a rule in a closed period is blocked (PERIOD_LOCKED).' }),
+      F({ id: '14e', lang: 'km', user: 'ហេង សុវណ្ណ', role: 'ម្ចាស់', search: 'ស្វែងរក…', brName: 'សាខាទាំងអស់', frameName: 'Settings / Branches & branch settings / Desktop 1366 / KM', roleNote: 'Owner · Manager edits own branch (marked fields only)', api: 'GET /api/branch/v1/branches · PUT …/{branch_id}/settings', crumb: 'ការកំណត់  /  សាខា  /  PP1', title: 'ការកំណត់សាខា PP1', actions: [btn('រក្សាទុក', 'p')], s: { branch: 1 }, note: 'Khmer labels with hint lines. Values right-aligned in fixed-width boxes so numbers line up.' }),
+      F({ id: '14f', frameName: 'Settings / Exchange rate / Desktop 1366 / EN', roleNote: 'Owner', api: 'PUT /api/sales/v1/exchange-rates/{branch_id} · GET …/history · ⚠ API pending', crumb: 'Settings  /  Exchange rate', title: 'Exchange rate', actions: [], s: { fx: 1 }, note: 'Rates are scheduled, never edited in place; history keeps who set each rate.' }),
+      F({ id: '14g', frameName: 'Settings / Telegram notifications / Desktop 1366 / EN', roleNote: 'Owner', api: 'GET /api/notifications/v1/chats · PUT …/chats/{target} · POST /api/notifications/v1/test · GET …/messages', crumb: 'Settings  /  Telegram notifications', title: 'Telegram notifications', actions: [], s: { tg: 1 }, note: 'Each chat subscribes to events and a branch scope. Failed sends show in the log with retry.' }),
+      F({ id: '14h', frameName: 'Settings / Feature switches / Desktop 1366 / EN', roleNote: 'Owner', api: 'GET /api/branch/v1/features · PUT …/features/{key}', crumb: 'Settings  /  Feature switches', title: 'Feature switches', actions: [btn('Save', 'p')], s: { features: 1 }, note: 'Per-branch toggles. Changes take effect at next login and are logged.' }),
+      F({ id: '14i', user: 'Lim Srey Neang', ini: 'LN', role: 'Pharmacist', br: 'PP1', brName: 'Toul Kork', nav: navFor(11), frameName: 'Settings / My profile / Desktop 1366 / EN', roleNote: 'All users', api: 'POST /api/auth/v1/me/password · PUT …/me/pin · POST …/2fa/setup · GET …/me/sessions · ⚠ API pending', crumb: 'Settings  /  My profile', title: 'My profile', actions: [], s: { profile: 1 }, note: 'Password, PIN and 2FA side by side, with active sessions below.' }),
+    ];
+
+    const users = [
+      ['Heng Sovann', 'ហេង សុវណ្ណ', 'HS', 'Owner', 0, 'All', '31/10 08:02', 'On', 1],
+      ['Chan Sophea', 'ចាន់ សុភា', 'CS', 'Manager', 0, 'PP1, SR1', '31/10 07:45', 'On', 1],
+      ['Lim Srey Neang', 'លឹម ស្រីនាង', 'LN', 'Pharmacist', 1, 'PP1, PP2', '31/10 07:28', 'On', 1, 1],
+      ['Sok Dara', 'សុខ ដារ៉ា', 'SD', 'Pharmacist', 1, 'PP1', '31/10 07:30', 'Off', 1],
+      ['Meas Vibol', 'មាស វិបុល', 'MV', 'Cashier', 0, 'PP1', '31/10 07:31', 'Off', 1],
+      ['Tep Sochea', 'ទេព សុជាតា', 'TS', 'Pharmacist', 1, 'PP2', '30/10 18:10', 'Off', 2],
+      ['Ros Chenda', 'រស់ ចិន្តា', 'RC', 'Cashier', 0, 'SR1', '12/08/2026', 'Off', 0],
+    ].map(([name, km, ini, role, ph, br, last, fa, st, sel]) => ({ name, km, ini, role, ph: !!ph, br, last, fa: role === 'Owner' || role === 'Manager' ? fa : fa === 'On' ? 'On' : 'Optional', fc: fa === 'On' ? '#1E6B3F' : '#66706F', nc: st ? '#17201F' : '#66706F', av: st ? '#0E7470' : '#9AA6A5', bg: sel ? '#EFF8F7' : '#fff', ...(st === 1 ? { st: 'Active', sBg: '#DDF1EF', sFg: '#0B5F5C', sDot: '#13908A' } : st === 2 ? { st: 'PIN locked', sBg: '#FDE8E6', sFg: '#A3201A', sDot: '#D23C2F' } : { st: 'Inactive', sBg: '#EEF1F0', sFg: '#3A4645', sDot: '#8C9594' }) }));
+
+    const roleList = [['Owner', '1 user', '🔒'], ['Branch manager', '2 users', ''], ['Pharmacist', '3 users', ''], ['Cashier', '2 users', ''], ['Stock counter', '0 users', '']].map(([l, n, lock], i) => ({ l, n, lock, bg: i === 1 ? '#EFF8F7' : 'transparent', fg: i === 1 ? '#0B5F5C' : '#17201F', w: i === 1 ? 600 : 500 }));
+    const permCols = [{ l: 'Permission', a: 'left' }, ...['View', 'Create', 'Edit', 'Approve', 'Cancel', 'See cost'].map(l => ({ l, a: 'center' }))];
+    const on = { bd: '#0E7470', bg: '#0E7470', m: '✓' }, off = { bd: '#9AA6A5', bg: '#fff', m: '' }, ind = { bd: '#0E7470', bg: '#0E7470', m: '–' }, na = { bd: '#EEF1F0', bg: '#F6F8F7', m: '' }, costOff = { bd: '#B42318', bg: '#fff', m: '' };
+    const permRows = [
+      ['POS & sales', 1, [on, on, ind, on, on, costOff]], ['Invoices', 0, [on, on, off, na, on, na]], ['Discount above cap', 0, [na, na, na, on, na, na]], ['Sale orders & deposits', 0, [on, on, on, on, on, na]],
+      ['Prescriptions', 1, [on, off, off, na, off, na]], ['Controlled register', 0, [on, off, off, on, na, na]],
+      ['Stock', 1, [on, on, ind, on, off, costOff]], ['Stock take', 0, [on, on, on, on, off, na]], ['Shrinkage', 0, [on, on, off, on, off, na]],
+      ['Purchase', 1, [on, on, on, on, on, costOff]], ['Reports', 1, [on, na, na, na, na, costOff]], ['Settings', 1, [off, off, off, na, na, na]],
+    ].map(([l, grp, cells]) => ({ l, cells, pad: grp ? 12 : 28, w: grp ? 600 : 400, bg: grp ? '#F6F8F7' : '#fff' }));
+
+    const act = { Update: ['#E4EEFA', '#1F5FA8'], Export: ['#EEF1F0', '#3A4645'], 'PIN use': ['#FBE4EE', '#A01D52'], Lookup: ['#FDF1D6', '#7A4F00'], Login: ['#EEF1F0', '#3A4645'], Create: ['#E3F3E9', '#1E6B3F'] };
+    const logs = [
+      ['11:02', 'Chan Sophea', 'Update', 'Product · Omeprazole 20 mg', 'PRD-00418', 'POS-02', 1],
+      ['10:41', 'Lim Srey Neang', 'PIN use', 'Controlled dispense · Diazepam', 'CDR-PP1-001284', 'POS-01'],
+      ['10:12', 'Heng Sovann', 'Export', 'Report · Sale Margin By Item (PDF)', 'RPT-8812', 'Web'],
+      ['09:55', 'Lim Srey Neang', 'Lookup', 'Patient by phone · other branch', '+855 12 888 204', 'POS-01'],
+      ['09:30', 'Heng Sovann', 'Update', 'Settings · Exchange rate scheduled', 'FX-0031', 'Web'],
+      ['08:47', 'Chan Sophea', 'Create', 'Stock take ST-PP1-013', 'ST-PP1-013', 'Phone'],
+      ['07:28', 'Lim Srey Neang', 'Login', 'Password + 2FA', '—', 'POS-01'],
+    ].map(([t, u, a, what, id, dev, sel]) => ({ t, u, a, what, id, dev, aBg: act[a][0], aFg: act[a][1], bg: sel ? '#EFF8F7' : '#fff' }));
+    const diff = [{ f: 'price_box', b: '$9.20', a: '$9.50' }, { f: 'price_strip', b: '$0.95', a: '$1.00' }, { f: 'cost_box', b: '$14.50', a: '$15.00' }, { f: 'reorder_point', b: '60', a: '80' }];
+
+    const comm = [
+      ['Default · all staff', 'All items not covered below', '% of sales', '0.5%', 'Monthly', 1],
+      ['Pharmacist dispensing', 'Rx items, pharmacist only', '% of sales', '1.0%', 'Monthly', 1],
+      ['House brand push', 'Category: own-label vitamins', '% of margin', '8.0%', 'Monthly', 1],
+      ['ORS rainy season', 'ORS sachet', 'Per unit', '$0.02', '01/07–31/10', 1],
+      ['Q2 2026 vitamins', 'Category: vitamins', '% of sales', '2.0%', 'Closed 30/06', 0],
+    ].map(([name, applies, basis, rate, period, o]) => ({ name, applies, basis, rate, period, ...(o ? { st: 'Active', sBg: '#DDF1EF', sFg: '#0B5F5C', sDot: '#13908A' } : { st: 'Closed', sBg: '#EEF1F0', sFg: '#3A4645', sDot: '#8C9594' }) }));
+
+    const branches = [{ code: 'PP1', name: 'ទួលគោក', meta: 'ភ្នំពេញ · 12 users', on: 1 }, { code: 'PP2', name: 'BKK1', meta: 'ភ្នំពេញ · 8 users' }, { code: 'SR1', name: 'សៀមរាប', meta: 'សៀមរាប · 6 users' }].map(b => ({ ...b, bg: b.on ? '#EFF8F7' : 'transparent', w: b.on ? 600 : 500 }));
+    const it = (l, h, v, lock) => ({ l, h, v, bd: lock ? '#DDE2E1' : '#C4CBCA', bg: lock ? '#F6F8F7' : '#fff' });
+    const settingsGroups = [
+      { t: 'វេជ្ជបញ្ជា', items: [it('សុពលភាពវេជ្ជបញ្ជា', 'ថ្ងៃ ចាប់ពីថ្ងៃចេញ', '30 days'), it('វេជ្ជបញ្ជាឱសថគ្រប់គ្រង', 'ថ្ងៃ · ម្ចាស់ប៉ុណ្ណោះ', '7 days', 1), it('ស្លាកចែកឱសថ', 'ទំហំលំនាំដើម', '70×40 mm')] },
+      { t: 'ស្តុក និងកម្រិត', items: [it('ជិតផុតកំណត់', 'បង្ហាញស្លាកពី', '90 days'), it('ការខូចខាតត្រូវអនុម័ត', 'លើស', '$25.00'), it('ភាពខុសគ្នារាប់ស្តុក → ម្ចាស់', 'លើស', '$25.00', 1)] },
+      { t: 'ការលក់', items: [it('បញ្ចុះតម្លៃអ្នកគិតលុយ', 'អតិបរមា', '10%'), it('បញ្ចុះតម្លៃអ្នកគ្រប់គ្រង', 'អតិបរមា', '25%', 1), it('ប្រាក់កក់បញ្ជាលក់', 'អប្បបរមា · មិនសងវិញពេលបោះបង់', '20%')] },
+      { t: 'ការប្រគល់ និងបង្កាន់ដៃ', items: [it('ប្រគល់កញ្ចប់បើករួច', 'ទៅដាក់ដាច់ដោយឡែក', 'Allowed'), it('រយៈពេលប្រគល់', 'ថ្ងៃ', '7 days'), it('ក្បាលបង្កាន់ដៃ', 'ឈ្មោះ · ទូរស័ព្ទ · VAT', 'Edit…')] },
+    ];
+    const fx = [{ d: '01/11/2026 07:00', r: '៛4,120', ch: '+0.5% · scheduled', c: '#7A4F00', by: 'Heng Sovann' }, { d: '15/10/2026 08:00', r: '៛4,100', ch: '+0.2%', c: '#1E6B3F', by: 'Heng Sovann' }, { d: '01/09/2026 08:00', r: '៛4,090', ch: '+0.2%', c: '#1E6B3F', by: 'Heng Sovann' }, { d: '01/06/2026 08:00', r: '៛4,080', ch: '−0.2%', c: '#A3201A', by: 'Heng Sovann' }, { d: '01/03/2026 08:00', r: '៛4,090', ch: '+0.2%', c: '#1E6B3F', by: 'Heng Sovann' }];
+    const tg = [
+      { name: 'Owner · Heng Sovann', scope: 'All branches', id: '558120443', events: ['Approvals', 'Chain broken', 'Daily summary', 'Login new device'], st: '✓ Delivered 10:41', c: '#1E6B3F' },
+      { name: 'PP1 managers', scope: 'PP1', id: '-1001842200193', events: ['Approvals', 'Low stock', 'Expiry'], st: '✓ Delivered 09:12', c: '#1E6B3F' },
+      { name: 'PP2 managers', scope: 'PP2', id: '-1001842200877', events: ['Approvals', 'Discrepancy'], st: '✓ Delivered 08:30', c: '#1E6B3F' },
+      { name: 'SR1 managers', scope: 'SR1', id: '-1001842201554', events: ['Approvals', 'Low stock'], st: '✕ Bot removed', c: '#A3201A' },
+    ];
+    const tgLog = [
+      { text: '⚠ Chain broken · Morphine 10 mg/ml · SR1 entry #000412', meta: 'Owner · 31/10 06:01 · delivered', c: '#2E9B5C' },
+      { text: 'Approval needed: discount 18% · PP2 · Meas Vibol', meta: 'PP2 managers · 31/10 08:30 · delivered', c: '#2E9B5C' },
+      { text: 'Low stock: Amoxicillin 500 mg 40 cap (reorder 100)', meta: 'SR1 managers · 31/10 07:00 · failed 403: bot was kicked', c: '#D23C2F' },
+      { text: 'Daily summary 30/10: $6,731.20 · 389 invoices', meta: 'Owner · 30/10 21:00 · delivered', c: '#2E9B5C' },
+      { text: 'Test message from Settings', meta: 'PP1 managers · 29/10 15:12 · delivered', c: '#2E9B5C' },
+    ];
+    const sw = v => v ? { bg: '#0E7470', x: 18 } : { bg: '#C4CBCA', x: 2 };
+    const features = [
+      ['KHQR payments', 'Bakong merchant account per branch', [1, 1, 1]], ['Pay later (credit)', 'Customer credit limits enforced', [1, 1, 0]], ['Sale orders & deposits', 'Quotes, deposits, stock hold', [1, 1, 0]],
+      ['Commission', 'Track and pay staff commission', [1, 1, 1]], ['Offline POS', 'Keep selling when internet drops (sync later)', [1, 1, 1]], ['Customer display', 'Second screen at counter', [1, 0, 0]], ['Opened-pack returns', 'Allow returns of opened packs to quarantine', [0, 1, 0]],
+    ].map(([l, h, o]) => ({ l, h, on: o.map(sw) }));
+    const sessions = [{ d: 'POS-01 · Windows · Chrome', m: 'PP1 · 31/10 07:28', a: 'This session', c: '#1E6B3F' }, { d: 'Samsung A54 · Android app', m: 'PP1 · 30/10 18:02', a: 'Log out', c: '#B42318' }, { d: 'POS-03 · Windows · Chrome', m: 'PP2 · 28/10 14:40', a: 'Log out', c: '#B42318' }];
+
+    return {
+      frames, users, roleList, permCols, permRows, logs, diff, comm, branches, settingsGroups, fx, tg, tgLog, features, sessions,
+      userHead: ['User', 'Role', 'Branches', 'Last login', '2FA', 'Status'],
+      logHead: ['Time', 'User', 'Action', 'Record', 'Device'],
+      commHead: ['Rule', 'Applies to', 'Basis', 'Rate', 'Period', 'Status'],
+      fxHead: ['Effective', 'Rate', 'Change', 'Set by'],
+      tgHead: ['Chat', 'Chat ID', 'Events', 'Last send'],
+    };
+  }
+}
+</script>
+</body>
+</html>

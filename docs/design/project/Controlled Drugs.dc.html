@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Kantumruy+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E9EDEC;color:#17201F;font-family:'Inter','Kantumruy Pro',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0E7470}a:hover{color:#0B5F5C}
+*{box-sizing:border-box}
+</style>
+</helmet>
+<div style="padding:48px;display:flex;flex-direction:column;gap:40px;font-variant-numeric:tabular-nums">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#66706F">DELIVERABLE 4 · CONTROLLED DRUGS</div>
+    <h1 style="margin:0;font-size:28px;line-height:36px;font-weight:600">Controlled drugs</h1>
+    <div style="font-size:14px;color:#3A4645;max-width:820px;line-height:22px">Append-only register, one chain per medicine and branch. Every entry is hashed with the previous one; corrections are new entries, never edits.</div>
+  </div>
+
+  <section style="display:flex;flex-wrap:wrap;gap:48px 40px;align-items:flex-start">
+  <sc-for list="{{ frames }}" as="f" hint-placeholder-count="3">
+    <div id="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px;width:1366px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">{{ f.id }}</span>
+        <span style="font-size:14px;font-weight:600">{{ f.frameName }}</span>
+        <span style="flex:none;white-space:nowrap;font-size:12px;line-height:18px;background:#fff;border:1px solid #DDE2E1;padding:2px 8px;border-radius:4px">Role: {{ f.roleNote }}</span>
+        <span style="font-family:'JetBrains Mono';font-size:11px;color:#0B5F5C;background:#DDF1EF;padding:3px 8px;border-radius:4px">{{ f.api }}</span>
+      </div>
+      <div style="width:1366px;min-height:768px;background:#F6F8F7;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(23,32,31,.08),0 24px 60px rgba(23,32,31,.12);display:flex;position:relative">
+        <aside style="width:64px;flex:none;background:#fff;border-right:1px solid #DDE2E1;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px">
+          <span style="width:32px;height:32px;border-radius:8px;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;margin-bottom:12px">+</span>
+          <sc-for list="{{ nav }}" as="n" hint-placeholder-count="9"><span style="width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;background:{{ n.bg }};color:{{ n.fg }}">{{ n.icon }}</span></sc-for>
+        </aside>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <header style="height:56px;flex:none;background:#fff;border-bottom:1px solid #DDE2E1;display:flex;align-items:center;gap:12px;padding:0 24px">
+            <span style="height:36px;padding:0 12px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap"><span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#DDF1EF;color:#0B5F5C;font-weight:500">{{ f.br }}</span>{{ f.brName }} ▾</span>
+            <span style="height:36px;flex:1;max-width:440px;padding:0 12px;border:1px solid #DDE2E1;background:#F6F8F7;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px;color:#66706F">⌕ {{ f.search }}<span style="margin-left:auto;font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#fff;border:1px solid #DDE2E1">Ctrl K</span></span>
+            <span style="margin-left:auto;display:flex;border:1px solid #C4CBCA;border-radius:6px;overflow:hidden;font-size:13px;font-weight:500"><span style="padding:7px 10px;background:{{ f.kmBg }};color:{{ f.kmFg }};font-family:'Kantumruy Pro'">ខ្មែរ</span><span style="padding:7px 10px;background:{{ f.enBg }};color:{{ f.enFg }}">EN</span></span>
+            <span style="width:36px;height:36px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;justify-content:center">🔔</span>
+            <span style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:32px;height:32px;border-radius:50%;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px">{{ f.ini }}</span><span style="display:flex;flex-direction:column;line-height:17px"><b>{{ f.user }}</b><span style="color:#66706F;font-size:12px">{{ f.role }}</span></span></span>
+          </header>
+          <div style="padding:22px 28px 28px;display:flex;flex-direction:column;gap:16px;flex:1">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px">
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#66706F;line-height:{{ f.lh }}px">{{ f.crumb }}</span><div style="display:flex;gap:10px;align-items:center"><h2 style="margin:0;font-size:28px;line-height:{{ f.titleLh }}px;font-weight:600">{{ f.title }}</h2><sc-if value="{{ f.hasHash }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px 0 7px;border-radius:4px;background:#E3F3E9;color:#1E6B3F;border:1px solid #BFE2CC;font-size:12px;font-weight:600;white-space:nowrap">⛓ Chain verified · 31/10/2026 06:00</span></sc-if></div></div>
+              <div style="display:flex;gap:8px"><sc-for list="{{ f.actions }}" as="a" hint-placeholder-count="2"><span style="height:36px;padding:0 14px;border-radius:6px;border:1px solid {{ a.bd }};background:{{ a.bg }};color:{{ a.fg }};display:flex;align-items:center;font-size:14px;font-weight:500;white-space:nowrap">{{ a.label }}</span></sc-for></div>
+            </div>
+
+            <!-- Register -->
+            <sc-if value="{{ f.s.register }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <span style="height:36px;padding:0 12px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px 0 4px;border-radius:4px;background:#A01D52;color:#fff;font-size:11px;font-weight:600">◆</span>Diazepam 5 mg ▾</span>
+                <span style="height:36px;padding:0 12px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;display:flex;align-items:center;font-size:13px">Branch: PP1 ▾</span>
+                <span style="height:36px;padding:0 12px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;display:flex;align-items:center;font-size:13px">01/10/2026 → 31/10/2026</span>
+                <span style="height:36px;padding:0 12px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;display:flex;align-items:center;font-size:13px">Type: All ▾</span>
+                <div style="margin-left:auto;display:flex;gap:20px;font-size:13px"><span style="display:flex;flex-direction:column;align-items:flex-end"><span style="color:#66706F;font-size:12px">Opening 01/10</span><b style="font-size:16px">210 tab</b></span><span style="display:flex;flex-direction:column;align-items:flex-end"><span style="color:#66706F;font-size:12px">Register balance</span><b style="font-size:16px">170 tab</b></span><span style="display:flex;flex-direction:column;align-items:flex-end"><span style="color:#66706F;font-size:12px">Stock on hand</span><b style="font-size:16px;color:#1E6B3F">170 tab ✓</b></span></div>
+              </div>
+              <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                <div style="display:grid;grid-template-columns:120px 110px minmax(0,1.3fr) 100px 80px 80px 90px minmax(0,1fr) minmax(0,1fr) 110px;font-size:13px">
+                  <sc-for list="{{ regHead }}" as="h" hint-placeholder-count="10"><div style="padding:10px 12px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645;text-align:{{ h.a }};white-space:nowrap">{{ h.l }}</div></sc-for>
+                  <sc-for list="{{ reg }}" as="r" hint-placeholder-count="8">
+                    <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;flex-direction:column"><span>{{ r.date }}</span><span style="font-size:11px;color:#66706F">{{ r.time }}</span></div>
+                    <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;align-items:center"><span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:4px;background:{{ r.tBg }};color:{{ r.tFg }};font-size:12px;font-weight:500;white-space:nowrap">{{ r.type }}</span></div>
+                    <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;flex-direction:column"><a style="font-family:'JetBrains Mono';font-size:12px;text-decoration:none">{{ r.ref }}</a><span style="font-size:12px;color:#66706F">{{ r.party }}</span></div>
+                    <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;align-items:center;font-family:'JetBrains Mono';font-size:11px">{{ r.batch }}</div>
+                    <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;align-items:center;justify-content:flex-end;color:#1E6B3F;font-weight:600">{{ r.in }}</div>
+                    <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;align-items:center;justify-content:flex-end;color:#A3201A;font-weight:600">{{ r.out }}</div>
+                    <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;align-items:center;justify-content:flex-end;font-weight:700;font-size:14px">{{ r.bal }}</div>
+                    <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;align-items:center">{{ r.actor }}</div>
+                    <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;align-items:center;color:{{ r.wc }}">{{ r.wit }}</div>
+                    <div style="padding:10px 12px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono';font-size:11px;color:#1E6B3F"><span>✓</span>{{ r.hash }}</div>
+                  </sc-for>
+                </div>
+                <div style="padding:10px 14px;display:flex;align-items:center;gap:12px;font-size:13px;color:#3A4645"><span>Sorted oldest → newest · running balance per row</span><span style="margin-left:auto">1–8 of 31 entries</span></div>
+              </div>
+            </sc-if>
+
+            <!-- Discrepancies -->
+            <sc-if value="{{ f.s.disc }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:16px;align-items:start">
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                  <div style="padding:10px 14px;border-bottom:1px solid #DDE2E1;display:flex;gap:6px"><span style="padding:6px 12px;border-radius:6px;background:#0E7470;color:#fff;font-size:13px;font-weight:500">Open (2)</span><span style="padding:6px 12px;border-radius:6px;border:1px solid #C4CBCA;font-size:13px">Closed (14)</span></div>
+                  <div style="display:grid;grid-template-columns:minmax(0,1.4fr) 70px 100px 90px 90px 120px;font-size:13px">
+                    <sc-for list="{{ discHead }}" as="h" hint-placeholder-count="6"><div style="padding:10px 14px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645;text-align:{{ h.a }}">{{ h.l }}</div></sc-for>
+                    <sc-for list="{{ discs }}" as="d" hint-placeholder-count="2">
+                      <div style="padding:12px 14px;border-bottom:1px solid #EEF1F0;background:{{ d.bg }};display:flex;flex-direction:column"><span style="display:flex;gap:6px;align-items:center"><span style="display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:4px;background:#A01D52;color:#fff;font-size:11px;font-weight:600">◆</span><b style="font-weight:500">{{ d.med }}</b></span><span style="font-size:12px;color:#66706F">{{ d.found }}</span></div>
+                      <div style="padding:12px 14px;border-bottom:1px solid #EEF1F0;background:{{ d.bg }};display:flex;align-items:center"><span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#EEF1F0">{{ d.br }}</span></div>
+                      <div style="padding:12px 14px;border-bottom:1px solid #EEF1F0;background:{{ d.bg }};display:flex;align-items:center;justify-content:flex-end">{{ d.reg }}</div>
+                      <div style="padding:12px 14px;border-bottom:1px solid #EEF1F0;background:{{ d.bg }};display:flex;align-items:center;justify-content:flex-end">{{ d.stock }}</div>
+                      <div style="padding:12px 14px;border-bottom:1px solid #EEF1F0;background:{{ d.bg }};display:flex;align-items:center;justify-content:flex-end;font-weight:700;color:#A3201A">{{ d.diff }}</div>
+                      <div style="padding:12px 14px;border-bottom:1px solid #EEF1F0;background:{{ d.bg }};display:flex;align-items:center"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 10px 2px 8px;border-radius:999px;background:#FDE8E6;color:#A3201A;border:1px solid #F4C3BD;font-size:12px;font-weight:500;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:#D23C2F"></span>{{ d.st }}</span></div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;display:flex;flex-direction:column">
+                  <div style="padding:16px 18px;border-bottom:1px solid #EEF1F0;display:flex;flex-direction:column;gap:2px"><b style="font-size:16px">Explain & close · CD-PP2-0009</b><span style="font-size:13px;color:#66706F">Diazepam 5 mg · PP2 · found by stock take ST-PP2-011</span></div>
+                  <div style="padding:16px 18px;display:flex;flex-direction:column;gap:12px;font-size:13px">
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center"><div style="background:#F6F8F7;border-radius:8px;padding:10px"><div style="font-size:11px;color:#66706F">Register</div><b style="font-size:18px">140</b></div><div style="background:#F6F8F7;border-radius:8px;padding:10px"><div style="font-size:11px;color:#66706F">Counted</div><b style="font-size:18px">138</b></div><div style="background:#FDE8E6;border-radius:8px;padding:10px"><div style="font-size:11px;color:#A3201A">Difference</div><b style="font-size:18px;color:#A3201A">−2</b></div></div>
+                    <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Cause · required</span><span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 12px;display:flex;align-items:center">Dispensing not recorded ▾</span></label>
+                    <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Explanation</span><span style="min-height:64px;border:2px solid #0E7470;box-shadow:0 0 0 3px #CDEBE8;border-radius:6px;padding:8px 12px;line-height:20px">RX-PP2-00655 dispensed 2 tab on 28/10 during offline mode; sale synced but register entry failed.</span></label>
+                    <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Resolution</span><span style="display:flex;flex-direction:column;gap:6px"><span style="display:flex;gap:8px;align-items:center"><span style="width:16px;height:16px;border-radius:50%;border:5px solid #0E7470"></span>Add missing register entry (−2, ref RX-PP2-00655)</span><span style="display:flex;gap:8px;align-items:center;color:#3A4645"><span style="width:16px;height:16px;border-radius:50%;border:1.5px solid #9AA6A5"></span>Adjust stock to register</span><span style="display:flex;gap:8px;align-items:center;color:#3A4645"><span style="width:16px;height:16px;border-radius:50%;border:1.5px solid #9AA6A5"></span>Report as loss (owner notified)</span></span></label>
+                    <div style="padding:10px 12px;background:#F6F8F7;border-radius:8px;display:flex;flex-direction:column;gap:4px"><b>Sign-off</b><span>1 · Pharmacist PIN · Lim Srey Neang</span><span>2 · Witness PIN · manager or owner</span></div>
+                  </div>
+                  <div style="padding:12px 18px;border-top:1px solid #EEF1F0;display:flex;justify-content:flex-end;gap:8px"><span style="height:40px;padding:0 14px;border-radius:6px;border:1px solid #C4CBCA;display:flex;align-items:center;font-size:14px">Save draft</span><span style="height:40px;padding:0 14px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;font-size:14px;font-weight:600">Close with witness</span></div>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- Chain verification -->
+            <sc-if value="{{ f.s.chain }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="background:#fff;border:1px solid #BFE2CC;border-radius:10px;overflow:hidden">
+                  <div style="padding:16px 18px;background:#E3F3E9;display:flex;gap:12px;align-items:center"><span style="width:36px;height:36px;border-radius:50%;background:#1E7B47;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px">✓</span><div style="display:flex;flex-direction:column"><b style="font-size:17px;color:#164E2E">Chain valid</b><span style="font-size:13px;color:#1E6B3F">Diazepam 5 mg · PP1 · 1,284 entries since 01/01/2024</span></div></div>
+                  <div style="padding:16px 18px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+                    <div style="display:grid;grid-template-columns:140px 1fr;gap:6px 10px"><span style="color:#66706F">First entry</span><span style="font-family:'JetBrains Mono';font-size:12px">#000001 · 9c1e…a04f</span><span style="color:#66706F">Last entry</span><span style="font-family:'JetBrains Mono';font-size:12px">#001284 · 4b7d…e21c</span><span style="color:#66706F">Recomputed balance</span><span>170 tab = register 170 ✓</span><span style="color:#66706F">Checked</span><span>31/10/2026 06:00 · scheduled</span></div>
+                    <div style="display:flex;gap:3px;flex-wrap:wrap"><sc-for list="{{ blocksOk }}" as="b" hint-placeholder-count="30"><span style="width:14px;height:14px;border-radius:2px;background:#2E9B5C"></span></sc-for></div>
+                  </div>
+                </div>
+                <div style="background:#fff;border:2px solid #B42318;border-radius:10px;overflow:hidden">
+                  <div style="padding:16px 18px;background:#B42318;color:#fff;display:flex;gap:12px;align-items:center"><span style="width:36px;height:36px;border-radius:50%;background:#fff;color:#B42318;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">✕</span><div style="display:flex;flex-direction:column"><b style="font-size:17px">Chain broken at entry #000412</b><span style="font-size:13px;opacity:.9">Morphine 10 mg/ml · SR1 · owner notified via Telegram</span></div></div>
+                  <div style="padding:16px 18px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+                    <div style="display:grid;grid-template-columns:140px 1fr;gap:6px 10px"><span style="color:#66706F">Entry #000411</span><span style="font-family:'JetBrains Mono';font-size:12px;color:#1E6B3F">hash 77a2…09bd ✓</span><span style="color:#66706F">Entry #000412 stored</span><span style="font-family:'JetBrains Mono';font-size:12px">prev 77a2…09bd · hash e5f0…1a33</span><span style="color:#66706F">Entry #000412 recomputed</span><span style="font-family:'JetBrains Mono';font-size:12px;color:#A3201A">hash 3c19…b780 ✕ mismatch</span><span style="color:#66706F">Likely cause</span><span>Quantity field differs from signed value (−5 vs −3)</span></div>
+                    <div style="display:flex;gap:3px;flex-wrap:wrap"><sc-for list="{{ blocksBad }}" as="b" hint-placeholder-count="30"><span style="width:14px;height:14px;border-radius:2px;background:{{ b }}"></span></sc-for></div>
+                    <div style="padding:10px 12px;background:#FDE8E6;border-radius:8px;color:#7A1610;line-height:20px">Register for this medicine is frozen at SR1. Dispensing is blocked until the owner reviews and records a correction entry with witness.</div>
+                    <div style="display:flex;gap:8px"><span style="height:38px;padding:0 14px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;font-size:13px;font-weight:600">Open entry #000412</span><span style="height:38px;padding:0 14px;border-radius:6px;border:1px solid #C4CBCA;display:flex;align-items:center;font-size:13px">Download audit trail</span></div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- Export -->
+            <sc-if value="{{ f.s.export }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:320px minmax(0,1fr);gap:20px;align-items:start">
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px;font-size:13px">
+                  <b style="font-size:15px">Export options</b>
+                  <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Medicines</span><span style="min-height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:4px 6px;display:flex;flex-wrap:wrap;gap:4px"><span style="padding:3px 8px;border-radius:4px;background:#DDF1EF;color:#0B5F5C">Diazepam 5 mg ×</span><span style="padding:3px 8px;border-radius:4px;background:#DDF1EF;color:#0B5F5C">Morphine 10 mg/ml ×</span></span></label>
+                  <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Branch</span><span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center">PP1 Toul Kork ▾</span></label>
+                  <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Period</span><span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center">01/10/2026 → 31/10/2026</span></label>
+                  <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Language</span><span style="display:flex;border:1px solid #C4CBCA;border-radius:6px;overflow:hidden"><span style="flex:1;padding:8px;text-align:center;background:#0E7470;color:#fff">KM + EN</span><span style="flex:1;padding:8px;text-align:center;border-left:1px solid #C4CBCA">KM</span><span style="flex:1;padding:8px;text-align:center;border-left:1px solid #C4CBCA">EN</span></span></label>
+                  <span style="display:flex;gap:8px;align-items:center"><span style="width:16px;height:16px;border-radius:4px;background:#0E7470;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center">✓</span>Include chain hash per entry</span>
+                  <span style="display:flex;gap:8px;align-items:center"><span style="width:16px;height:16px;border-radius:4px;background:#0E7470;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center">✓</span>Signature lines for pharmacist + owner</span>
+                  <span style="height:42px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">Generate PDF</span>
+                  <span style="font-size:12px;color:#66706F">Export is logged in User Log.</span>
+                </div>
+                <div style="background:#D6DCDB;border-radius:10px;padding:24px;display:flex;justify-content:center">
+                  <div style="width:595px;min-height:640px;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.15);padding:36px 34px;display:flex;flex-direction:column;gap:12px;font-size:10px;line-height:14px">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="display:flex;flex-direction:column;gap:2px"><b style="font-size:14px;line-height:18px">Controlled Drug Register</b><span style="font-family:'Kantumruy Pro';font-size:12px;line-height:18px">បញ្ជីឱសថគ្រប់គ្រង</span><span>Pharmacy · PP1 Toul Kork · License PH-PP-0231</span></div><div style="text-align:right;display:flex;flex-direction:column;gap:2px"><b>Diazepam 5 mg tablet</b><span>01/10/2026 – 31/10/2026</span><span>Page 1 of 2</span></div></div>
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;border:1px solid #17201F;padding:6px"><span>Opening: <b>210</b></span><span>Received: <b>+100</b></span><span>Issued: <b>−140</b></span><span>Closing: <b>170</b></span></div>
+                    <div style="display:grid;grid-template-columns:62px 62px 1fr 34px 34px 40px 72px 72px 56px;border-top:1px solid #17201F">
+                      <sc-for list="{{ pdfHead }}" as="h" hint-placeholder-count="9"><div style="padding:4px 3px;font-weight:700;border-bottom:1px solid #17201F">{{ h }}</div></sc-for>
+                      <sc-for list="{{ pdfRows }}" as="r" hint-placeholder-count="8">
+                        <div style="padding:4px 3px;border-bottom:1px solid #C4CBCA">{{ r.date }}</div><div style="padding:4px 3px;border-bottom:1px solid #C4CBCA">{{ r.type }}</div><div style="padding:4px 3px;border-bottom:1px solid #C4CBCA">{{ r.ref }}</div><div style="padding:4px 3px;border-bottom:1px solid #C4CBCA;text-align:right">{{ r.in }}</div><div style="padding:4px 3px;border-bottom:1px solid #C4CBCA;text-align:right">{{ r.out }}</div><div style="padding:4px 3px;border-bottom:1px solid #C4CBCA;text-align:right;font-weight:700">{{ r.bal }}</div><div style="padding:4px 3px;border-bottom:1px solid #C4CBCA">{{ r.actor }}</div><div style="padding:4px 3px;border-bottom:1px solid #C4CBCA">{{ r.wit }}</div><div style="padding:4px 3px;border-bottom:1px solid #C4CBCA;font-family:'JetBrains Mono';font-size:8px">{{ r.hash }}</div>
+                      </sc-for>
+                    </div>
+                    <div style="margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:40px;padding-top:30px"><div style="border-top:1px solid #17201F;padding-top:4px">Pharmacist · ឱសថការី<br>Lim Srey Neang</div><div style="border-top:1px solid #17201F;padding-top:4px">Owner · ម្ចាស់<br>Heng Sovann</div></div>
+                    <div style="display:flex;justify-content:space-between;color:#66706F;font-size:8px"><span>Generated 31/10/2026 14:20 by Heng Sovann · chain verified ✓</span><span>SHA-256 of document: 2f8a…d31e</span></div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+
+        <!-- Entry detail drawer -->
+        <sc-if value="{{ f.s.entry }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;background:rgba(23,32,31,.35)"></div>
+          <div style="position:absolute;top:0;right:0;bottom:0;width:460px;background:#fff;box-shadow:-12px 0 40px rgba(23,32,31,.18);display:flex;flex-direction:column">
+            <div style="padding:18px 20px;border-bottom:1px solid #EEF1F0;display:flex;justify-content:space-between"><div style="display:flex;flex-direction:column;gap:2px"><b style="font-size:17px">Register entry #001284</b><span style="font-size:13px;color:#66706F">Diazepam 5 mg · PP1</span></div><span style="color:#66706F">Esc ✕</span></div>
+            <div style="padding:18px 20px;display:flex;flex-direction:column;gap:14px;font-size:13px">
+              <div style="display:grid;grid-template-columns:130px 1fr;gap:8px 10px">
+                <span style="color:#66706F">Type</span><span><span style="padding:2px 8px;border-radius:4px;background:#FDE8E6;color:#A3201A;font-weight:500">Dispense</span></span>
+                <span style="color:#66706F">Date & time</span><span>31/10/2026 10:41:07</span>
+                <span style="color:#66706F">Quantity</span><b>−10 tab</b>
+                <span style="color:#66706F">Balance</span><span>180 → <b>170</b></span>
+                <span style="color:#66706F">Batch</span><span style="font-family:'JetBrains Mono';font-size:12px">DZP-2702 · exp 02/2027</span>
+                <span style="color:#66706F">Reference</span><a>PP1-INV-000480</a>
+                <span style="color:#66706F">Prescription</span><a>RX-PP1-00927 · Dr. Ouk Vanna</a>
+                <span style="color:#66706F">Patient</span><span>Nhem Bopha · National ID 010 245 778</span>
+                <span style="color:#66706F">Pharmacist</span><span>Lim Srey Neang · PIN ✓</span>
+                <span style="color:#66706F">Witness</span><span style="color:#66706F">Not required for dispense</span>
+              </div>
+              <div style="background:#F6F8F7;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:6px;font-family:'JetBrains Mono';font-size:11px;line-height:16px;word-break:break-all">
+                <span style="font-family:Inter;font-size:12px;font-weight:600;color:#1E6B3F">⛓ Hash verified</span>
+                <span><span style="color:#66706F">prev </span>9d03e1c4…7b2a01f8</span>
+                <span><span style="color:#66706F">hash </span>4b7d22a9…c03ee21c</span>
+              </div>
+              <span style="color:#66706F;line-height:20px">Entries cannot be edited. To correct, create an adjustment entry with PIN and witness.</span>
+            </div>
+            <div style="margin-top:auto;padding:14px 20px;border-top:1px solid #EEF1F0;display:flex;justify-content:flex-end;gap:8px"><span style="height:40px;padding:0 14px;border-radius:6px;border:1px solid #C4CBCA;display:flex;align-items:center;font-size:14px">Create correction</span></div>
+          </div>
+        </sc-if>
+
+        <!-- Destroy KM -->
+        <sc-if value="{{ f.s.destroy }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;background:rgba(23,32,31,.42)"></div>
+          <div style="position:absolute;top:110px;left:50%;transform:translateX(-50%);width:760px;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;display:grid;grid-template-columns:1fr 300px;font-family:'Kantumruy Pro','Inter'">
+            <div style="padding:20px 22px;display:flex;flex-direction:column;gap:12px;font-size:14px;line-height:24px;border-right:1px solid #EEF1F0">
+              <b style="font-size:18px;line-height:30px">បំផ្លាញឱសថគ្រប់គ្រង</b>
+              <span style="display:flex;gap:6px;align-items:center"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 7px 0 5px;border-radius:4px;background:#A01D52;color:#fff;font-size:12px;font-weight:600">◆ ឱសថគ្រប់គ្រង</span><b style="font-family:Inter">Diazepam 5 mg · PP1</b></span>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:13px">
+                <label style="display:flex;flex-direction:column;gap:4px"><span>ប្រភេទ</span><span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center">បំផ្លាញ ▾</span></label>
+                <label style="display:flex;flex-direction:column;gap:4px"><span>ឡូត៍</span><span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center;font-family:'JetBrains Mono';font-size:12px">DZP-2502</span></label>
+                <label style="display:flex;flex-direction:column;gap:4px"><span>ចំនួន</span><span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center;font-family:Inter;font-weight:600">20 tab</span></label>
+              </div>
+              <label style="display:flex;flex-direction:column;gap:4px;font-size:13px"><span>មូលហេតុ</span><span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center">ផុតកំណត់ 05/2026</span></label>
+              <div style="padding:10px 12px;background:#F6F8F7;border-radius:8px;font-size:13px;line-height:22px">តុល្យភាព 170 → <b>150</b> · ការចុះបញ្ជីនឹងភ្ជាប់រូបថត និងហត្ថលេខាទាំងពីរ។</div>
+              <div style="display:flex;gap:10px;align-items:center;font-size:13px"><span style="width:22px;height:22px;border-radius:50%;background:#1E7B47;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center">✓</span><span>ឱសថការី · លឹម ស្រីនាង · PIN 14:02</span></div>
+              <div style="display:flex;gap:10px;align-items:center;font-size:13px"><span style="width:22px;height:22px;border-radius:50%;border:2px solid #0E7470;color:#0E7470;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">2</span><span>សាក្សី · <b>ត្រូវតែជាអ្នកគ្រប់គ្រង ឬម្ចាស់</b></span></div>
+            </div>
+            <div style="padding:20px 18px;display:flex;flex-direction:column;gap:10px;align-items:stretch">
+              <span style="font-size:13px;font-weight:500">សាក្សី</span>
+              <span style="height:40px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center;justify-content:space-between;font-size:13px">ចាន់ សុភា · Manager<span style="color:#66706F">▾</span></span>
+              <div style="display:flex;justify-content:center;gap:10px;padding:8px 0"><span style="width:14px;height:14px;border-radius:50%;background:#0E7470"></span><span style="width:14px;height:14px;border-radius:50%;background:#0E7470"></span><span style="width:14px;height:14px;border-radius:50%;border:2px solid #0E7470"></span><span style="width:14px;height:14px;border-radius:50%;border:2px solid #0E7470"></span><span style="width:14px;height:14px;border-radius:50%;border:2px solid #0E7470"></span><span style="width:14px;height:14px;border-radius:50%;border:2px solid #0E7470"></span></div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-family:Inter"><sc-for list="{{ pinKeys }}" as="k" hint-placeholder-count="12"><span style="height:44px;border-radius:8px;border:1px solid #DDE2E1;display:flex;align-items:center;justify-content:center;font-size:17px;background:{{ k.bg }};color:{{ k.fg }}">{{ k.l }}</span></sc-for></div>
+              <span style="font-size:12px;color:#66706F;text-align:center">អ្នកគិតលុយ និងឱសថការីមិនអាចជាសាក្សីបានទេ</span>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="font-size:13px;color:#3A4645;max-width:1000px;line-height:20px">{{ f.note }}</div>
+    </div>
+  </sc-for>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const tog = lang => lang === 'km' ? { kmBg: '#0E7470', kmFg: '#fff', enBg: '#fff', enFg: '#3A4645' } : { kmBg: '#fff', kmFg: '#3A4645', enBg: '#0E7470', enFg: '#fff' };
+    const nav = ['▦', '◎', '℞', '◆', '▤', '⇄', '☰', '▥', '⚙'].map((icon, i) => ({ icon, bg: i === 3 ? '#FBE4EE' : 'transparent', fg: i === 3 ? '#A01D52' : '#3A4645' }));
+    const btn = (label, kind) => kind === 'p' ? { label, bg: '#0E7470', fg: '#fff', bd: '#0E7470' } : { label, bg: '#fff', fg: '#17201F', bd: '#C4CBCA' };
+    const S = { register: 0, entry: 0, destroy: 0, disc: 0, chain: 0, export: 0 };
+    const F = o => ({ lang: 'en', user: 'Lim Srey Neang', ini: 'LN', role: 'Pharmacist', search: 'Search…', br: 'PP1', brName: 'Toul Kork', hasHash: false, ...o, s: { ...S, ...o.s }, ...tog(o.lang || 'en'), lh: o.lang === 'km' ? 22 : 18, titleLh: o.lang === 'km' ? 44 : 36 });
+    const regActions = [btn('Export PDF', 's'), btn('Destroy / adjust', 's'), btn('Verify chain', 'p')];
+
+    const frames = [
+      F({ id: '7a', frameName: 'Controlled / Register / Desktop 1366 / EN', roleNote: 'Pharmacist, Manager, Owner', api: 'GET /api/controlled/v1/register?medicine_id=&branch_id=', crumb: 'Controlled drugs  /  Register', title: 'Register · Diazepam 5 mg', hasHash: true, actions: regActions, s: { register: 1 }, note: 'Balance column is the largest number in the row. Register balance and stock on hand are compared in the header; a match shows a check.' }),
+      F({ id: '7b', frameName: 'Controlled / Entry detail / Desktop 1366 / EN', roleNote: 'Pharmacist, Manager, Owner', api: 'GET /api/controlled/v1/entries/{entry_id} · ⚠ API pending', crumb: 'Controlled drugs  /  Register', title: 'Register · Diazepam 5 mg', hasHash: true, actions: regActions, s: { register: 1, entry: 1 }, note: 'Read-only. Corrections create a new linked entry.' }),
+      F({ id: '7c', lang: 'km', user: 'លឹម ស្រីនាង', role: 'ឱសថការី', search: 'ស្វែងរក…', frameName: 'Controlled / Destroy with witness / Desktop 1366 / KM', roleNote: 'Pharmacist starts · Manager/Owner witnesses', api: 'POST /api/controlled/v1/entries · POST /api/auth/v1/pin/witness', crumb: 'ឱសថគ្រប់គ្រង  /  បញ្ជី', title: 'បញ្ជី · Diazepam 5 mg', hasHash: true, actions: [btn('នាំចេញ PDF', 's'), btn('បំផ្លាញ / កែតម្រូវ', 'p')], s: { register: 1, destroy: 1 }, note: 'Destruction requires the witness to be a manager or owner; the picker only lists eligible users. Adjustments (not destruction) accept any second pharmacist.' }),
+      F({ id: '7d', frameName: 'Controlled / Discrepancies / Desktop 1366 / EN', roleNote: 'Pharmacist, Manager, Owner', api: 'GET /api/controlled/v1/discrepancies · POST …/{discrepancy_id}/resolve', crumb: 'Controlled drugs  /  Discrepancies', title: 'Discrepancies', br: 'ALL', brName: 'All branches', user: 'Heng Sovann', ini: 'HS', role: 'Owner', actions: [], s: { disc: 1 }, note: 'Each open discrepancy shows register vs counted. Closing needs a cause, an explanation, a resolution and a witness.' }),
+      F({ id: '7e', frameName: 'Controlled / Chain verification / Desktop 1366 / EN', roleNote: 'Manager, Owner', api: 'GET /api/controlled/v1/register/verify', crumb: 'Controlled drugs  /  Register  /  Verify', title: 'Chain verification', br: 'ALL', brName: 'All branches', user: 'Heng Sovann', ini: 'HS', role: 'Owner', actions: [btn('Verify all now', 'p')], s: { chain: 1 }, note: 'Valid and broken results side by side. A broken chain freezes that register and blocks dispensing until the owner records a correction.' }),
+      F({ id: '7f', frameName: 'Controlled / Register export / Desktop 1366 / EN', roleNote: 'Pharmacist, Manager, Owner', api: 'POST /api/documents/v1/render (controlled_register)', crumb: 'Controlled drugs  /  Register export', title: 'Register export', user: 'Heng Sovann', ini: 'HS', role: 'Owner', actions: [], s: { export: 1 }, note: 'A4 PDF with opening, received, issued and closing totals, per-entry hash and signature lines.' }),
+    ];
+
+    const T = { recv: ['Receive', '#E3F3E9', '#1E6B3F'], disp: ['Dispense', '#FDE8E6', '#A3201A'], dest: ['Destroy', '#FBE4EE', '#A01D52'], adj: ['Adjust', '#FDF1D6', '#7A4F00'], tin: ['Transfer in', '#E4EEFA', '#1F5FA8'] };
+    const reg = [
+      ['01/10/2026', '08:00', 'recv', 'OPENING', 'Carried forward', '—', '', '', '210', 'System', '—', '1f0c…88a2'],
+      ['04/10/2026', '09:12', 'disp', 'PP1-INV-000211', 'RX-PP1-00870 · Chan Dara', 'DZP-2702', '', '−10', '200', 'Lim Srey Neang', '—', 'a91e…0c3d'],
+      ['09/10/2026', '15:40', 'recv', 'GRN-PP1-0088', 'PO-PP1-0412 · Zuellig Pharma', 'DZP-2702', '+100', '', '300', 'Sok Dara', 'Chan Sophea', 'c4b2…7f10'],
+      ['12/10/2026', '11:05', 'dest', 'DES-PP1-0004', 'Expired 05/2026', 'DZP-2502', '', '−20', '280', 'Lim Srey Neang', 'Chan Sophea', '6e27…b911'],
+      ['15/10/2026', '10:30', 'disp', 'PP1-INV-000298', 'RX-PP1-00889 · Heng Rathana', 'DZP-2702', '', '−30', '250', 'Lim Srey Neang', '—', '02da…4e6b'],
+      ['20/10/2026', '14:22', 'adj', 'ADJ-PP1-0011', 'Stock take ST-PP1-012', 'DZP-2702', '', '−1', '249', 'Lim Srey Neang', 'Chan Sophea', 'f813…a5c7'],
+      ['26/10/2026', '16:02', 'disp', 'PP1-INV-000402', 'RX-PP1-00911 · Ly Vannak', 'DZP-2702', '', '−69', '180', 'Lim Srey Neang', '—', '9d03…7b2a'],
+      ['31/10/2026', '10:41', 'disp', 'PP1-INV-000480', 'RX-PP1-00927 · Nhem Bopha', 'DZP-2702', '', '−10', '170', 'Lim Srey Neang', '—', '4b7d…e21c'],
+    ].map(([date, time, t, ref, party, batch, inn, out, bal, actor, wit, hash], i) => ({ date, time, type: T[t][0], tBg: T[t][1], tFg: T[t][2], ref, party, batch, in: inn, out, bal, actor, wit, wc: wit === '—' ? '#8C9594' : '#17201F', hash, bg: i === 7 ? '#EFF8F7' : '#fff' }));
+
+    const blocksOk = Array.from({ length: 48 }, () => 1);
+    const blocksBad = Array.from({ length: 48 }, (_, i) => i < 27 ? '#2E9B5C' : i === 27 ? '#B42318' : '#E8B4AF');
+
+    const pdfRows = reg.map(r => ({ date: r.date, type: r.type, ref: r.ref, in: r.in, out: r.out, bal: r.bal, actor: r.actor, wit: r.wit, hash: r.hash }));
+
+    return {
+      frames, nav, reg, blocksOk, blocksBad, pdfRows,
+      regHead: [['Date', 'left'], ['Type', 'left'], ['Reference', 'left'], ['Batch', 'left'], ['In', 'right'], ['Out', 'right'], ['Balance', 'right'], ['Actor', 'left'], ['Witness', 'left'], ['Hash', 'left']].map(([l, a]) => ({ l, a })),
+      discHead: [['Medicine', 'left'], ['Branch', 'left'], ['Register', 'right'], ['Counted', 'right'], ['Diff.', 'right'], ['Status', 'left']].map(([l, a]) => ({ l, a })),
+      discs: [
+        { med: 'Diazepam 5 mg', found: 'Stock take ST-PP2-011 · 29/10/2026', br: 'PP2', reg: '140', stock: '138', diff: '−2', st: 'Open', bg: '#EFF8F7' },
+        { med: 'Morphine 10 mg/ml', found: 'Chain check · 31/10/2026', br: 'SR1', reg: '42 amp', stock: '44 amp', diff: '+2', st: 'Open', bg: '#fff' },
+      ],
+      pdfHead: ['Date', 'Type', 'Reference', 'In', 'Out', 'Bal.', 'Actor', 'Witness', 'Hash'],
+      pinKeys: ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'Clear', '0', '⌫'].map(l => ({ l, bg: l === 'Clear' ? '#F6F8F7' : '#fff', fg: l === 'Clear' ? '#66706F' : '#17201F' })),
+    };
+  }
+}
+</script>
+</body>
+</html>

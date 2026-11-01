@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Kantumruy+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E9EDEC;color:#17201F;font-family:'Inter','Kantumruy Pro',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0E7470}a:hover{color:#0B5F5C}
+*{box-sizing:border-box}
+</style>
+</helmet>
+<div style="padding:48px;display:flex;flex-direction:column;gap:40px;font-variant-numeric:tabular-nums">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#66706F">DELIVERABLE 4 · STOCK</div>
+    <h1 style="margin:0;font-size:28px;line-height:36px;font-weight:600">Stock</h1>
+    <div style="font-size:14px;color:#3A4645;max-width:820px;line-height:22px">Stock on hand is shown in <a href="App Shell.dc.html#2a">App Shell 2a</a> (with value) and <a href="App Shell.dc.html#2b">2b</a> (cost hidden). This file covers batches, stock take, shelf locations, re-order and recall.</div>
+  </div>
+
+  <section style="display:flex;flex-wrap:wrap;gap:48px 40px;align-items:flex-start">
+  <sc-for list="{{ frames }}" as="f" hint-placeholder-count="3">
+    <div id="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px;width:1366px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">{{ f.id }}</span>
+        <span style="font-size:14px;font-weight:600">{{ f.frameName }}</span>
+        <span style="flex:none;white-space:nowrap;font-size:12px;line-height:18px;background:#fff;border:1px solid #DDE2E1;padding:2px 8px;border-radius:4px">Role: {{ f.roleNote }}</span>
+        <span style="font-family:'JetBrains Mono';font-size:11px;color:#0B5F5C;background:#DDF1EF;padding:3px 8px;border-radius:4px">{{ f.api }}</span>
+      </div>
+      <div style="width:1366px;min-height:768px;background:#F6F8F7;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(23,32,31,.08),0 24px 60px rgba(23,32,31,.12);display:flex;position:relative">
+        <aside style="width:64px;flex:none;background:#fff;border-right:1px solid #DDE2E1;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px">
+          <span style="width:32px;height:32px;border-radius:8px;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;margin-bottom:12px">+</span>
+          <sc-for list="{{ nav }}" as="n" hint-placeholder-count="9"><span style="width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;background:{{ n.bg }};color:{{ n.fg }}">{{ n.icon }}</span></sc-for>
+        </aside>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <header style="height:56px;flex:none;background:#fff;border-bottom:1px solid #DDE2E1;display:flex;align-items:center;gap:12px;padding:0 24px">
+            <span style="height:36px;padding:0 12px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap"><span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#DDF1EF;color:#0B5F5C;font-weight:500">{{ f.br }}</span>{{ f.brName }} ▾</span>
+            <span style="height:36px;flex:1;max-width:440px;padding:0 12px;border:1px solid #DDE2E1;background:#F6F8F7;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px;color:#66706F">⌕ {{ f.search }}<span style="margin-left:auto;font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#fff;border:1px solid #DDE2E1">Ctrl K</span></span>
+            <span style="margin-left:auto;display:flex;border:1px solid #C4CBCA;border-radius:6px;overflow:hidden;font-size:13px;font-weight:500"><span style="padding:7px 10px;background:{{ f.kmBg }};color:{{ f.kmFg }};font-family:'Kantumruy Pro'">ខ្មែរ</span><span style="padding:7px 10px;background:{{ f.enBg }};color:{{ f.enFg }}">EN</span></span>
+            <span style="width:36px;height:36px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;justify-content:center">🔔</span>
+            <span style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:32px;height:32px;border-radius:50%;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px">{{ f.ini }}</span><span style="display:flex;flex-direction:column;line-height:17px"><b>{{ f.user }}</b><span style="color:#66706F;font-size:12px">{{ f.role }}</span></span></span>
+          </header>
+          <div style="padding:22px 28px 28px;display:flex;flex-direction:column;gap:16px;flex:1">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px">
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#66706F;line-height:{{ f.lh }}px">{{ f.crumb }}</span><div style="display:flex;gap:10px;align-items:center"><h2 style="margin:0;font-size:28px;line-height:{{ f.titleLh }}px;font-weight:600">{{ f.title }}</h2><sc-if value="{{ f.hasPill }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 10px 2px 8px;border-radius:999px;background:{{ f.pill.bg }};color:{{ f.pill.fg }};border:1px solid {{ f.pill.bd }};font-size:12px;font-weight:500;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:{{ f.pill.dot }}"></span>{{ f.pill.label }}</span></sc-if></div></div>
+              <div style="display:flex;gap:8px"><sc-for list="{{ f.actions }}" as="a" hint-placeholder-count="2"><span style="height:36px;padding:0 14px;border-radius:6px;border:1px solid {{ a.bd }};background:{{ a.bg }};color:{{ a.fg }};display:flex;align-items:center;font-size:14px;font-weight:500;white-space:nowrap">{{ a.label }}</span></sc-for></div>
+            </div>
+
+            <!-- Batches -->
+            <sc-if value="{{ f.s.batches }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <sc-for list="{{ f.chips }}" as="c" hint-placeholder-count="6"><span style="height:34px;padding:0 12px;border-radius:17px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};display:flex;align-items:center;gap:6px;font-size:13px;font-weight:{{ c.w }};white-space:nowrap">{{ c.label }}<span style="font-size:11px;padding:0 6px;border-radius:9px;background:{{ c.nBg }}">{{ c.n }}</span></span></sc-for>
+                <span style="margin-left:auto;height:34px;width:240px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;padding:0 10px;display:flex;align-items:center;font-size:13px;color:#8C9594">⌕ {{ f.findBatch }}</span>
+              </div>
+              <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                <div style="display:grid;grid-template-columns:minmax(0,1.6fr) 120px 110px 90px 90px 100px 170px 150px;font-size:13px">
+                  <sc-for list="{{ f.bHead }}" as="h" hint-placeholder-count="8"><div style="padding:10px 14px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645;text-align:{{ h.a }};white-space:nowrap;line-height:{{ f.lh }}px">{{ h.l }}</div></sc-for>
+                  <sc-for list="{{ batches }}" as="b" hint-placeholder-count="7">
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b style="font-weight:500">{{ b.name }}</b><sc-for list="{{ b.badges }}" as="x" hint-placeholder-count="1"><span style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px 0 4px;border-radius:4px;background:{{ x.bg }};color:{{ x.fg }};font-size:11px;font-weight:600">{{ x.l }}</span></sc-for></div>
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;font-family:'JetBrains Mono';font-size:12px;display:flex;align-items:center">{{ b.batch }}</div>
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;color:{{ b.ec }};font-weight:{{ b.ew }}">{{ b.exp }}</div>
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;justify-content:flex-end;color:{{ b.ec }};font-weight:600">{{ b.days }}</div>
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;justify-content:flex-end;font-weight:600">{{ b.qty }}</div>
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;justify-content:flex-end">{{ b.value }}</div>
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 10px 2px 8px;border-radius:999px;background:{{ b.st.bg }};color:{{ b.st.fg }};border:1px solid {{ b.st.bd }};font-size:12px;font-weight:500;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:{{ b.st.dot }}"></span>{{ b.st.l }}</span></div>
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center"><span style="font-size:12px;font-weight:600;color:#0E7470;white-space:nowrap">{{ b.act }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- Stock take create -->
+            <sc-if value="{{ f.s.create }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:18px 22px;display:flex;align-items:flex-start">
+                <sc-for list="{{ stSteps }}" as="s" hint-placeholder-count="5"><div style="flex:1;display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center"><span style="width:28px;height:28px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:{{ s.bg }};color:{{ s.fg }};border:2px solid {{ s.bd }}">{{ s.n }}</span><span style="flex:1;height:2px;background:{{ s.line }};margin:0 8px"></span></div><span style="font-size:13px;font-weight:{{ s.w }}">{{ s.l }}</span></div></sc-for>
+              </div>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start">
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:16px;font-size:13px">
+                  <b style="font-size:15px">Scope</b>
+                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+                    <sc-for list="{{ scopes }}" as="sc" hint-placeholder-count="4"><div style="border:{{ sc.bw }}px solid {{ sc.bd }};background:{{ sc.bg }};border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:6px;min-height:118px"><span style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:14px">{{ sc.t }}</b><span style="width:16px;height:16px;border-radius:50%;border:{{ sc.rb }}"></span></span><span style="color:#3A4645;line-height:19px">{{ sc.d }}</span><span style="margin-top:auto;color:#66706F;font-size:12px">{{ sc.n }}</span></div></sc-for>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+                    <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Branch</span><span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center">PP1 Toul Kork</span></label>
+                    <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Count date</span><span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center">01/11/2026 · 07:00</span></label>
+                    <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Counters</span><span style="min-height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:4px 6px;display:flex;flex-wrap:wrap;gap:4px"><span style="padding:3px 8px;border-radius:4px;background:#DDF1EF;color:#0B5F5C">Sok Dara ×</span><span style="padding:3px 8px;border-radius:4px;background:#DDF1EF;color:#0B5F5C">Meas Vibol ×</span></span></label>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <span style="display:flex;gap:8px;align-items:center"><span style="width:16px;height:16px;border-radius:4px;background:#0E7470;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center">✓</span>Blind count (counters do not see expected quantity)</span>
+                    <span style="display:flex;gap:8px;align-items:center"><span style="width:16px;height:16px;border-radius:4px;background:#0E7470;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center">✓</span>Second count for controlled and items above $50 value</span>
+                    <span style="display:flex;gap:8px;align-items:center"><span style="width:16px;height:16px;border-radius:4px;border:1.5px solid #9AA6A5"></span>Freeze sales on counted locations during count</span>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:8px;font-size:13px"><b style="font-size:14px">Summary</b><div style="display:grid;grid-template-columns:1fr auto;gap:6px"><span style="color:#66706F">Locations</span><b>Shelf A1–A6</b><span style="color:#66706F">Items</span><b>142</b><span style="color:#66706F">Batches</span><b>231</b><span style="color:#66706F">Needs second count</span><b>18</b></div></div>
+                  <div style="background:#E4EEFA;border:1px solid #C3D7F0;border-radius:10px;padding:12px 14px;font-size:13px;color:#163F6E;line-height:20px">Variance above $25 or any controlled variance goes to <b>owner approval</b>.</div>
+                  <span style="height:44px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">Open stock take</span>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- Review -->
+            <sc-if value="{{ f.s.review }}" hint-placeholder-val="{{ false }}">
+              <div style="border:1px solid #E9B949;background:#FFFBF0;border-radius:10px;padding:12px 16px;display:flex;gap:12px;align-items:center;font-size:13px"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 10px 2px 8px;border-radius:999px;background:#FDF1D6;color:#7A4F00;border:1px solid #F0D48E;font-size:12px;font-weight:500;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:#D99A1E"></span>Pending owner approval</span><span style="flex:1">Net variance <b>−$31.60</b> is above the $25 threshold and includes 1 controlled line. Needs <b>Owner</b> (Heng Sovann). Manager reviewed 31/10/2026 13:10.</span></div>
+              <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">
+                <sc-for list="{{ revKpi }}" as="k" hint-placeholder-count="5"><div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#66706F">{{ k.l }}</span><b style="font-size:22px;color:{{ k.c }}">{{ k.v }}</b></div></sc-for>
+              </div>
+              <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                <div style="padding:10px 14px;border-bottom:1px solid #DDE2E1;display:flex;gap:6px;font-size:13px"><span style="padding:6px 12px;border-radius:6px;background:#0E7470;color:#fff;font-weight:500">With variance (6)</span><span style="padding:6px 12px;border-radius:6px;border:1px solid #C4CBCA">All (231)</span><span style="padding:6px 12px;border-radius:6px;border:1px solid #C4CBCA">Recount requested (1)</span></div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.5fr) 110px 80px 80px 80px 80px 90px 100px minmax(0,1fr);font-size:13px">
+                  <sc-for list="{{ revHead }}" as="h" hint-placeholder-count="9"><div style="padding:10px 12px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645;text-align:{{ h.a }};white-space:nowrap">{{ h.l }}</div></sc-for>
+                  <sc-for list="{{ rev }}" as="r" hint-placeholder-count="6">
+                    <div style="padding:11px 12px;border-bottom:1px solid #EEF1F0;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b style="font-weight:500">{{ r.name }}</b><sc-for list="{{ r.badges }}" as="x" hint-placeholder-count="1"><span style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px 0 4px;border-radius:4px;background:{{ x.bg }};color:{{ x.fg }};font-size:11px;font-weight:600">{{ x.l }}</span></sc-for></div>
+                    <div style="padding:11px 12px;border-bottom:1px solid #EEF1F0;font-family:'JetBrains Mono';font-size:12px;display:flex;align-items:center">{{ r.batch }}</div>
+                    <div style="padding:11px 12px;border-bottom:1px solid #EEF1F0;text-align:right">{{ r.exp }}</div>
+                    <div style="padding:11px 12px;border-bottom:1px solid #EEF1F0;text-align:right">{{ r.c1 }}</div>
+                    <div style="padding:11px 12px;border-bottom:1px solid #EEF1F0;text-align:right">{{ r.c2 }}</div>
+                    <div style="padding:11px 12px;border-bottom:1px solid #EEF1F0;text-align:right;font-weight:700;color:{{ r.vc }}">{{ r.var }}</div>
+                    <div style="padding:11px 12px;border-bottom:1px solid #EEF1F0;text-align:right;font-weight:600;color:{{ r.vc }}">{{ r.val }}</div>
+                    <div style="padding:11px 12px;border-bottom:1px solid #EEF1F0;color:#3A4645">{{ r.loc }}</div>
+                    <div style="padding:11px 12px;border-bottom:1px solid #EEF1F0;color:#3A4645">{{ r.note }}</div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- Reorder -->
+            <sc-if value="{{ f.s.reorder }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px">
+                <span style="height:34px;padding:0 10px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;display:flex;align-items:center">Supplier: All ▾</span>
+                <span style="height:34px;padding:0 10px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;display:flex;align-items:center">Below reorder point ▾</span>
+                <span style="height:34px;padding:0 10px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;display:flex;align-items:center">Cover: 30 days ▾</span>
+                <span style="margin-left:auto;color:#3A4645">3 selected</span>
+                <span style="height:34px;padding:0 12px;border-radius:6px;border:1px solid #C4CBCA;background:#fff;display:flex;align-items:center;font-weight:500">→ Transfer request</span>
+                <span style="height:34px;padding:0 12px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;font-weight:500">→ Purchase request</span>
+              </div>
+              <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                <div style="display:grid;grid-template-columns:36px minmax(0,1.4fr) 80px 80px 70px 80px 100px minmax(0,1.1fr) 80px minmax(0,1.4fr);font-size:13px">
+                  <sc-for list="{{ roHead }}" as="h" hint-placeholder-count="10"><div style="padding:10px 10px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645;text-align:{{ h.a }};white-space:nowrap">{{ h.l }}</div></sc-for>
+                  <sc-for list="{{ ro }}" as="r" hint-placeholder-count="5">
+                    <div style="padding:12px 10px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;align-items:center"><span style="width:16px;height:16px;border-radius:4px;border:1.5px solid {{ r.cbd }};background:{{ r.cbg }};color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center">{{ r.ck }}</span></div>
+                    <div style="padding:12px 10px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b style="font-weight:500">{{ r.name }}</b><sc-for list="{{ r.badges }}" as="x" hint-placeholder-count="1"><span style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px 0 4px;border-radius:4px;background:{{ x.bg }};color:{{ x.fg }};font-size:11px;font-weight:600">{{ x.l }}</span></sc-for></div>
+                    <div style="padding:12px 10px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};text-align:right;font-weight:600;color:#A3201A">{{ r.oh }}</div>
+                    <div style="padding:12px 10px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};text-align:right">{{ r.tr }}</div>
+                    <div style="padding:12px 10px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};text-align:right">{{ r.po }}</div>
+                    <div style="padding:12px 10px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};text-align:right;color:#66706F">{{ r.rp }}</div>
+                    <div style="padding:12px 10px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }}"><span style="height:30px;border:1px solid #0E7470;border-radius:6px;padding:0 8px;display:flex;align-items:center;justify-content:flex-end;font-weight:700;color:#0B5F5C">{{ r.sug }}</span></div>
+                    <div style="padding:12px 10px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;flex-direction:column"><span>{{ r.sup }}</span><span style="font-size:12px;color:#66706F">{{ r.lead }}</span></div>
+                    <div style="padding:12px 10px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};text-align:right">{{ r.cost }}</div>
+                    <div style="padding:12px 10px;border-bottom:1px solid #EEF1F0;background:{{ r.bg }};display:flex;flex-direction:column;gap:4px"><sc-for list="{{ r.src }}" as="s" hint-placeholder-count="1"><span style="display:flex;gap:6px;align-items:center;font-size:12px"><span style="font-family:'JetBrains Mono';font-size:11px;padding:1px 5px;border-radius:4px;background:#E4EEFA;color:#1F5FA8">{{ s.br }}</span>{{ s.t }}</span></sc-for><span style="font-size:12px;color:#8C9594">{{ r.noSrc }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- Shelf locations -->
+            <sc-if value="{{ f.s.shelves }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:300px minmax(0,1fr);gap:16px;align-items:start">
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:8px;display:flex;flex-direction:column;font-size:13px">
+                  <sc-for list="{{ shelfTree }}" as="s" hint-placeholder-count="8"><div style="padding:8px 10px;padding-left:{{ s.pad }}px;border-radius:6px;background:{{ s.bg }};color:{{ s.fg }};font-weight:{{ s.w }};display:flex;justify-content:space-between"><span>{{ s.l }}</span><span style="color:#66706F;font-weight:400">{{ s.n }}</span></div></sc-for>
+                  <span style="padding:10px;color:#0E7470;font-weight:500">+ Add location</span>
+                </div>
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                  <div style="padding:14px 18px;border-bottom:1px solid #EEF1F0;display:flex;justify-content:space-between;align-items:center"><div style="display:flex;flex-direction:column"><b style="font-size:15px">A2 · Analgesics, bay 2</b><span style="font-size:12px;color:#66706F">Code LOC-PP1-A2 · 4 levels · 18 items</span></div><div style="display:flex;gap:8px"><span style="height:34px;padding:0 12px;border-radius:6px;border:1px solid #C4CBCA;display:flex;align-items:center;font-size:13px">Print shelf labels</span><span style="height:34px;padding:0 12px;border-radius:6px;border:1px solid #C4CBCA;display:flex;align-items:center;font-size:13px">Deactivate</span></div></div>
+                  <div style="display:grid;grid-template-columns:80px minmax(0,1.6fr) 120px 100px 90px;font-size:13px">
+                    <sc-for list="{{ shelfHead }}" as="h" hint-placeholder-count="5"><div style="padding:10px 14px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645">{{ h }}</div></sc-for>
+                    <sc-for list="{{ shelfItems }}" as="r" hint-placeholder-count="5"><div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;font-family:'JetBrains Mono';font-size:12px">{{ r.lv }}</div><div style="padding:11px 14px;border-bottom:1px solid #EEF1F0">{{ r.name }}</div><div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;font-family:'JetBrains Mono';font-size:12px">{{ r.batch }}</div><div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;text-align:right;font-weight:600">{{ r.qty }}</div><div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;color:#0E7470;font-weight:500">Move</div></sc-for>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- Recall -->
+            <sc-if value="{{ f.s.recall }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff;border:2px solid #17201F;border-radius:10px;overflow:hidden">
+                <div style="padding:14px 18px;background:#17201F;color:#fff;display:flex;gap:12px;align-items:center"><span style="display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 8px 0 6px;border-radius:4px;background:#fff;color:#17201F;font-size:12px;font-weight:600">↺ Recalled</span><b style="font-size:16px">RC-2026-004 · Omeprazole 20 mg · batches OMP-2611, OMP-2612</b><span style="margin-left:auto;font-size:13px;opacity:.85">Source: MOH notice 118/26 · 30/10/2026</span></div>
+                <div style="padding:16px 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+                  <sc-for list="{{ recallKpi }}" as="k" hint-placeholder-count="4"><div style="background:#F6F8F7;border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#66706F">{{ k.l }}</span><b style="font-size:20px;color:{{ k.c }}">{{ k.v }}</b></div></sc-for>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start">
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                  <div style="padding:12px 18px;border-bottom:1px solid #EEF1F0"><b style="font-size:14px">Stock by branch</b></div>
+                  <div style="display:grid;grid-template-columns:90px 120px 100px 110px minmax(0,1fr);font-size:13px">
+                    <sc-for list="{{ recallHead }}" as="h" hint-placeholder-count="5"><div style="padding:10px 14px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645">{{ h }}</div></sc-for>
+                    <sc-for list="{{ recallRows }}" as="r" hint-placeholder-count="4"><div style="padding:11px 14px;border-bottom:1px solid #EEF1F0"><span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#EEF1F0">{{ r.br }}</span></div><div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;font-family:'JetBrains Mono';font-size:12px">{{ r.batch }}</div><div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;text-align:right;font-weight:600">{{ r.qty }}</div><div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;text-align:right">{{ r.done }}</div><div style="padding:11px 14px;border-bottom:1px solid #EEF1F0"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 10px 2px 8px;border-radius:999px;background:{{ r.st.bg }};color:{{ r.st.fg }};border:1px solid {{ r.st.bd }};font-size:12px;font-weight:500;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:{{ r.st.dot }}"></span>{{ r.st.l }}</span></div></sc-for>
+                  </div>
+                </div>
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                  <div style="padding:12px 18px;border-bottom:1px solid #EEF1F0;display:flex;justify-content:space-between"><b style="font-size:14px">Customers who bought (since 01/06/2026)</b><span style="font-size:12px;color:#66706F">23</span></div>
+                  <sc-for list="{{ recallCust }}" as="c" hint-placeholder-count="4"><div style="padding:10px 18px;border-top:1px solid #F1F3F2;display:flex;gap:10px;align-items:center;font-size:13px"><div style="flex:1;display:flex;flex-direction:column"><b style="font-weight:500">{{ c.name }}</b><span style="font-size:12px;color:#66706F">{{ c.meta }}</span></div><span style="font-size:12px;color:{{ c.sc }};font-weight:500">{{ c.st }}</span></div></sc-for>
+                  <div style="padding:12px 18px;border-top:1px solid #EEF1F0;display:flex;gap:8px"><span style="height:34px;padding:0 12px;border-radius:6px;border:1px solid #C4CBCA;display:flex;align-items:center;font-size:13px">Export list</span><span style="height:34px;padding:0 12px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;font-size:13px;font-weight:500">Send SMS notice</span></div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+
+        <!-- Release quarantine KM -->
+        <sc-if value="{{ f.s.release }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;background:rgba(23,32,31,.42)"></div>
+          <div style="position:absolute;top:150px;left:50%;transform:translateX(-50%);width:520px;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;font-family:'Kantumruy Pro','Inter'">
+            <div style="padding:18px 22px;border-bottom:1px solid #EEF1F0;display:flex;flex-direction:column;gap:6px"><span style="align-self:flex-start;display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 7px 0 5px;border-radius:4px;background:#9A4A0A;color:#fff;font-size:12px;font-weight:600">⊘ ដាក់ដាច់ដោយឡែក</span><b style="font-size:17px;line-height:28px">ដោះលែងពីការដាក់ដាច់ដោយឡែក</b><span style="font-size:13px;color:#66706F;font-family:Inter">ORS sachet · ORS-2712 · 45 sachet · SR1</span></div>
+            <div style="padding:18px 22px;display:flex;flex-direction:column;gap:12px;font-size:14px;line-height:24px">
+              <div style="padding:10px 12px;background:#F6F8F7;border-radius:8px;font-size:13px;line-height:22px">ដាក់ដាច់ដោយឡែកដោយ៖ ការប្រគល់វិញ SR1-RET-0021 · 28/10/2026<br>មូលហេតុដើម៖ កញ្ចប់បើករួច</div>
+              <label style="display:flex;flex-direction:column;gap:6px;font-size:13px"><span style="font-weight:500">លទ្ធផលពិនិត្យ</span><span style="display:flex;flex-direction:column;gap:6px"><span style="display:flex;gap:8px;align-items:center"><span style="width:16px;height:16px;border-radius:50%;border:5px solid #0E7470"></span>ល្អ · ត្រឡប់ទៅលក់វិញ</span><span style="display:flex;gap:8px;align-items:center;color:#3A4645"><span style="width:16px;height:16px;border-radius:50%;border:1.5px solid #9AA6A5"></span>ខូច · ប្តូរទៅការខូចខាត</span><span style="display:flex;gap:8px;align-items:center;color:#3A4645"><span style="width:16px;height:16px;border-radius:50%;border:1.5px solid #9AA6A5"></span>ប្រគល់ទៅអ្នកផ្គត់ផ្គង់</span></span></label>
+              <label style="display:flex;flex-direction:column;gap:6px;font-size:13px"><span style="font-weight:500">មូលហេតុ · ត្រូវការ</span><span style="min-height:56px;border:2px solid #0E7470;box-shadow:0 0 0 3px #CDEBE8;border-radius:6px;padding:8px 12px">កញ្ចប់ ៤៥ មិនទាន់បើក ត្រាសុវត្ថិភាពនៅល្អ</span></label>
+              <span style="font-size:13px;color:#3A4645">ត្រូវការ PIN ឱសថការី។ អ្នកគិតលុយមិនអាចដោះលែងបានទេ។</span>
+            </div>
+            <div style="padding:14px 22px;background:#F6F8F7;display:flex;gap:8px;justify-content:flex-end"><span style="height:42px;padding:0 16px;border-radius:6px;border:1px solid #C4CBCA;background:#fff;display:flex;align-items:center;font-size:14px;font-weight:500">បោះបង់</span><span style="height:42px;padding:0 16px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;font-size:14px;font-weight:600">ដោះលែងដោយ PIN</span></div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="font-size:13px;color:#3A4645;max-width:1000px;line-height:20px">{{ f.note }}</div>
+    </div>
+  </sc-for>
+  </section>
+
+  <section style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+  <sc-for list="{{ mob }}" as="m" hint-placeholder-count="2">
+    <div id="{{ m.id }}" style="display:flex;flex-direction:column;gap:10px;width:390px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">{{ m.id }}</span><span style="font-size:14px;font-weight:600">{{ m.frameName }}</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><span style="flex:none;white-space:nowrap;font-size:12px;line-height:18px;background:#fff;border:1px solid #DDE2E1;padding:2px 8px;border-radius:4px">Role: {{ m.roleNote }}</span><span style="font-family:'JetBrains Mono';font-size:11px;color:#0B5F5C;background:#DDF1EF;padding:3px 8px;border-radius:4px">{{ m.api }}</span></div>
+      <div style="width:390px;height:844px;background:#F6F8F7;border-radius:36px;border:10px solid #17201F;overflow:hidden;display:flex;flex-direction:column;font-family:{{ m.font }}">
+        <div style="height:32px;flex:none;background:#fff;display:flex;justify-content:space-between;align-items:center;padding:0 20px;font-size:12px;font-weight:600;font-family:Inter"><span>07:42</span><span>▴ ◉ ▮</span></div>
+        <div style="flex:none;background:#fff;padding:6px 14px 12px;border-bottom:1px solid #DDE2E1;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="width:44px;height:44px;border-radius:8px;border:1px solid #C4CBCA;display:flex;align-items:center;justify-content:center">‹</span><div style="display:flex;flex-direction:column;flex:1;min-width:0"><b style="font-size:16px;line-height:{{ m.lh }}px">{{ m.title }}</b><span style="font-size:12px;color:#66706F;font-family:Inter">ST-PP1-013 · Shelf A2</span></div><span style="font-size:12px;padding:3px 8px;border-radius:999px;background:{{ m.pBg }};color:{{ m.pFg }};font-weight:500;white-space:nowrap">{{ m.pill }}</span></div>
+          <div style="height:6px;border-radius:3px;background:#EEF1F0;overflow:hidden"><span style="display:block;height:100%;width:{{ m.pct }}%;background:#0E7470"></span></div>
+          <span style="font-size:12px;color:#3A4645">{{ m.progress }}</span>
+        </div>
+        <div style="flex:1;min-height:0;overflow:hidden;padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+          <div style="height:120px;flex:none;border-radius:12px;background:repeating-linear-gradient(135deg,#1A2222 0 8px,#202A2A 8px 16px);position:relative;display:flex;align-items:center;justify-content:center"><div style="width:220px;height:60px;border:2px solid #2BB3A6;border-radius:6px;position:relative"><span style="position:absolute;left:10px;right:10px;top:29px;height:2px;background:#FF5A4E"></span></div><span style="position:absolute;bottom:6px;font-family:'JetBrains Mono';font-size:10px;color:#8FA5A3">camera · scan barcode</span></div>
+          <div style="flex:none;background:#fff;border:2px solid #0E7470;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b style="font-size:16px;font-family:Inter">{{ m.item }}</b><sc-for list="{{ m.badges }}" as="x" hint-placeholder-count="1"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 6px 0 4px;border-radius:4px;background:{{ x.bg }};color:{{ x.fg }};font-size:11px;font-weight:600">{{ x.l }}</span></sc-for></div>
+            <span style="font-size:13px;font-weight:500">{{ m.batchLabel }}</span>
+            <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ m.batches }}" as="b" hint-placeholder-count="2"><span style="height:44px;padding:0 12px;border-radius:8px;border:{{ b.bw }}px solid {{ b.bd }};background:{{ b.bg }};display:flex;flex-direction:column;justify-content:center;font-size:12px;font-family:Inter"><b style="font-family:'JetBrains Mono';font-size:12px">{{ b.code }}</b><span style="color:#66706F">{{ b.exp }}</span></span></sc-for><span style="height:44px;padding:0 12px;border-radius:8px;border:1px dashed #9AA6A5;display:flex;align-items:center;font-size:12px;color:#3A4645">{{ m.newBatch }}</span></div>
+            <span style="font-size:13px;font-weight:500">{{ m.qtyLabel }}</span>
+            <div style="display:flex;gap:8px;align-items:center"><span style="flex:1;height:56px;border:2px solid #0E7470;box-shadow:0 0 0 3px #CDEBE8;border-radius:8px;display:flex;align-items:center;justify-content:flex-end;padding:0 14px;font-size:28px;font-weight:700;font-family:Inter">{{ m.qty }}</span><span style="height:56px;padding:0 14px;border-radius:8px;border:1px solid #C4CBCA;display:flex;align-items:center;font-size:14px">{{ m.unit }} ▾</span></div>
+            <span style="font-size:12px;color:#66706F;line-height:20px">{{ m.hint }}</span>
+          </div>
+          <sc-if value="{{ m.second }}" hint-placeholder-val="{{ false }}"><div style="flex:none;background:#FFFBF0;border:1px solid #E9B949;border-radius:10px;padding:10px 12px;font-size:13px;line-height:20px;color:#5C3B00">First count by Sok Dara is hidden. If counts differ, a manager sees both and decides.</div></sc-if>
+        </div>
+        <div style="flex:none;background:#fff;border-top:1px solid #DDE2E1;padding:12px 14px 18px;display:grid;grid-template-columns:1fr 1.6fr;gap:8px"><span style="height:52px;border-radius:10px;border:1px solid #C4CBCA;display:flex;align-items:center;justify-content:center;font-size:14px">{{ m.skip }}</span><span style="height:52px;border-radius:10px;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600">{{ m.save }}</span></div>
+      </div>
+    </div>
+  </sc-for>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const tog = lang => lang === 'km' ? { kmBg: '#0E7470', kmFg: '#fff', enBg: '#fff', enFg: '#3A4645' } : { kmBg: '#fff', kmFg: '#3A4645', enBg: '#0E7470', enFg: '#fff' };
+    const nav = ['▦', '◎', '℞', '◆', '▤', '⇄', '☰', '▥', '⚙'].map((icon, i) => ({ icon, bg: i === 4 ? '#DDF1EF' : 'transparent', fg: i === 4 ? '#0B5F5C' : '#3A4645' }));
+    const btn = (label, kind) => kind === 'p' ? { label, bg: '#0E7470', fg: '#fff', bd: '#0E7470' } : kind === 'd' ? { label, bg: '#fff', fg: '#B42318', bd: '#E8A39C' } : { label, bg: '#fff', fg: '#17201F', bd: '#C4CBCA' };
+    const T = { neutral: { fg: '#3A4645', bg: '#EEF1F0', bd: '#DDE2E1', dot: '#8C9594' }, info: { fg: '#1F5FA8', bg: '#E4EEFA', bd: '#C3D7F0', dot: '#1F5FA8' }, primary: { fg: '#0B5F5C', bg: '#DDF1EF', bd: '#B8E0DC', dot: '#13908A' }, warning: { fg: '#7A4F00', bg: '#FDF1D6', bd: '#F0D48E', dot: '#D99A1E' }, success: { fg: '#1E6B3F', bg: '#E3F3E9', bd: '#BFE2CC', dot: '#2E9B5C' }, danger: { fg: '#A3201A', bg: '#FDE8E6', bd: '#F4C3BD', dot: '#D23C2F' } };
+    const st = (l, t) => ({ ...T[t], l });
+    const pill = (label, t) => ({ ...T[t], label });
+    const B = { rx: { l: '℞ Rx', bg: '#3438A0', fg: '#fff' }, ctl: { l: '◆ Controlled', bg: '#A01D52', fg: '#fff' }, q: { l: '⊘ Quarantined', bg: '#9A4A0A', fg: '#fff' }, rc: { l: '↺ Recalled', bg: '#17201F', fg: '#fff' }, hv: { l: '$ High value', bg: '#EEF1F0', fg: '#3A4645' } };
+    const S = { batches: 0, release: 0, create: 0, review: 0, reorder: 0, shelves: 0, recall: 0 };
+    const F = o => ({ lang: 'en', user: 'Chan Sophea', ini: 'CS', role: 'Branch manager', search: 'Search…', br: 'PP1', brName: 'Toul Kork', hasPill: false, pill: pill('', 'primary'), ...o, s: { ...S, ...o.s }, ...tog(o.lang || 'en'), lh: o.lang === 'km' ? 22 : 18, titleLh: o.lang === 'km' ? 44 : 36 });
+
+    const chipsFor = lang => (lang === 'km' ? ['≤ 30 ថ្ងៃ', '≤ 90 ថ្ងៃ', '≤ 180 ថ្ងៃ', 'ផុតកំណត់', 'ដាក់ដាច់ដោយឡែក', 'បានរំលឹក'] : ['≤ 30 days', '≤ 90 days', '≤ 180 days', 'Expired', 'Quarantined', 'Recalled']).map((label, i) => {
+      const on = i === 1;
+      const n = [4, 18, 41, 3, 2, 2][i];
+      const red = i === 3;
+      return { label, n, bg: on ? '#0E7470' : '#fff', fg: on ? '#fff' : red ? '#A3201A' : '#17201F', bd: on ? '#0E7470' : red ? '#F4C3BD' : '#C4CBCA', w: on ? 600 : 500, nBg: on ? 'rgba(255,255,255,.2)' : '#EEF1F0' };
+    });
+    const bHeadFor = lang => (lang === 'km' ? [['ឱសថ', 'left'], ['ឡូត៍', 'left'], ['ផុតកំណត់', 'left'], ['ថ្ងៃនៅសល់', 'right'], ['ចំនួន', 'right'], ['តម្លៃ', 'right'], ['ស្ថានភាព', 'left'], ['', 'left']] : [['Medicine', 'left'], ['Batch', 'left'], ['Expiry', 'left'], ['Days left', 'right'], ['Qty', 'right'], ['Value', 'right'], ['Status', 'left'], ['', 'left']]).map(([l, a]) => ({ l, a }));
+
+    const frames = [
+      F({ id: '8a', frameName: 'Stock / Batches & expiry / Desktop 1366 / EN', roleNote: 'Pharmacist, Manager, Owner · value column needs cost permission', api: 'GET /api/inventory/v1/batches?expiring_within=90', crumb: 'Stock  /  Batches & expiry', title: 'Batches & expiry', actions: [btn('Export', 's'), btn('Create transfer', 'p')], s: { batches: 1 }, chips: chipsFor('en'), bHead: bHeadFor('en'), findBatch: 'Medicine or batch', note: 'Filter chips carry counts. Days-left uses the same amber/red as the badges. Each row offers the single most useful next action.' }),
+      F({ id: '8b', lang: 'km', user: 'លឹម ស្រីនាង', ini: 'LN', role: 'ឱសថការី', search: 'ស្វែងរក…', br: 'SR1', brName: 'Siem Reap', frameName: 'Stock / Release quarantine / Desktop 1366 / KM', roleNote: 'Pharmacist only', api: 'POST /api/inventory/v1/quarantine/release', crumb: 'ស្តុក  /  ឡូត៍ និងថ្ងៃផុតកំណត់', title: 'ឡូត៍ និងថ្ងៃផុតកំណត់', actions: [btn('នាំចេញ', 's')], s: { batches: 1, release: 1 }, chips: chipsFor('km'), bHead: bHeadFor('km'), findBatch: 'ឱសថ ឬឡូត៍', note: 'Release requires inspection outcome, typed reason and pharmacist PIN.' }),
+      F({ id: '8c', frameName: 'Stock / Stock take – create / Desktop 1366 / EN', roleNote: 'Manager, Owner', api: 'POST /api/stockcount/v1/counts', crumb: 'Stock  /  Stock Take  /  New', title: 'New stock take', actions: [], s: { create: 1 }, note: 'Four scope types. Blind count and second-count rules are set here and cannot change once counting starts.' }),
+      F({ id: '8d', frameName: 'Stock / Stock take – review / Desktop 1366 / EN', roleNote: 'Manager reviews · Owner approves above threshold', api: 'GET /api/stockcount/v1/counts/{count_id}/review · POST …/approve', crumb: 'Stock  /  Stock Take  /  ST-PP1-013', title: 'ST-PP1-013 · Shelf A1–A6', hasPill: true, pill: pill('Review', 'info'), actions: [btn('Request recount', 's'), btn('Send to owner', 'p')], s: { review: 1 }, note: 'Expected quantity appears only now, after counting. Variance value is shown to users with cost permission.' }),
+      F({ id: '8e', frameName: 'Stock / Re-order list / Desktop 1366 / EN', roleNote: 'Manager, Owner · last cost needs cost permission', api: 'GET /api/inventory/v1/reorder-lists/latest?branch_id= · POST …/{list_id}/purchase-requests · POST …/{list_id}/transfer-requests', crumb: 'Stock  /  Re-order list', title: 'Re-order list', actions: [], s: { reorder: 1 }, note: 'Suggested qty = cover days × average daily sales − on hand − in transit − on PO. Transfer sources list branches with surplus and no near-expiry risk.' }),
+      F({ id: '8f', frameName: 'Stock / Shelf locations / Desktop 1366 / EN', roleNote: 'Manager, Owner', api: 'GET /api/inventory/v1/shelf-locations', crumb: 'Stock  /  Shelf locations', title: 'Shelf locations', actions: [btn('+ New location', 'p')], s: { shelves: 1 }, note: 'Locations are used for counting scope and pick lists.' }),
+      F({ id: '8g', frameName: 'Stock / Recall / Desktop 1366 / EN', roleNote: 'Pharmacist, Manager, Owner', api: 'GET /api/inventory/v1/recalls/{recall_id} · ⚠ API pending', br: 'ALL', brName: 'All branches', user: 'Heng Sovann', ini: 'HS', role: 'Owner', crumb: 'Stock  /  Recall  /  RC-2026-004', title: 'Recall RC-2026-004', hasPill: true, pill: pill('In progress', 'warning'), actions: [btn('Close recall', 's')], s: { recall: 1 }, note: 'Recalled batches are blocked in POS immediately. Progress per branch and customer outreach list in one place.' }),
+    ];
+
+    const batches = [
+      ['Paracetamol 500 mg', [], 'PCM-2611', '30/11/2026', '30', '1,240 tab', '$124.00', st('Near expiry', 'warning'), 'Transfer'],
+      ['Omeprazole 20 mg', [B.rc], 'OMP-2612', '15/12/2026', '45', '120 cap', '$18.00', st('Recalled', 'danger'), 'Open recall'],
+      ['ORS sachet', [B.q], 'ORS-2712', '31/12/2027', '426', '45 sachet', '$9.00', st('Quarantined', 'warning'), 'Release'],
+      ['Diazepam 5 mg', [B.ctl], 'DZP-2702', '28/02/2027', '120', '170 tab', '$25.50', st('Near expiry', 'warning'), 'Transfer'],
+      ['Amoxicillin 500 mg', [B.rx], 'AMX-2702', '28/02/2027', '120', '340 cap', '$51.00', st('Near expiry', 'warning'), 'Promote'],
+      ['Amoxicillin 500 mg', [B.rx], 'AMX-2609', '30/09/2026', 'Expired', '60 cap', '$9.00', st('Expired', 'danger'), 'Write off'],
+      ['Cetirizine 10 mg', [], 'CTZ-2701', '31/01/2027', '92', '410 tab', '$32.80', st('Near expiry', 'warning'), 'Transfer'],
+    ].map(([name, badges, batch, exp, days, qty, value, s, act]) => {
+      const bad = days === 'Expired' || s.l === 'Recalled';
+      const d = parseInt(days, 10);
+      return { name, badges, batch, exp, days: days === 'Expired' ? 'Expired' : days + ' d', qty, value, st: s, act, ec: bad ? '#B42318' : d <= 180 ? '#7A4F00' : '#17201F', ew: bad || d <= 180 ? 600 : 400 };
+    });
+
+    const stepsL = ['Create', 'Counting', 'Second count', 'Review', 'Approve'];
+    const stSteps = stepsL.map((l, i) => i === 0 ? { l, n: 1, bg: '#fff', fg: '#0E7470', bd: '#0E7470', line: '#DDE2E1', w: 600 } : { l, n: i + 1, bg: '#fff', fg: '#8C9594', bd: '#C4CBCA', line: i === 4 ? 'transparent' : '#DDE2E1', w: 400 });
+    const scopes = [
+      { t: 'Full', d: 'Every item and batch in the branch', n: '1,284 items', on: 0 },
+      { t: 'Category', d: 'One or more categories', n: 'pick categories', on: 0 },
+      { t: 'Location', d: 'Shelves or bays', n: 'Shelf A1–A6 · 142 items', on: 1 },
+      { t: 'Controlled only', d: 'All controlled drugs, always second count', n: '6 items', on: 0 },
+    ].map(s => ({ ...s, bw: s.on ? 2 : 1, bd: s.on ? '#0E7470' : '#DDE2E1', bg: s.on ? '#EFF8F7' : '#fff', rb: s.on ? '5px solid #0E7470' : '1.5px solid #9AA6A5' }));
+
+    const revKpi = [{ l: 'Lines counted', v: '231 / 231', c: '#17201F' }, { l: 'With variance', v: '6', c: '#7A4F00' }, { l: 'Over', v: '+$8.40', c: '#1E6B3F' }, { l: 'Short', v: '−$40.00', c: '#A3201A' }, { l: 'Net variance', v: '−$31.60', c: '#A3201A' }];
+    const rev = [
+      ['Diazepam 5 mg', [B.ctl], 'DZP-2702', '170', '169', '169', '−1', '−$0.15', 'A6-1', '2 counts agree'],
+      ['Omeprazole 20 mg', [B.hv], 'OMP-2703', '60', '52', '52', '−8', '−$12.00', 'A2-3', 'Possible theft · CCTV requested'],
+      ['Paracetamol 500 mg', [], 'PCM-2611', '1,240', '1,200', '—', '−40', '−$4.00', 'A1-2', '4 strips found damaged'],
+      ['Cetirizine 10 mg', [], 'CTZ-2701', '410', '440', '—', '+30', '+$2.40', 'A2-1', 'Previous return not posted'],
+      ['First-aid kit', [], '—', '12', '9', '9', '−3', '−$23.85', 'A5-1', ''],
+      ['ORS sachet', [], 'ORS-2801', '200', '230', '—', '+30', '+$6.00', 'A3-4', 'Recount requested'],
+    ].map(([name, badges, batch, exp, c1, c2, v, val, loc, note]) => ({ name, badges, batch, exp, c1, c2, var: v, val, loc, note, vc: v.startsWith('+') ? '#1E6B3F' : '#A3201A' }));
+
+    const ro = [
+      { name: 'Cetirizine 10 mg', badges: [], oh: '12', tr: '0', po: '0', rp: '50', sug: '300', sup: 'Zuellig Pharma', lead: '3 days lead', cost: '$0.08', src: [{ br: 'PP2', t: '380 spare · exp 08/2028' }], sel: 1 },
+      { name: 'Amoxicillin 500 mg', badges: [B.rx], oh: '40', tr: '0', po: '200', rp: '100', sug: '100', sup: 'DKSH Cambodia', lead: '5 days lead', cost: '$0.15', src: [], sel: 1 },
+      { name: 'ORS sachet', badges: [], oh: '45', tr: '60', po: '0', rp: '60', sug: '120', sup: 'Phnom Penh Medical', lead: '2 days lead', cost: '$0.20', src: [{ br: 'SR1', t: '110 spare' }], sel: 1 },
+      { name: 'Omeprazole 20 mg', badges: [], oh: '52', tr: '0', po: '0', rp: '80', sug: '150', sup: 'Zuellig Pharma', lead: '3 days lead', cost: '$1.50', src: [], sel: 0 },
+      { name: 'Diazepam 5 mg', badges: [B.ctl], oh: '169', tr: '0', po: '0', rp: '200', sug: '100', sup: 'DKSH Cambodia', lead: 'controlled · 10 days', cost: '$0.15', src: [], sel: 0 },
+    ].map(r => ({ ...r, noSrc: r.src.length ? '' : 'No branch has surplus', bg: r.sel ? '#EFF8F7' : '#fff', cbd: r.sel ? '#0E7470' : '#9AA6A5', cbg: r.sel ? '#0E7470' : '#fff', ck: r.sel ? '✓' : '' }));
+
+    const shelfTree = [
+      ['Shop floor', '', 0, 0], ['A1 · Cold & flu', '22', 1, 0], ['A2 · Analgesics, bay 2', '18', 1, 1], ['A3 · Rehydration', '9', 1, 0], ['A5 · First aid', '14', 1, 0],
+      ['Dispensary (Rx)', '', 0, 0], ['A6 · Controlled safe', '6', 1, 0], ['R1–R4 · Rx shelves', '84', 1, 0], ['Back store', '', 0, 0], ['Q1 · Quarantine', '3', 1, 0],
+    ].map(([l, n, lvl, on]) => ({ l, n, pad: 10 + lvl * 16, bg: on ? '#EFF8F7' : 'transparent', fg: on ? '#0B5F5C' : lvl ? '#17201F' : '#66706F', w: on ? 600 : lvl ? 400 : 600 }));
+    const shelfItems = [
+      { lv: 'A2-1', name: 'Cetirizine 10 mg', batch: 'CTZ-2701', qty: '410 tab' }, { lv: 'A2-1', name: 'Loratadine 10 mg', batch: 'LOR-2709', qty: '220 tab' },
+      { lv: 'A2-2', name: 'Paracetamol 500 mg', batch: 'PCM-2803', qty: '600 tab' }, { lv: 'A2-3', name: 'Omeprazole 20 mg', batch: 'OMP-2703', qty: '52 cap' },
+      { lv: 'A2-4', name: 'Ibuprofen 400 mg', batch: 'IBU-2711', qty: '300 tab' },
+    ];
+    const recallKpi = [{ l: 'Units affected', v: '420 cap', c: '#17201F' }, { l: 'Pulled & quarantined', v: '300 cap', c: '#1E6B3F' }, { l: 'Still on shelf', v: '120 cap', c: '#A3201A' }, { l: 'Sold since 01/06', v: '23 customers', c: '#7A4F00' }];
+    const recallRows = [
+      { br: 'PP1', batch: 'OMP-2612', qty: '120', done: '0', st: st('Pending pull', 'danger') },
+      { br: 'PP2', batch: 'OMP-2611', qty: '180', done: '180', st: st('Quarantined', 'warning') },
+      { br: 'SR1', batch: 'OMP-2611', qty: '120', done: '120', st: st('Returned to supplier', 'success') },
+    ];
+    const recallCust = [
+      { name: 'Heng Rathana', meta: '096 712 440 · PP1 · 2 boxes · 12/10/2026', st: 'SMS sent', sc: '#1E6B3F' },
+      { name: 'Keo Malis', meta: '012 888 204 · PP1 · 1 box · 24/10/2026', st: 'Not contacted', sc: '#A3201A' },
+      { name: 'Sen Sok Clinic', meta: '023 990 120 · PP2 · 10 boxes · 03/09/2026', st: 'Called', sc: '#1E6B3F' },
+      { name: 'Walk-in (no phone)', meta: '17 sales · cannot contact', st: '—', sc: '#8C9594' },
+    ];
+
+    const mob = [
+      { id: '8h', font: "'Kantumruy Pro','Inter'", frameName: 'Stock / Stock take – blind count / Mobile 390 / KM', roleNote: 'Cashier, Pharmacist, Manager (assigned counters)', api: 'GET /api/stockcount/v1/counts/{count_id}/lookup · POST …/entries', title: 'រាប់ស្តុក', pill: 'កំពុងរាប់', pBg: '#E4EEFA', pFg: '#1F5FA8', pct: 46, progress: '៦៥ / ១៤២ មុខ · បានរាប់ដោយ សុខ ដារ៉ា', lh: 26, item: 'Paracetamol 500 mg', badges: [], batchLabel: 'ជ្រើសឡូត៍', batches: [{ code: 'PCM-2611', exp: '11/2026', on: 1 }, { code: 'PCM-2803', exp: '03/2028' }], newBatch: '+ ឡូត៍ថ្មី', qtyLabel: 'ចំនួនដែលរាប់បាន', qty: '1,200', unit: 'គ្រាប់', hint: 'មិនបង្ហាញចំនួនរំពឹងទុកទេ (រាប់ងងឹត)។ រាប់ជាគ្រាប់ ឬប្តូរឯកតា។', second: false, skip: 'រំលង', save: 'រក្សាទុក · បន្ទាប់' },
+      { id: '8i', font: "'Inter','Kantumruy Pro'", frameName: 'Stock / Stock take – second count / Mobile 390 / EN', roleNote: 'Second counter (different user)', api: 'POST /api/stockcount/v1/counts/{count_id}/recount · POST …/entries', title: 'Second count', pill: 'Counting · round 2', pBg: '#FDF1D6', pFg: '#7A4F00', pct: 33, progress: '6 of 18 controlled & high-value lines', lh: 22, item: 'Diazepam 5 mg', badges: [B.ctl], batchLabel: 'Batch', batches: [{ code: 'DZP-2702', exp: '02/2027', on: 1 }], newBatch: '+ Other batch', qtyLabel: 'Counted quantity', qty: '169', unit: 'tab', hint: 'Count individual tablets. Opened strips count as loose tablets.', second: true, skip: 'Skip', save: 'Save · next' },
+    ].map(m => ({ ...m, batches: m.batches.map(b => ({ ...b, bw: b.on ? 2 : 1, bd: b.on ? '#0E7470' : '#C4CBCA', bg: b.on ? '#EFF8F7' : '#fff' })) }));
+
+    return {
+      frames, nav, batches, stSteps, scopes, revKpi, rev, ro, shelfTree, shelfItems, recallKpi, recallRows, recallCust, mob,
+      revHead: [['Medicine', 'left'], ['Batch', 'left'], ['Expected', 'right'], ['Count 1', 'right'], ['Count 2', 'right'], ['Variance', 'right'], ['Value', 'right'], ['Location', 'left'], ['Note', 'left']].map(([l, a]) => ({ l, a })),
+      roHead: [['', 'left'], ['Medicine', 'left'], ['On hand', 'right'], ['In transit', 'right'], ['On PO', 'right'], ['Reorder at', 'right'], ['Suggested', 'right'], ['Supplier', 'left'], ['Last cost', 'right'], ['Transfer sources', 'left']].map(([l, a]) => ({ l, a })),
+      shelfHead: ['Level', 'Medicine', 'Batch', 'Qty', ''],
+      recallHead: ['Branch', 'Batch', 'Units', 'Pulled', 'Status'],
+    };
+  }
+}
+</script>
+</body>
+</html>

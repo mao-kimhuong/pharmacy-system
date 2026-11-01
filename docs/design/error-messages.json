@@ -1,0 +1,70 @@
+{
+  "$source": "Design System.dc.html §13 errors",
+  "messages": {
+    "OUT_OF_STOCK": {
+      "severity": "hard_stop",
+      "en": "Not enough stock in this branch.",
+      "km": "ស្តុកមិនគ្រប់គ្រាន់នៅសាខានេះទេ។"
+    },
+    "CREDIT_LIMIT_EXCEEDED": {
+      "severity": "warning",
+      "en": "This sale is over the customer's credit limit.",
+      "km": "ការលក់នេះលើសដែនកំណត់ឥណទានរបស់អតិថិជន។"
+    },
+    "RX_REQUIRED": {
+      "severity": "warning",
+      "en": "This medicine needs a linked prescription.",
+      "km": "ឱសថនេះត្រូវការភ្ជាប់វេជ្ជបញ្ជា។"
+    },
+    "PHARMACIST_REQUIRED": {
+      "severity": "warning",
+      "en": "A pharmacist must complete this item.",
+      "km": "ត្រូវការឱសថការីដើម្បីបញ្ចប់មុខទំនិញនេះ។"
+    },
+    "RX_QUANTITY_EXCEEDED": {
+      "severity": "hard_stop",
+      "en": "Quantity is more than the prescription has left.",
+      "km": "បរិមាណលើសចំនួននៅសល់ក្នុងវេជ្ជបញ្ជា។"
+    },
+    "DISCOUNT_APPROVAL_REQUIRED": {
+      "severity": "warning",
+      "en": "Discount is above your limit. A manager must approve with PIN.",
+      "km": "ការបញ្ចុះតម្លៃលើសសិទ្ធិរបស់អ្នក។ អ្នកគ្រប់គ្រងត្រូវអនុម័តដោយ PIN។"
+    },
+    "BELOW_COST": {
+      "severity": "hard_stop",
+      "en": "Price is below cost. This sale is blocked.",
+      "km": "តម្លៃទាបជាងថ្លៃដើម។ មិនអាចលក់បានទេ។"
+    },
+    "HAMPER_NOT_STOCKED": {
+      "severity": "hard_stop",
+      "en": "One or more hamper items are out of stock.",
+      "km": "ទំនិញក្នុងកញ្ចប់មួយ ឬច្រើនអស់ពីស្តុក។"
+    },
+    "PERIOD_LOCKED": {
+      "severity": "hard_stop",
+      "en": "This period is closed and cannot be changed.",
+      "km": "រយៈពេលនេះត្រូវបានបិទ មិនអាចកែប្រែបានទេ។"
+    },
+    "SUPPLIER_OVERPAYMENT": {
+      "severity": "info",
+      "en": "Payment is more than the supplier balance.",
+      "km": "ការទូទាត់លើសសមតុល្យដែលត្រូវបង់ឱ្យអ្នកផ្គត់ផ្គង់។"
+    },
+    "DUPLICATE_PHONE": {
+      "severity": "info",
+      "en": "This phone number is already registered.",
+      "km": "លេខទូរស័ព្ទនេះបានចុះឈ្មោះរួចហើយ។"
+    },
+    "PIN_LOCKED": {
+      "severity": "hard_stop",
+      "en": "PIN locked after 5 wrong tries. Try again in 15 minutes.",
+      "km": "PIN ត្រូវបានចាក់សោក្រោយខុស ៥ ដង។ សូមព្យាយាមម្តងទៀតក្នុង ១៥ នាទី។"
+    },
+    "INVALID_MFA_CODE": {
+      "severity": "info",
+      "en": "The code is wrong or has expired.",
+      "km": "លេខកូដមិនត្រឹមត្រូវ ឬផុតកំណត់។"
+    }
+  }
+}

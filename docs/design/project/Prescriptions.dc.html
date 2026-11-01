@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Kantumruy+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E9EDEC;color:#17201F;font-family:'Inter','Kantumruy Pro',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0E7470}a:hover{color:#0B5F5C}
+*{box-sizing:border-box}
+</style>
+</helmet>
+<div style="padding:48px;display:flex;flex-direction:column;gap:40px;font-variant-numeric:tabular-nums">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#66706F">DELIVERABLE 4 · PRESCRIPTIONS</div>
+    <h1 style="margin:0;font-size:28px;line-height:36px;font-weight:600">Prescriptions</h1>
+    <div style="font-size:14px;color:#3A4645;max-width:820px;line-height:22px">Pharmacist, Manager and Owner only. Cashiers never see patients or prescriptions. Screens shown in one language each; all strings exist in KM and EN.</div>
+  </div>
+
+  <section style="display:flex;flex-wrap:wrap;gap:48px 40px;align-items:flex-start">
+  <sc-for list="{{ frames }}" as="f" hint-placeholder-count="3">
+    <div id="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px;width:1366px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">{{ f.id }}</span>
+        <span style="font-size:14px;font-weight:600">{{ f.frameName }}</span>
+        <span style="flex:none;white-space:nowrap;font-size:12px;line-height:18px;background:#fff;border:1px solid #DDE2E1;padding:2px 8px;border-radius:4px">Role: {{ f.roleNote }}</span>
+        <span style="font-family:'JetBrains Mono';font-size:11px;color:#0B5F5C;background:#DDF1EF;padding:3px 8px;border-radius:4px">{{ f.api }}</span>
+      </div>
+      <div style="width:1366px;min-height:768px;background:#F6F8F7;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(23,32,31,.08),0 24px 60px rgba(23,32,31,.12);display:flex;position:relative">
+        <aside style="width:64px;flex:none;background:#fff;border-right:1px solid #DDE2E1;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px">
+          <span style="width:32px;height:32px;border-radius:8px;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;margin-bottom:12px">+</span>
+          <sc-for list="{{ nav }}" as="n" hint-placeholder-count="9"><span style="width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;background:{{ n.bg }};color:{{ n.fg }}">{{ n.icon }}</span></sc-for>
+        </aside>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <header style="height:56px;flex:none;background:#fff;border-bottom:1px solid #DDE2E1;display:flex;align-items:center;gap:12px;padding:0 24px">
+            <span style="height:36px;padding:0 12px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap"><span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#DDF1EF;color:#0B5F5C;font-weight:500">PP1</span>Toul Kork ▾</span>
+            <span style="height:36px;flex:1;max-width:440px;padding:0 12px;border:1px solid #DDE2E1;background:#F6F8F7;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px;color:#66706F">⌕ {{ f.search }}<span style="margin-left:auto;font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#fff;border:1px solid #DDE2E1">Ctrl K</span></span>
+            <span style="margin-left:auto;display:flex;border:1px solid #C4CBCA;border-radius:6px;overflow:hidden;font-size:13px;font-weight:500"><span style="padding:7px 10px;background:{{ f.kmBg }};color:{{ f.kmFg }};font-family:'Kantumruy Pro'">ខ្មែរ</span><span style="padding:7px 10px;background:{{ f.enBg }};color:{{ f.enFg }}">EN</span></span>
+            <span style="position:relative;width:36px;height:36px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;justify-content:center">🔔</span>
+            <span style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:32px;height:32px;border-radius:50%;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px">LN</span><span style="display:flex;flex-direction:column;line-height:17px"><b>{{ f.user }}</b><span style="color:#66706F;font-size:12px">{{ f.role }}</span></span></span>
+          </header>
+          <div style="padding:22px 28px 28px;display:flex;flex-direction:column;gap:16px;flex:1">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px">
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#66706F;line-height:{{ f.lh }}px">{{ f.crumb }}</span><div style="display:flex;gap:10px;align-items:center"><h2 style="margin:0;font-size:28px;line-height:{{ f.titleLh }}px;font-weight:600">{{ f.title }}</h2><sc-if value="{{ f.hasPill }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 10px 2px 8px;border-radius:999px;background:{{ f.pill.bg }};color:{{ f.pill.fg }};border:1px solid {{ f.pill.bd }};font-size:12px;font-weight:500;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:{{ f.pill.dot }}"></span>{{ f.pill.label }}</span></sc-if></div></div>
+              <div style="display:flex;gap:8px"><sc-for list="{{ f.actions }}" as="a" hint-placeholder-count="2"><span style="height:36px;padding:0 14px;border-radius:6px;border:1px solid {{ a.bd }};background:{{ a.bg }};color:{{ a.fg }};display:flex;align-items:center;font-size:14px;font-weight:500;white-space:nowrap">{{ a.label }}</span></sc-for></div>
+            </div>
+
+            <!-- 6a Patients list -->
+            <sc-if value="{{ f.s.list }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:8px;align-items:center">
+                <span style="height:36px;width:360px;border:2px solid #0E7470;box-shadow:0 0 0 3px #CDEBE8;background:#fff;border-radius:6px;padding:0 10px;display:flex;align-items:center;font-size:13px">⌕ Name or phone<span style="color:#8C9594;margin-left:6px">e.g. 012 888 204</span></span>
+                <span style="height:36px;padding:0 10px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;display:flex;align-items:center;font-size:13px">Has allergies ▾</span>
+                <span style="height:36px;padding:0 10px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;display:flex;align-items:center;font-size:13px">Active Rx ▾</span>
+                <span style="height:36px;padding:0 10px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;display:flex;align-items:center;font-size:13px">Status: Active ▾</span>
+                <span style="margin-left:auto;font-size:13px;color:#0E7470;font-weight:500">Find in another branch →</span>
+              </div>
+              <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                <div style="display:grid;grid-template-columns:minmax(0,1.8fr) 150px 90px minmax(0,1.6fr) 110px 120px 110px 48px;font-size:13px">
+                  <sc-for list="{{ ptHead }}" as="h" hint-placeholder-count="8"><div style="padding:10px 14px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645;white-space:nowrap">{{ h }}</div></sc-for>
+                  <sc-for list="{{ patients }}" as="p" hint-placeholder-count="7">
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;flex-direction:column"><b style="font-weight:500">{{ p.en }}</b><span style="font-family:'Kantumruy Pro';font-size:12px;color:#66706F;line-height:20px">{{ p.km }}</span></div>
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center">{{ p.phone }}</div>
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;color:#3A4645">{{ p.age }}</div>
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;gap:4px;flex-wrap:wrap"><sc-for list="{{ p.allergy }}" as="b" hint-placeholder-count="1"><span style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px 0 4px;border-radius:4px;background:#B42318;color:#fff;font-size:11px;font-weight:600;white-space:nowrap">! {{ b }}</span></sc-for><span style="color:#8C9594">{{ p.noAllergy }}</span></div>
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center">{{ p.active }}</div>
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;color:#3A4645">{{ p.last }}</div>
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center"><span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:{{ p.brBg }};color:{{ p.brFg }}">{{ p.branch }}</span></div>
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;color:#66706F">⋯</div>
+                  </sc-for>
+                </div>
+                <div style="padding:10px 14px;display:flex;align-items:center;gap:12px;font-size:13px;color:#3A4645"><span>Rows per page</span><span style="display:flex;border:1px solid #C4CBCA;border-radius:6px;overflow:hidden"><span style="padding:3px 9px;background:#0E7470;color:#fff">20</span><span style="padding:3px 9px;border-left:1px solid #C4CBCA">50</span><span style="padding:3px 9px;border-left:1px solid #C4CBCA">100</span></span><span style="margin-left:auto">1–7 of 1,284 · PP1 patients</span></div>
+              </div>
+            </sc-if>
+
+            <!-- 6b Patient detail -->
+            <sc-if value="{{ f.s.detail }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:10px 14px;background:#E4EEFA;border:1px solid #C3D7F0;border-radius:8px;display:flex;gap:10px;align-items:center;font-size:13px;color:#163F6E"><span style="width:20px;height:20px;border-radius:50%;background:#1F5FA8;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">i</span><span><b>Linked from SR1 Siem Reap</b> on 14/09/2026 by Lim Srey Neang. History from SR1 is read-only here.</span></div>
+              <div style="display:grid;grid-template-columns:340px minmax(0,1fr);gap:16px;align-items:start">
+                <div style="display:flex;flex-direction:column;gap:16px">
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:12px">
+                    <div style="display:flex;gap:12px;align-items:center"><span style="width:52px;height:52px;border-radius:50%;background:#DDF1EF;color:#0B5F5C;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:17px">KM</span><div style="display:flex;flex-direction:column"><b style="font-size:16px">Keo Malis</b><span style="font-family:'Kantumruy Pro';color:#3A4645;line-height:22px">កែវ ម៉ាលីស</span></div></div>
+                    <div style="display:grid;grid-template-columns:96px 1fr;gap:6px 10px;font-size:13px"><span style="color:#66706F">Phone</span><span>+855 12 888 204</span><span style="color:#66706F">Sex · DOB</span><span>F · 12/03/1992 (34 y)</span><span style="color:#66706F">Weight</span><span>54 kg · 02/10/2026</span><span style="color:#66706F">ID</span><span style="font-family:'JetBrains Mono';font-size:12px">PT-PP1-004812</span><span style="color:#66706F">Home branch</span><span>SR1 · linked to PP1</span></div>
+                  </div>
+                  <div style="background:#fff;border:2px solid #B42318;border-radius:10px;overflow:hidden">
+                    <div style="padding:10px 16px;background:#FDE8E6;display:flex;justify-content:space-between;align-items:center"><b style="color:#7A1610;font-size:14px">! Allergies</b><span style="font-size:12px;color:#A3201A;font-weight:500">+ Add</span></div>
+                    <div style="padding:12px 16px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+                      <div style="display:flex;flex-direction:column;gap:2px"><span style="display:flex;gap:8px;align-items:center"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 7px 0 5px;border-radius:4px;background:#B42318;color:#fff;font-size:12px;font-weight:600">! Penicillins</span><span style="color:#66706F">class</span></span><span style="color:#3A4645">Rash, 2019 · severity moderate</span></div>
+                      <div style="display:flex;flex-direction:column;gap:2px"><span style="display:flex;gap:8px;align-items:center"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 7px 0 5px;border-radius:4px;background:#B42318;color:#fff;font-size:12px;font-weight:600">! Ibuprofen</span><span style="color:#66706F">ingredient</span></span><span style="color:#3A4645">Stomach pain · mild</span></div>
+                    </div>
+                  </div>
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;font-size:13px"><b style="font-size:14px">Chronic conditions</b><span style="display:flex;gap:6px;flex-wrap:wrap"><span style="padding:3px 8px;border-radius:4px;background:#EEF1F0">GERD</span><span style="padding:3px 8px;border-radius:4px;background:#EEF1F0">Asthma (mild)</span></span></div>
+                </div>
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                  <div style="display:flex;gap:4px;border-bottom:1px solid #DDE2E1;padding:0 12px">
+                    <span style="padding:12px;font-size:13px;font-weight:600;color:#0B5F5C;border-bottom:2px solid #0E7470;margin-bottom:-1px">Prescriptions (4)</span><span style="padding:12px;font-size:13px;color:#66706F">Dispensing history (11)</span><span style="padding:12px;font-size:13px;color:#66706F">Audit</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:150px minmax(0,1.4fr) minmax(0,1fr) 110px 70px 150px;font-size:13px">
+                    <sc-for list="{{ rxHead }}" as="h" hint-placeholder-count="6"><div style="padding:10px 14px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645">{{ h }}</div></sc-for>
+                    <sc-for list="{{ rxHist }}" as="r" hint-placeholder-count="4">
+                      <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;font-family:'JetBrains Mono';font-size:12px;display:flex;align-items:center">{{ r.no }}</div>
+                      <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center">{{ r.items }}</div>
+                      <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;color:#3A4645">{{ r.doctor }}</div>
+                      <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center">{{ r.date }}</div>
+                      <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center"><span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#EEF1F0">{{ r.br }}</span></div>
+                      <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 10px 2px 8px;border-radius:999px;background:{{ r.st.bg }};color:{{ r.st.fg }};border:1px solid {{ r.st.bd }};font-size:12px;font-weight:500;white-space:nowrap;text-decoration:{{ r.st.deco }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ r.st.dot }}"></span>{{ r.st.label }}</span></div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- 6c find other branch KM -->
+            <sc-if value="{{ f.s.find }}" hint-placeholder-val="{{ false }}">
+              <div style="height:420px"></div>
+            </sc-if>
+
+            <!-- 6d Doctors -->
+            <sc-if value="{{ f.s.doctors }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:16px;align-items:start">
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                  <div style="padding:10px 14px;border-bottom:1px solid #DDE2E1;display:flex;gap:8px"><span style="height:34px;width:280px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center;font-size:13px;color:#8C9594">⌕ Name, license or clinic</span><span style="height:34px;padding:0 10px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;font-size:13px">Specialty ▾</span></div>
+                  <div style="display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1.3fr) 120px 90px 90px;font-size:13px">
+                    <sc-for list="{{ drHead }}" as="h" hint-placeholder-count="5"><div style="padding:10px 14px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645">{{ h }}</div></sc-for>
+                    <sc-for list="{{ doctors }}" as="d" hint-placeholder-count="5">
+                      <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;background:{{ d.bg }};display:flex;flex-direction:column"><b style="font-weight:500">{{ d.name }}</b><span style="font-size:12px;color:#66706F">{{ d.spec }}</span></div>
+                      <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;background:{{ d.bg }};display:flex;align-items:center;color:#3A4645">{{ d.clinic }}</div>
+                      <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;background:{{ d.bg }};display:flex;align-items:center;font-family:'JetBrains Mono';font-size:12px">{{ d.lic }}</div>
+                      <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;background:{{ d.bg }};display:flex;align-items:center;justify-content:flex-end">{{ d.rx }}</div>
+                      <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;background:{{ d.bg }};display:flex;align-items:center"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px 2px 7px;border-radius:999px;background:{{ d.stBg }};color:{{ d.stFg }};font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:{{ d.stDot }}"></span>{{ d.st }}</span></div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;display:flex;flex-direction:column">
+                  <div style="padding:16px 18px;border-bottom:1px solid #EEF1F0;display:flex;justify-content:space-between"><div style="display:flex;flex-direction:column"><b style="font-size:16px">Dr. Chea Sopheap</b><span style="font-family:'Kantumruy Pro';color:#3A4645;line-height:22px">វេជ្ជ. ជា សុភាព</span></div><span style="height:32px;padding:0 10px;border-radius:6px;border:1px solid #C4CBCA;display:flex;align-items:center;font-size:13px">Edit</span></div>
+                  <div style="padding:16px 18px;display:grid;grid-template-columns:110px 1fr;gap:8px 10px;font-size:13px"><span style="color:#66706F">Specialty</span><span>Internal medicine</span><span style="color:#66706F">Clinic</span><span>Calmette Hospital</span><span style="color:#66706F">License</span><span style="font-family:'JetBrains Mono';font-size:12px">MOH-KH-08812</span><span style="color:#66706F">Phone</span><span>+855 23 426 948</span><span style="color:#66706F">Controlled Rx</span><span style="color:#1E6B3F;font-weight:500">✓ Authorised</span></div>
+                  <div style="padding:0 18px 16px;display:flex;flex-direction:column;gap:8px;font-size:13px"><b>Last 30 days</b><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><div style="background:#F6F8F7;border-radius:8px;padding:10px"><div style="font-size:11px;color:#66706F">Prescriptions</div><b style="font-size:18px">38</b></div><div style="background:#F6F8F7;border-radius:8px;padding:10px"><div style="font-size:11px;color:#66706F">Patients</div><b style="font-size:18px">31</b></div><div style="background:#F6F8F7;border-radius:8px;padding:10px"><div style="font-size:11px;color:#66706F">Controlled</div><b style="font-size:18px">4</b></div></div></div>
+                  <div style="padding:12px 18px;border-top:1px solid #EEF1F0;display:flex;justify-content:flex-end"><span style="height:34px;padding:0 12px;border-radius:6px;border:1px solid #C4CBCA;display:flex;align-items:center;font-size:13px;color:#3A4645">Deactivate</span></div>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- 6e New Rx -->
+            <sc-if value="{{ f.s.newRx }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start">
+                <div style="display:flex;flex-direction:column;gap:16px">
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:18px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;font-size:13px">
+                    <label style="display:flex;flex-direction:column;gap:6px;grid-column:span 2"><span style="font-weight:500">Patient *</span><span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center;gap:8px">Keo Malis · +855 12 888 204<span style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px 0 4px;border-radius:4px;background:#B42318;color:#fff;font-size:11px;font-weight:600">! 2 allergies</span></span></label>
+                    <label style="display:flex;flex-direction:column;gap:6px;grid-column:span 2"><span style="font-weight:500">Doctor *</span><span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center">Dr. Chea Sopheap · Calmette Hospital ▾</span></label>
+                    <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Issued *</span><span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center">24/10/2026</span></label>
+                    <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Valid until</span><span style="height:38px;border:1px solid #DDE2E1;background:#F6F8F7;border-radius:6px;padding:0 10px;display:flex;align-items:center;color:#3A4645">23/11/2026</span><span style="font-size:11px;color:#66706F">Branch rule: 30 days</span></label>
+                    <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Rx number on paper</span><span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center">CAL-2026-11872</span></label>
+                    <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Diagnosis</span><span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center">Tonsillitis</span></label>
+                  </div>
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                    <div style="padding:12px 18px;border-bottom:1px solid #EEF1F0;display:flex;justify-content:space-between;align-items:center"><b style="font-size:14px">Items</b><span style="font-size:13px;color:#0E7470;font-weight:500">+ Add item</span></div>
+                    <div style="display:grid;grid-template-columns:minmax(0,1.6fr) 90px 110px 100px 80px 70px 70px 36px;font-size:13px">
+                      <sc-for list="{{ itemHead }}" as="h" hint-placeholder-count="8"><div style="padding:9px 12px;background:#F6F8F7;font-size:12px;font-weight:600;color:#3A4645">{{ h }}</div></sc-for>
+                      <sc-for list="{{ newItems }}" as="it" hint-placeholder-count="2">
+                        <div style="padding:8px 12px;border-top:1px solid #EEF1F0;display:flex;flex-direction:column;gap:4px"><span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b style="font-weight:500">{{ it.name }}</b><sc-for list="{{ it.badges }}" as="b" hint-placeholder-count="1"><span style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px 0 4px;border-radius:4px;background:{{ b.bg }};color:{{ b.fg }};font-size:11px;font-weight:600">{{ b.l }}</span></sc-for></span><sc-if value="{{ it.warn }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#A3201A;font-weight:500">{{ it.warnText }}</span></sc-if></div>
+                        <div style="padding:8px 12px;border-top:1px solid #EEF1F0"><span style="height:32px;border:1px solid #C4CBCA;border-radius:6px;padding:0 8px;display:flex;align-items:center">{{ it.dose }}</span></div>
+                        <div style="padding:8px 12px;border-top:1px solid #EEF1F0"><span style="height:32px;border:1px solid #C4CBCA;border-radius:6px;padding:0 8px;display:flex;align-items:center;white-space:nowrap">{{ it.freq }}</span></div>
+                        <div style="padding:8px 12px;border-top:1px solid #EEF1F0"><span style="height:32px;border:1px solid #C4CBCA;border-radius:6px;padding:0 8px;display:flex;align-items:center">{{ it.dur }}</span></div>
+                        <div style="padding:8px 12px;border-top:1px solid #EEF1F0"><span style="height:32px;border:1px solid #DDE2E1;background:#F6F8F7;border-radius:6px;padding:0 8px;display:flex;align-items:center;justify-content:flex-end;font-weight:600">{{ it.qty }}</span></div>
+                        <div style="padding:8px 12px;border-top:1px solid #EEF1F0"><span style="height:32px;border:1px solid #C4CBCA;border-radius:6px;padding:0 8px;display:flex;align-items:center;justify-content:flex-end">{{ it.rep }}</span></div>
+                        <div style="padding:8px 12px;border-top:1px solid #EEF1F0;display:flex;align-items:center;color:#66706F;font-size:12px">{{ it.unit }}</div>
+                        <div style="padding:8px 12px;border-top:1px solid #EEF1F0;display:flex;align-items:center;color:#66706F">✕</div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:16px">
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+                    <b style="font-size:14px">Attachments</b>
+                    <div style="border:1.5px dashed #9FB5B3;border-radius:8px;padding:18px;text-align:center;background:#F6F8F7;display:flex;flex-direction:column;gap:4px"><b>Drop photo or PDF</b><span style="color:#66706F">or scan QR to capture on phone</span></div>
+                    <div style="display:flex;gap:10px;align-items:center;border:1px solid #DDE2E1;border-radius:8px;padding:8px"><div style="width:52px;height:64px;border-radius:4px;background:repeating-linear-gradient(135deg,#EEF1F0 0 6px,#E3E8E7 6px 12px);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono';font-size:8px;color:#66706F;text-align:center">rx page</div><div style="flex:1;display:flex;flex-direction:column;gap:2px"><b>rx-calmette-11872.jpg</b><span style="color:#66706F;font-size:12px">1.8 MB · from phone 14:02</span></div><span style="color:#66706F">✕</span></div>
+                  </div>
+                  <div style="background:#FFFBF0;border:1px solid #E9B949;border-radius:10px;padding:14px 16px;font-size:13px;line-height:20px;display:flex;flex-direction:column;gap:4px"><b style="color:#7A4F00">1 check to review</b><span>Amoxicillin matches allergy <b>Penicillins</b>. Saving is allowed; dispensing will ask for override.</span></div>
+                  <div style="display:flex;gap:8px"><span style="flex:1;height:42px;border-radius:6px;border:1px solid #C4CBCA;background:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500">Save draft</span><span style="flex:1.4;height:42px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">Save & dispense</span></div>
+                </div>
+              </div>
+            </sc-if>
+
+            <!-- 6g Rx detail -->
+            <sc-if value="{{ f.s.rxDetail }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;align-items:start">
+                <div style="display:flex;flex-direction:column;gap:16px">
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:16px 18px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 16px;font-size:13px">
+                    <div style="display:flex;flex-direction:column"><span style="color:#66706F;font-size:12px">Patient</span><b style="font-weight:500">Keo Malis · <a>PT-PP1-004812</a></b></div>
+                    <div style="display:flex;flex-direction:column"><span style="color:#66706F;font-size:12px">Doctor</span><span>Dr. Chea Sopheap</span></div>
+                    <div style="display:flex;flex-direction:column"><span style="color:#66706F;font-size:12px">Issued · valid until</span><span>24/10/2026 → 23/11/2026</span></div>
+                    <div style="display:flex;flex-direction:column"><span style="color:#66706F;font-size:12px">Paper Rx</span><span>CAL-2026-11872</span></div>
+                  </div>
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden">
+                    <div style="padding:12px 18px;border-bottom:1px solid #EEF1F0"><b style="font-size:14px">Balance per item</b></div>
+                    <div style="display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1.2fr) 90px 90px 110px 90px minmax(0,1fr);font-size:13px">
+                      <sc-for list="{{ balHead }}" as="h" hint-placeholder-count="7"><div style="padding:9px 14px;background:#F6F8F7;font-size:12px;font-weight:600;color:#3A4645;text-align:{{ h.a }}">{{ h.l }}</div></sc-for>
+                      <sc-for list="{{ balance }}" as="b" hint-placeholder-count="2">
+                        <div style="padding:12px 14px;border-top:1px solid #EEF1F0;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b style="font-weight:500">{{ b.name }}</b><span style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px 0 4px;border-radius:4px;background:#3438A0;color:#fff;font-size:11px;font-weight:600">℞ Rx</span></div>
+                        <div style="padding:12px 14px;border-top:1px solid #EEF1F0;color:#3A4645">{{ b.sig }}</div>
+                        <div style="padding:12px 14px;border-top:1px solid #EEF1F0;text-align:right">{{ b.pres }}</div>
+                        <div style="padding:12px 14px;border-top:1px solid #EEF1F0;text-align:right">{{ b.disp }}</div>
+                        <div style="padding:12px 14px;border-top:1px solid #EEF1F0;text-align:right;font-weight:700;color:#0B5F5C">{{ b.rem }}</div>
+                        <div style="padding:12px 14px;border-top:1px solid #EEF1F0;text-align:right">{{ b.rep }}</div>
+                        <div style="padding:12px 14px;border-top:1px solid #EEF1F0;display:flex;align-items:center"><span style="height:8px;flex:1;border-radius:4px;background:#EEF1F0;overflow:hidden;display:flex"><span style="width:{{ b.pct }}%;background:#13908A"></span></span></div>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:16px 18px;display:flex;flex-direction:column">
+                    <b style="font-size:14px;margin-bottom:12px">Status history</b>
+                    <sc-for list="{{ rxTimeline }}" as="t" hint-placeholder-count="3"><div style="display:grid;grid-template-columns:16px 1fr;gap:12px"><div style="display:flex;flex-direction:column;align-items:center"><span style="width:10px;height:10px;border-radius:50%;background:{{ t.dot }};margin-top:5px"></span><span style="flex:1;width:2px;background:#DDE2E1"></span></div><div style="display:flex;flex-direction:column;padding-bottom:14px;font-size:13px"><b>{{ t.t }}</b><span style="color:#66706F">{{ t.m }}</span></div></div></sc-for>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:16px">
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px">
+                    <div style="display:flex;justify-content:space-between;font-size:13px"><b style="font-size:14px">Attachment 1 / 2</b><span style="color:#0E7470;font-weight:500">Open full ↗</span></div>
+                    <div style="height:300px;border-radius:6px;background:repeating-linear-gradient(135deg,#EEF1F0 0 8px,#E3E8E7 8px 16px);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono';font-size:11px;color:#66706F">prescription photo</div>
+                    <div style="display:flex;gap:6px"><span style="width:48px;height:56px;border-radius:4px;border:2px solid #0E7470;background:#EEF1F0"></span><span style="width:48px;height:56px;border-radius:4px;border:1px solid #DDE2E1;background:#EEF1F0"></span></div>
+                  </div>
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px;font-size:13px">
+                    <b style="font-size:14px">Dispensing label</b>
+                    <div style="align-self:center;width:280px;height:160px;border:1px solid #17201F;border-radius:4px;padding:10px 12px;display:flex;flex-direction:column;gap:3px;font-size:11px;line-height:14px;background:#fff">
+                      <div style="display:flex;justify-content:space-between;font-weight:700"><span>PHARMACY PP1</span><span>31/10/2026</span></div>
+                      <b style="font-size:13px;line-height:17px">Amoxicillin 500 mg × 10 cap</b>
+                      <span style="font-family:'Kantumruy Pro';font-size:12px;line-height:18px;font-weight:600">លេប ១ គ្រាប់ · ៣ ដង/ថ្ងៃ · ក្រោយអាហារ</span>
+                      <span>Take 1 cap 3 times a day after food</span>
+                      <span>Keo Malis · RX-PP1-00918</span>
+                      <div style="margin-top:auto;display:flex;justify-content:space-between;color:#3A4645"><span>AMX-2702 · Exp 02/2027</span><span>LN</span></div>
+                    </div>
+                    <div style="display:flex;justify-content:center;gap:6px"><span style="padding:4px 10px;border-radius:4px;background:#0E7470;color:#fff;font-size:12px">70×40</span><span style="padding:4px 10px;border-radius:4px;border:1px solid #C4CBCA;font-size:12px">50×30</span><span style="padding:4px 10px;border-radius:4px;border:1px solid #C4CBCA;font-size:12px">KM+EN</span></div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+
+        <!-- Overlay: find other branch (KM) -->
+        <sc-if value="{{ f.s.find }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;background:rgba(23,32,31,.42)"></div>
+          <div style="position:absolute;top:130px;left:50%;transform:translateX(-50%);width:560px;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;font-family:'Kantumruy Pro','Inter'">
+            <div style="padding:18px 22px;border-bottom:1px solid #EEF1F0;display:flex;flex-direction:column"><b style="font-size:17px;line-height:28px">ស្វែងរកអ្នកជំងឺពីសាខាផ្សេង</b><span style="font-size:13px;color:#66706F">Find patient from another branch</span></div>
+            <div style="padding:18px 22px;display:flex;flex-direction:column;gap:14px;font-size:14px;line-height:24px">
+              <div style="padding:10px 12px;background:#E4EEFA;border:1px solid #C3D7F0;border-radius:8px;color:#163F6E;font-size:13px;line-height:22px">ការស្វែងរកនេះត្រូវបានកត់ត្រា (ឈ្មោះអ្នក ម៉ោង លេខទូរស័ព្ទ)។ ត្រូវវាយលេខទូរស័ព្ទពេញ ១០ ខ្ទង់។ មិនអាចស្វែងរកតាមឈ្មោះបានទេ។</div>
+              <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500;font-size:13px">លេខទូរស័ព្ទពេញ</span><span style="height:44px;border:2px solid #0E7470;box-shadow:0 0 0 3px #CDEBE8;border-radius:6px;display:flex;align-items:center;font-size:16px;overflow:hidden;font-family:Inter"><span style="padding:0 12px;height:100%;display:flex;align-items:center;background:#F6F8F7;border-right:1px solid #DDE2E1;font-size:14px">+855</span><span style="padding:0 12px">12 888 204</span></span></label>
+              <div style="border:1px solid #0E7470;background:#EFF8F7;border-radius:10px;padding:12px 14px;display:flex;gap:12px;align-items:center"><span style="width:40px;height:40px;border-radius:50%;background:#DDF1EF;color:#0B5F5C;display:flex;align-items:center;justify-content:center;font-weight:600;font-family:Inter">KM</span><div style="display:flex;flex-direction:column;flex:1"><b>កែវ ម៉ាលីស</b><span style="font-size:12px;color:#66706F;font-family:Inter">SR1 Siem Reap · F · 34 y · 2 allergies</span></div><span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#EEF1F0">SR1</span></div>
+              <span style="font-size:13px;color:#3A4645">ការភ្ជាប់នឹងចម្លងអាឡែកហ្ស៊ី និងប្រវត្តិវេជ្ជបញ្ជាមកមើលនៅ PP1 (អានតែប៉ុណ្ណោះ)។</span>
+            </div>
+            <div style="padding:14px 22px;background:#F6F8F7;display:flex;gap:8px;justify-content:flex-end"><span style="height:42px;padding:0 16px;border-radius:6px;border:1px solid #C4CBCA;background:#fff;display:flex;align-items:center;font-size:14px;font-weight:500">បោះបង់</span><span style="height:42px;padding:0 16px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;font-size:14px;font-weight:600">ភ្ជាប់ទៅ PP1</span></div>
+          </div>
+        </sc-if>
+        <!-- Overlay: cancel Rx -->
+        <sc-if value="{{ f.s.cancel }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;background:rgba(23,32,31,.42)"></div>
+          <div style="position:absolute;top:160px;left:50%;transform:translateX(-50%);width:480px;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden">
+            <div style="padding:18px 22px;border-bottom:1px solid #EEF1F0;display:flex;flex-direction:column"><b style="font-size:16px">Cancel prescription RX-PP1-00918</b><span style="font-family:'Kantumruy Pro';font-size:13px;color:#66706F;line-height:22px">បោះបង់វេជ្ជបញ្ជា</span></div>
+            <div style="padding:18px 22px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+              <span style="color:#3A4645;line-height:20px">Remaining 4 cap Amoxicillin and 14 tab Omeprazole can no longer be dispensed. Already dispensed items are not affected. The prescription stays in the record as <b>cancelled</b>.</span>
+              <span style="font-weight:500">Reason · required</span>
+              <span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 12px;display:flex;align-items:center">Doctor changed treatment ▾</span>
+              <span style="min-height:60px;border:2px solid #0E7470;box-shadow:0 0 0 3px #CDEBE8;border-radius:6px;padding:8px 12px">Dr. Chea switched to azithromycin, new Rx to follow</span>
+            </div>
+            <div style="padding:14px 22px;background:#F6F8F7;display:flex;justify-content:flex-end;gap:8px"><span style="height:40px;padding:0 14px;border-radius:6px;border:1px solid #C4CBCA;background:#fff;display:flex;align-items:center;font-size:14px;font-weight:500">Keep prescription</span><span style="height:40px;padding:0 14px;border-radius:6px;background:#B42318;color:#fff;display:flex;align-items:center;font-size:14px;font-weight:500">Cancel prescription</span></div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="font-size:13px;color:#3A4645;max-width:1000px;line-height:20px">{{ f.note }}</div>
+    </div>
+  </sc-for>
+  </section>
+
+  <section style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+    <div id="6h" style="display:flex;flex-direction:column;gap:10px;width:390px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">6h</span><span style="font-size:14px;font-weight:600">Prescriptions / New Rx – camera capture / Mobile 390 / KM</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><span style="flex:none;white-space:nowrap;font-size:12px;line-height:18px;background:#fff;border:1px solid #DDE2E1;padding:2px 8px;border-radius:4px">Role: Pharmacist</span><span style="font-family:'JetBrains Mono';font-size:11px;color:#0B5F5C;background:#DDF1EF;padding:3px 8px;border-radius:4px">POST /api/prescription/v1/prescriptions/{id}/attachments</span></div>
+      <div style="width:390px;height:844px;background:#0B0F0F;border-radius:36px;border:10px solid #17201F;overflow:hidden;display:flex;flex-direction:column;color:#fff;font-family:'Kantumruy Pro','Inter'">
+        <div style="height:32px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 20px;font-size:12px;font-weight:600;font-family:Inter"><span>14:02</span><span>▴ ◉ ▮</span></div>
+        <div style="padding:8px 16px;display:flex;justify-content:space-between;align-items:center;font-size:14px"><span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center">✕</span><b>ថតវេជ្ជបញ្ជា</b><span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center">⚡</span></div>
+        <div style="flex:1;margin:0 16px;border-radius:12px;background:repeating-linear-gradient(135deg,#1A2222 0 8px,#202A2A 8px 16px);position:relative;display:flex;align-items:center;justify-content:center">
+          <div style="position:absolute;inset:28px 24px;border:2px solid #2BB3A6;border-radius:8px"></div>
+          <span style="font-family:'JetBrains Mono';font-size:11px;color:#8FA5A3">camera feed</span>
+          <span style="position:absolute;bottom:40px;left:50%;transform:translateX(-50%);background:rgba(15,23,22,.85);padding:6px 12px;border-radius:16px;font-size:13px;white-space:nowrap">✓ រកឃើញទំព័រ · កាន់ឱ្យនឹង</span>
+        </div>
+        <div style="padding:14px 16px;display:flex;gap:8px;overflow:hidden"><div style="width:52px;height:64px;border-radius:6px;background:#2A3534;border:2px solid #2BB3A6;flex:none"></div><div style="width:52px;height:64px;border-radius:6px;border:1px dashed #4A5857;flex:none;display:flex;align-items:center;justify-content:center;color:#8FA5A3">+</div><span style="font-size:12px;color:#AFC0BE;align-self:center;line-height:20px">ទំព័រ ១ បានថត · ផ្ញើទៅ POS-01 ដោយស្វ័យប្រវត្តិ</span></div>
+        <div style="padding:6px 16px 24px;display:flex;align-items:center;justify-content:space-between"><span style="width:52px;height:52px;border-radius:8px;background:#172322;display:flex;align-items:center;justify-content:center;font-size:12px;font-family:Inter">PDF</span><span style="width:72px;height:72px;border-radius:50%;border:4px solid #fff;display:flex;align-items:center;justify-content:center"><span style="width:56px;height:56px;border-radius:50%;background:#fff"></span></span><span style="height:52px;padding:0 16px;border-radius:8px;background:#2BB3A6;color:#0B0F0F;display:flex;align-items:center;font-weight:600">រួចរាល់</span></div>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const tog = lang => lang === 'km' ? { kmBg: '#0E7470', kmFg: '#fff', enBg: '#fff', enFg: '#3A4645' } : { kmBg: '#fff', kmFg: '#3A4645', enBg: '#0E7470', enFg: '#fff' };
+    const nav = ['▦', '◎', '℞', '◆', '▤', '⇄', '☰', '▥', '⚙'].map((icon, i) => ({ icon, bg: i === 2 ? '#DDF1EF' : 'transparent', fg: i === 2 ? '#0B5F5C' : '#3A4645' }));
+    const P = { primary: { fg: '#0B5F5C', bg: '#DDF1EF', bd: '#B8E0DC', dot: '#13908A' }, warning: { fg: '#7A4F00', bg: '#FDF1D6', bd: '#F0D48E', dot: '#D99A1E' }, success: { fg: '#1E6B3F', bg: '#E3F3E9', bd: '#BFE2CC', dot: '#2E9B5C' }, danger: { fg: '#A3201A', bg: '#FDE8E6', bd: '#F4C3BD', dot: '#D23C2F' }, cancelled: { fg: '#A3201A', bg: '#fff', bd: '#E8A39C', dot: '#D23C2F', deco: 'line-through' } };
+    const pill = (label, t) => ({ ...P[t], deco: P[t].deco || 'none', label });
+    const btn = (label, kind) => kind === 'p' ? { label, bg: '#0E7470', fg: '#fff', bd: '#0E7470' } : kind === 'd' ? { label, bg: '#fff', fg: '#B42318', bd: '#E8A39C' } : { label, bg: '#fff', fg: '#17201F', bd: '#C4CBCA' };
+    const S = { list: 0, detail: 0, find: 0, doctors: 0, newRx: 0, rxDetail: 0, cancel: 0 };
+    const F = o => ({ lang: 'en', user: 'Lim Srey Neang', role: 'Pharmacist', search: 'Search…', hasPill: false, pill: pill('', 'primary'), ...o, s: { ...S, ...o.s }, ...tog(o.lang || 'en'), lh: o.lang === 'km' ? 22 : 18, titleLh: o.lang === 'km' ? 44 : 36 });
+
+    const frames = [
+      F({ id: '6a', frameName: 'Prescriptions / Patients / Desktop 1366 / EN', roleNote: 'Pharmacist, Manager, Owner', api: 'GET /api/prescription/v1/patients?q=', crumb: 'Prescriptions  /  Patients', title: 'Patients', actions: [btn('Find in other branch', 's'), btn('+ New patient', 'p')], s: { list: 1 }, note: 'Search matches name (KM or Latin) and phone. Allergy badges are visible in the list so they are seen before opening a record. Patients from other branches are labelled.' }),
+      F({ id: '6b', frameName: 'Prescriptions / Patient detail / Desktop 1366 / EN', roleNote: 'Pharmacist, Manager, Owner', api: 'GET /api/prescription/v1/patients/{id}', crumb: 'Prescriptions  /  Patients  /  Keo Malis', title: 'Keo Malis', hasPill: true, pill: pill('Active', 'primary'), actions: [btn('Deactivate', 's'), btn('+ New prescription', 'p')], s: { detail: 1 }, note: 'Allergies sit in a red-framed card at the top of the left column. Linked-branch notice explains where the history comes from.' }),
+      F({ id: '6c', lang: 'km', user: 'លឹម ស្រីនាង', role: 'ឱសថការី', search: 'ស្វែងរក…', frameName: 'Prescriptions / Find patient in other branch / Desktop 1366 / KM', roleNote: 'Pharmacist, Manager, Owner · audited', api: 'POST /api/prescription/v1/patients/link (exact phone)', crumb: 'វេជ្ជបញ្ជា  /  អ្នកជំងឺ', title: 'អ្នកជំងឺ', actions: [btn('+ អ្នកជំងឺថ្មី', 'p')], s: { find: 1 }, note: 'Exact full phone number only; no partial or name search across branches. Every lookup is written to the User Log.' }),
+      F({ id: '6d', frameName: 'Prescriptions / Doctors / Desktop 1366 / EN', roleNote: 'Pharmacist, Manager, Owner', api: 'GET /api/prescription/v1/doctors', crumb: 'Prescriptions  /  Doctors', title: 'Doctors', actions: [btn('+ New doctor', 'p')], s: { doctors: 1 }, note: 'List with detail panel. Controlled-Rx authorisation is part of the doctor record and checked at dispensing.' }),
+      F({ id: '6e', frameName: 'Prescriptions / New Rx / Desktop 1366 / EN', roleNote: 'Pharmacist', api: 'POST /api/prescription/v1/prescriptions', crumb: 'Prescriptions  /  New prescription', title: 'New prescription', hasPill: true, pill: pill('Draft', 'primary'), actions: [], s: { newRx: 1 }, note: 'Quantity is calculated from dose × frequency × duration. Valid-until comes from branch settings. Allergy checks run while typing but only block at dispensing.' }),
+      F({ id: '6f', frameName: 'Prescriptions / Rx detail + label / Desktop 1366 / EN', roleNote: 'Pharmacist, Manager, Owner', api: 'GET /api/prescription/v1/prescriptions/{id}', crumb: 'Prescriptions  /  RX-PP1-00918', title: 'RX-PP1-00918', hasPill: true, pill: pill('Partly dispensed', 'warning'), actions: [btn('Cancel (reason required)', 'd'), btn('Print label', 's'), btn('Dispense', 'p')], s: { rxDetail: 1 }, note: 'Remaining is the largest number in each row. Label preview at 70×40 mm with Khmer instructions first.' }),
+      F({ id: '6g', frameName: 'Prescriptions / Cancel Rx / Desktop 1366 / EN', roleNote: 'Pharmacist, Manager, Owner', api: 'POST /api/prescription/v1/prescriptions/{id}/cancel', crumb: 'Prescriptions  /  RX-PP1-00918', title: 'RX-PP1-00918', hasPill: true, pill: pill('Partly dispensed', 'warning'), actions: [btn('Cancel (reason required)', 'd'), btn('Dispense', 'p')], s: { rxDetail: 1, cancel: 1 }, note: 'Cancel never deletes; it stops further dispensing and keeps the history.' }),
+    ];
+
+    const patients = [
+      { en: 'Keo Malis', km: 'កែវ ម៉ាលីស', phone: '012 888 204', age: 'F · 34', allergy: ['Penicillins', 'Ibuprofen'], active: '1', last: '24/10/2026', branch: 'SR1', brBg: '#E4EEFA', brFg: '#1F5FA8' },
+      { en: 'Nhem Bopha', km: 'ញឹម បុប្ផា', phone: '017 402 115', age: 'F · 51', allergy: [], active: '2', last: '30/10/2026', branch: 'PP1' },
+      { en: 'Chan Dara', km: 'ចាន់ ដារ៉ា', phone: '089 220 731', age: 'M · 46', allergy: ['Sulfa'], active: '0', last: '11/10/2026', branch: 'PP1' },
+      { en: 'Sok Pisey', km: 'សុខ ពិសី', phone: '010 556 018', age: 'F · 8', allergy: [], active: '1', last: '29/10/2026', branch: 'PP1' },
+      { en: 'Heng Rathana', km: 'ហេង រតនា', phone: '096 712 440', age: 'M · 67', allergy: ['Aspirin'], active: '3', last: '27/10/2026', branch: 'PP1' },
+      { en: 'Ouk Sreyleak', km: 'អ៊ុក ស្រីលក្ខ', phone: '070 301 992', age: 'F · 29', allergy: [], active: '0', last: '02/09/2026', branch: 'PP1' },
+      { en: 'Ly Vannak', km: 'លី វណ្ណៈ', phone: '015 884 210', age: 'M · 38', allergy: [], active: '1', last: '31/10/2026', branch: 'PP1' },
+    ].map(p => ({ brBg: '#EEF1F0', brFg: '#3A4645', ...p, noAllergy: p.allergy.length ? '' : 'None recorded' }));
+    const rxHist = [
+      { no: 'RX-PP1-00918', items: 'Amoxicillin 500 mg, Omeprazole 20 mg', doctor: 'Dr. Chea Sopheap', date: '24/10/2026', br: 'PP1', st: pill('Partly dispensed', 'warning') },
+      { no: 'RX-SR1-00412', items: 'Salbutamol inhaler', doctor: 'Dr. Ouk Vanna', date: '10/09/2026', br: 'SR1', st: pill('Fully dispensed', 'success') },
+      { no: 'RX-SR1-00377', items: 'Cetirizine 10 mg', doctor: 'Dr. Ouk Vanna', date: '02/08/2026', br: 'SR1', st: pill('Expired', 'danger') },
+      { no: 'RX-SR1-00301', items: 'Ibuprofen 400 mg', doctor: 'Dr. Mao Sothea', date: '14/06/2026', br: 'SR1', st: pill('Cancelled', 'cancelled') },
+    ];
+    const doctors = [
+      { name: 'Dr. Chea Sopheap', spec: 'Internal medicine', clinic: 'Calmette Hospital', lic: 'MOH-KH-08812', rx: '38', sel: 1 },
+      { name: 'Dr. Ouk Vanna', spec: 'Psychiatry', clinic: 'Royal Phnom Penh Hospital', lic: 'MOH-KH-05127', rx: '22' },
+      { name: 'Dr. Mao Sothea', spec: 'General practice', clinic: 'Sothea Clinic', lic: 'MOH-KH-11904', rx: '17' },
+      { name: 'Dr. Kim Leakhena', spec: 'Paediatrics', clinic: 'Kantha Bopha', lic: 'MOH-KH-09310', rx: '9' },
+      { name: 'Dr. Pen Sambath', spec: 'Dermatology', clinic: 'Sambath Skin', lic: 'MOH-KH-07455', rx: '0', inactive: 1 },
+    ].map(d => ({ ...d, bg: d.sel ? '#EFF8F7' : '#fff', st: d.inactive ? 'Inactive' : 'Active', stBg: d.inactive ? '#EEF1F0' : '#DDF1EF', stFg: d.inactive ? '#3A4645' : '#0B5F5C', stDot: d.inactive ? '#8C9594' : '#13908A' }));
+    const newItems = [
+      { name: 'Amoxicillin 500 mg', badges: [{ l: '℞ Rx', bg: '#3438A0', fg: '#fff' }], dose: '1 cap', freq: '3× / day', dur: '7 days', qty: '21', rep: '1', unit: 'cap', warn: true, warnText: '! Allergy match: Penicillins' },
+      { name: 'Omeprazole 20 mg', badges: [], dose: '1 tab', freq: '1× / day', dur: '14 days', qty: '14', rep: '0', unit: 'tab', warn: false, warnText: '' },
+    ];
+    const balance = [
+      { name: 'Amoxicillin 500 mg', sig: '1 cap · 3×/day · 7 d', pres: '21', disp: '17', rem: '4', rep: '0 / 1', pct: 81 },
+      { name: 'Omeprazole 20 mg', sig: '1 tab · 1×/day · 14 d', pres: '14', disp: '0', rem: '14', rep: '0 / 0', pct: 0 },
+    ];
+    const rxTimeline = [
+      { t: 'Dispensed 10 cap Amoxicillin', m: 'Lim Srey Neang · PP1-INV-000479 · 31/10/2026 10:14', dot: '#D99A1E' },
+      { t: 'Dispensed 7 cap Amoxicillin', m: 'Lim Srey Neang · PP1-INV-000401 · 24/10/2026 16:40', dot: '#D99A1E' },
+      { t: 'Created', m: 'Lim Srey Neang · photo attached · 24/10/2026 16:32', dot: '#13908A' },
+    ];
+
+    return {
+      frames, nav, patients, rxHist, doctors, newItems, balance, rxTimeline,
+      ptHead: ['Patient', 'Phone', 'Sex · age', 'Allergies', 'Active Rx', 'Last visit', 'Branch', ''],
+      rxHead: ['Rx no.', 'Items', 'Doctor', 'Issued', 'Branch', 'Status'],
+      drHead: ['Doctor', 'Clinic', 'License', 'Rx (30 d)', 'Status'],
+      itemHead: ['Medicine', 'Dose', 'Frequency', 'Duration', 'Qty', 'Repeats', 'Unit', ''],
+      balHead: [{ l: 'Item', a: 'left' }, { l: 'Instructions', a: 'left' }, { l: 'Prescribed', a: 'right' }, { l: 'Dispensed', a: 'right' }, { l: 'Remaining', a: 'right' }, { l: 'Repeats', a: 'right' }, { l: '', a: 'left' }],
+    };
+  }
+}
+</script>
+</body>
+</html>

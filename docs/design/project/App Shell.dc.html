@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Kantumruy+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E9EDEC;color:#17201F;font-family:'Inter','Kantumruy Pro',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0E7470}a:hover{color:#0B5F5C}
+*{box-sizing:border-box}
+</style>
+</helmet>
+<div style="padding:48px;display:flex;flex-direction:column;gap:56px;font-variant-numeric:tabular-nums">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#66706F">DELIVERABLE 2 · APP SHELL</div>
+    <h1 style="margin:0;font-size:28px;line-height:36px;font-weight:600">App shell · desktop + mobile · KM / EN</h1>
+    <div style="font-size:14px;color:#3A4645;max-width:760px;line-height:22px">Same page (Stock on hand) shown per role so menu hiding and cost hiding are visible. Components follow <a href="Design System.dc.html">Design System</a>.</div>
+  </div>
+
+  <section style="display:flex;flex-wrap:wrap;gap:48px;align-items:flex-start">
+    <sc-for list="{{ desktop }}" as="f" hint-placeholder-count="3">
+      <div id="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">{{ f.id }}</span>
+          <span style="font-size:14px;font-weight:600">{{ f.frameName }}</span>
+          <span style="flex:none;white-space:nowrap;font-size:12px;line-height:18px;color:#3A4645;background:#fff;border:1px solid #DDE2E1;padding:2px 8px;border-radius:4px">Role: {{ f.roleNote }}</span>
+          <span style="font-family:'JetBrains Mono';font-size:11px;color:#0B5F5C;background:#DDF1EF;padding:3px 8px;border-radius:4px">GET /api/inventory/v1/stock</span>
+        </div>
+        <div style="width:1366px;height:768px;background:#F6F8F7;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(23,32,31,.08),0 24px 60px rgba(23,32,31,.12);display:flex;position:relative">
+
+          <aside style="width:{{ f.sideW }}px;flex:none;background:#FFFFFF;border-right:1px solid #DDE2E1;display:flex;flex-direction:column">
+            <div style="height:56px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid #EEF1F0">
+              <span style="width:32px;height:32px;border-radius:8px;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex:none">+</span>
+              <sc-if value="{{ f.expanded }}" hint-placeholder-val="{{ true }}"><span style="display:flex;flex-direction:column;line-height:16px;min-width:0"><b style="font-size:13px">{{ f.L.brand }}</b><span style="font-size:11px;color:#66706F">{{ f.L.brandSub }}</span></span></sc-if>
+            </div>
+            <nav style="flex:1;overflow:hidden;padding:8px;display:flex;flex-direction:column;gap:2px">
+              <sc-for list="{{ f.groups }}" as="g" hint-placeholder-count="10">
+                <div style="display:flex;flex-direction:column">
+                  <div style="display:flex;align-items:center;gap:10px;min-height:36px;padding:{{ f.navPad }};border-radius:6px;background:{{ g.bg }};color:{{ g.fg }};font-size:13px;font-weight:{{ g.w }};justify-content:{{ f.navJustify }}">
+                    <span style="width:20px;text-align:center;font-size:14px;flex:none">{{ g.icon }}</span>
+                    <sc-if value="{{ f.expanded }}" hint-placeholder-val="{{ true }}"><span style="flex:1;line-height:{{ f.navLh }}px">{{ g.label }}</span><span style="color:#8C9594;font-size:11px">{{ g.chev }}</span></sc-if>
+                  </div>
+                  <sc-if value="{{ g.open }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;flex-direction:column;gap:1px;padding:2px 0 6px 30px">
+                      <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+                        <span style="padding:6px 10px;border-radius:6px;font-size:13px;line-height:{{ f.navLh }}px;background:{{ it.bg }};color:{{ it.fg }};font-weight:{{ it.w }};border-left:2px solid {{ it.bd }}">{{ it.label }}</span>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </nav>
+            <div style="border-top:1px solid #EEF1F0;padding:10px 16px;font-size:12px;color:#66706F;display:flex;align-items:center;gap:8px;justify-content:{{ f.navJustify }}"><span>{{ f.collapseIcon }}</span><sc-if value="{{ f.expanded }}" hint-placeholder-val="{{ true }}"><span>{{ f.L.collapse }}</span><span style="margin-left:auto;font-family:'JetBrains Mono';font-size:10px;padding:1px 5px;border:1px solid #DDE2E1;border-radius:3px">Ctrl B</span></sc-if></div>
+          </aside>
+
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+            <header style="height:56px;flex:none;background:#fff;border-bottom:1px solid #DDE2E1;display:flex;align-items:center;gap:12px;padding:0 20px">
+              <span style="height:36px;padding:0 12px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap"><span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#DDF1EF;color:#0B5F5C;font-weight:500">{{ f.branchCode }}</span>{{ f.branchName }} <span style="color:#66706F">▾</span></span>
+              <span style="height:36px;flex:1;max-width:440px;padding:0 12px;border:1px solid #DDE2E1;background:#F6F8F7;border-radius:6px;display:flex;align-items:center;gap:8px;font-size:13px;color:#66706F">⌕ {{ f.L.search }}<span style="margin-left:auto;font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#fff;border:1px solid #DDE2E1">Ctrl K</span></span>
+              <span style="margin-left:auto;display:flex;border:1px solid #C4CBCA;border-radius:6px;overflow:hidden;font-size:13px;font-weight:500"><span style="padding:7px 10px;background:{{ f.kmBg }};color:{{ f.kmFg }};font-family:'Kantumruy Pro'">ខ្មែរ</span><span style="padding:7px 10px;background:{{ f.enBg }};color:{{ f.enFg }}">EN</span></span>
+              <span style="position:relative;width:36px;height:36px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:15px">🔔<span style="position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#B42318;color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">{{ f.bell }}</span></span>
+              <span style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 6px;border-radius:6px;background:{{ f.userBg }}"><span style="width:32px;height:32px;border-radius:50%;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px">{{ f.initials }}</span><span style="display:flex;flex-direction:column;line-height:17px"><b>{{ f.userName }}</b><span style="color:#66706F;font-size:12px">{{ f.roleLabel }}</span></span><span style="color:#66706F">▾</span></span>
+            </header>
+
+            <div style="flex:1;min-height:0;padding:20px 28px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:2px">
+                  <div style="font-size:12px;color:#66706F;line-height:{{ f.navLh }}px">{{ f.L.crumb }}</div>
+                  <h2 style="margin:0;font-size:28px;line-height:{{ f.titleLh }}px;font-weight:600">{{ f.L.title }}</h2>
+                </div>
+                <div style="display:flex;gap:8px">
+                  <span style="height:36px;padding:0 14px;border-radius:6px;border:1px solid #C4CBCA;background:#fff;display:flex;align-items:center;font-size:14px;font-weight:500;white-space:nowrap">{{ f.L.export }}</span>
+                  <span style="height:36px;padding:0 14px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;font-size:14px;font-weight:500;white-space:nowrap">{{ f.L.action }}</span>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <span style="height:34px;min-width:240px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;padding:0 10px;display:flex;align-items:center;font-size:13px;color:#8C9594">⌕ {{ f.L.findMed }}</span>
+                <sc-for list="{{ f.filters }}" as="fl" hint-placeholder-count="3"><span style="height:34px;padding:0 10px;border:1px solid #C4CBCA;background:#fff;border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap">{{ fl }} <span style="color:#66706F">▾</span></span></sc-for>
+                <sc-if value="{{ f.costHidden }}" hint-placeholder-val="{{ false }}"><span style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:#3A4645;background:#EEF1F0;padding:6px 10px;border-radius:6px">🔒 {{ f.L.costHidden }}</span></sc-if>
+              </div>
+              <div style="flex:1;min-height:0;background:#fff;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden;display:flex;flex-direction:column">
+                <div style="display:grid;grid-template-columns:{{ f.cols }};font-size:13px">
+                  <sc-for list="{{ f.head }}" as="h" hint-placeholder-count="7"><div style="padding:10px 14px;background:#F6F8F7;border-bottom:1px solid #DDE2E1;font-size:12px;font-weight:600;color:#3A4645;text-align:{{ h.align }};white-space:nowrap">{{ h.label }}</div></sc-for>
+                  <sc-for list="{{ f.rows }}" as="r" hint-placeholder-count="6">
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-weight:500">{{ r.name }}</span><sc-for list="{{ r.badges }}" as="b" hint-placeholder-count="1"><span style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px 0 4px;border-radius:4px;background:{{ b.bg }};color:{{ b.fg }};font-size:11px;font-weight:600;white-space:nowrap">{{ b.icon }} {{ b.label }}</span></sc-for></div>
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center"><span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#EEF1F0">{{ r.branch }}</span></div>
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;justify-content:flex-end">{{ r.batches }}</div>
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;justify-content:flex-end;font-weight:600">{{ r.qty }}</div>
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;color:#3A4645">{{ r.unit }}</div>
+                    <sc-if value="{{ f.showCost }}" hint-placeholder-val="{{ true }}"><div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center;justify-content:flex-end">{{ r.value }}</div></sc-if>
+                    <div style="padding:11px 14px;border-bottom:1px solid #EEF1F0;display:flex;align-items:center"><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 10px 2px 8px;border-radius:999px;background:{{ r.st.bg }};color:{{ r.st.fg }};border:1px solid {{ r.st.bd }};font-size:12px;font-weight:500;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:{{ r.st.dot }}"></span>{{ r.st.label }}</span></div>
+                  </sc-for>
+                </div>
+                <div style="margin-top:auto;padding:10px 14px;border-top:1px solid #EEF1F0;display:flex;align-items:center;gap:12px;font-size:13px;color:#3A4645"><span>{{ f.L.perPage }}</span><span style="display:flex;border:1px solid #C4CBCA;border-radius:6px;overflow:hidden"><span style="padding:3px 9px;background:#0E7470;color:#fff">20</span><span style="padding:3px 9px;border-left:1px solid #C4CBCA">50</span><span style="padding:3px 9px;border-left:1px solid #C4CBCA">100</span></span><span style="margin-left:auto">{{ f.count }}</span></div>
+              </div>
+            </div>
+          </div>
+
+          <sc-if value="{{ f.userMenu }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;top:56px;right:20px;width:260px;background:#fff;border:1px solid #DDE2E1;border-radius:10px;box-shadow:0 12px 40px rgba(23,32,31,.16);padding:6px;display:flex;flex-direction:column;font-size:13px">
+              <div style="padding:10px;display:flex;flex-direction:column;gap:2px;border-bottom:1px solid #EEF1F0;margin-bottom:4px"><b>{{ f.userName }}</b><span style="color:#66706F;font-family:'Kantumruy Pro'">{{ f.userKm }}</span><span style="color:#66706F">{{ f.roleLabel }} · {{ f.branchCode }}</span></div>
+              <sc-for list="{{ f.menu }}" as="m" hint-placeholder-count="4"><span style="padding:9px 10px;border-radius:6px;display:flex;justify-content:space-between;color:{{ m.fg }}">{{ m.label }}<span style="color:#66706F;font-size:12px">{{ m.meta }}</span></span></sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-for>
+  </section>
+
+  <section style="display:flex;flex-wrap:wrap;gap:48px;align-items:flex-start">
+    <sc-for list="{{ mobile }}" as="m" hint-placeholder-count="3">
+      <div id="{{ m.id }}" style="display:flex;flex-direction:column;gap:12px;width:390px">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">{{ m.id }}</span>
+          <span style="font-size:14px;font-weight:600">{{ m.frameName }}</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap"><span style="font-size:12px;color:#3A4645;background:#fff;border:1px solid #DDE2E1;padding:2px 8px;border-radius:4px">Role: {{ m.roleNote }}</span><span style="font-family:'JetBrains Mono';font-size:11px;color:#0B5F5C;background:#DDF1EF;padding:3px 8px;border-radius:4px">{{ m.api }}</span></div>
+        <div style="width:390px;height:844px;background:#F6F8F7;border-radius:36px;border:10px solid #17201F;overflow:hidden;display:flex;flex-direction:column;position:relative">
+          <div style="height:32px;flex:none;background:#fff;display:flex;justify-content:space-between;align-items:center;padding:0 20px;font-size:12px;font-weight:600"><span>14:05</span><span>▴ ◉ ▮</span></div>
+          <header style="flex:none;background:#fff;border-bottom:1px solid #DDE2E1;padding:8px 16px 12px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="height:36px;padding:0 10px;border:1px solid #C4CBCA;border-radius:6px;display:flex;align-items:center;gap:6px;font-size:13px"><span style="font-family:'JetBrains Mono';font-size:11px;padding:2px 6px;border-radius:4px;background:#DDF1EF;color:#0B5F5C;font-weight:500">{{ m.branchCode }}</span>▾</span>
+              <span style="margin-left:auto;display:flex;border:1px solid #C4CBCA;border-radius:6px;overflow:hidden;font-size:12px;font-weight:500"><span style="padding:8px 9px;background:{{ m.kmBg }};color:{{ m.kmFg }};font-family:'Kantumruy Pro'">ខ្មែរ</span><span style="padding:8px 9px;background:{{ m.enBg }};color:{{ m.enFg }}">EN</span></span>
+              <span style="position:relative;width:44px;height:44px;border:1px solid #C4CBCA;border-radius:8px;display:flex;align-items:center;justify-content:center">🔔<span style="position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;border-radius:9px;background:#B42318;color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">4</span></span>
+              <span style="width:44px;height:44px;border-radius:50%;background:#0E7470;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px">{{ m.initials }}</span>
+            </div>
+            <div style="display:flex;flex-direction:column"><span style="font-size:12px;color:#66706F;line-height:{{ m.lh }}px">{{ m.crumb }}</span><b style="font-size:22px;line-height:{{ m.titleLh }}px;font-weight:600">{{ m.title }}</b></div>
+          </header>
+
+          <div style="flex:1;min-height:0;overflow:hidden;padding:12px 16px;display:flex;flex-direction:column;gap:10px">
+            <sc-if value="{{ m.isList }}" hint-placeholder-val="{{ true }}">
+              <span style="height:44px;border:1px solid #C4CBCA;background:#fff;border-radius:8px;padding:0 12px;display:flex;align-items:center;font-size:14px;color:#8C9594">⌕ {{ m.findMed }}</span>
+              <div style="display:flex;gap:6px;overflow:hidden"><sc-for list="{{ m.chips }}" as="c" hint-placeholder-count="3"><span style="height:32px;padding:0 12px;border-radius:16px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};display:flex;align-items:center;font-size:13px;white-space:nowrap">{{ c.label }}</span></sc-for></div>
+              <sc-for list="{{ m.rows }}" as="r" hint-placeholder-count="5">
+                <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px">
+                  <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><span style="font-size:14px;font-weight:600">{{ r.name }}</span><span style="font-size:16px;font-weight:600;white-space:nowrap">{{ r.qty }} <span style="font-size:12px;font-weight:400;color:#66706F">{{ r.unit }}</span></span></div>
+                  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><sc-for list="{{ r.badges }}" as="b" hint-placeholder-count="1"><span style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px 0 4px;border-radius:4px;background:{{ b.bg }};color:{{ b.fg }};font-size:11px;font-weight:600">{{ b.icon }} {{ b.label }}</span></sc-for><span style="display:inline-flex;align-items:center;gap:6px;padding:1px 9px 1px 7px;border-radius:999px;background:{{ r.st.bg }};color:{{ r.st.fg }};border:1px solid {{ r.st.bd }};font-size:12px;font-weight:500"><span style="width:6px;height:6px;border-radius:50%;background:{{ r.st.dot }}"></span>{{ r.st.label }}</span><span style="margin-left:auto;font-size:12px;color:#66706F">{{ r.batches }}</span></div>
+                </div>
+              </sc-for>
+            </sc-if>
+            <sc-if value="{{ m.isMore }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:8px;overflow:hidden">
+                <sc-for list="{{ m.groups }}" as="g" hint-placeholder-count="8">
+                  <div style="background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px">
+                    <div style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600"><span style="width:20px;text-align:center;color:#0E7470">{{ g.icon }}</span>{{ g.label }}<span style="margin-left:auto;color:#8C9594;font-size:12px;font-weight:400">{{ g.count }}</span></div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;padding-left:30px"><sc-for list="{{ g.items }}" as="it" hint-placeholder-count="3"><span style="font-size:12px;padding:5px 9px;border-radius:6px;background:#F6F8F7;color:#3A4645">{{ it.label }}</span></sc-for></div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+
+          <nav style="flex:none;height:76px;background:#fff;border-top:1px solid #DDE2E1;display:grid;grid-template-columns:repeat(5,1fr);padding:6px 4px 14px">
+            <sc-for list="{{ m.tabs }}" as="t" hint-placeholder-count="5">
+              <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:{{ t.fg }};position:relative">
+                <span style="width:{{ t.size }}px;height:{{ t.size }}px;border-radius:{{ t.r }}px;background:{{ t.bg }};color:{{ t.ic }};display:flex;align-items:center;justify-content:center;font-size:16px;margin-top:{{ t.mt }}px">{{ t.icon }}</span>
+                <span style="font-size:11px;font-weight:{{ t.w }};line-height:16px;white-space:nowrap">{{ t.label }}</span>
+                <sc-if value="{{ t.badge }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:0;right:14px;min-width:18px;height:18px;border-radius:9px;background:#B42318;color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">{{ t.badge }}</span></sc-if>
+              </div>
+            </sc-for>
+          </nav>
+        </div>
+      </div>
+    </sc-for>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const L = {
+      km: { brand: 'ឱសថស្ថាន', brandSub: 'Pharmacy System', search: 'ស្វែងរកឱសថ វិក្កយបត្រ អតិថិជន…', collapse: 'បង្រួម', crumb: 'ស្តុក  /  ស្តុកដែលមាន', title: 'ស្តុកដែលមាន', export: 'នាំចេញ ▾', action: '+ ការរាប់ស្តុកថ្មី', findMed: 'ស្វែងរកឱសថ ឬបាកូដ', costHidden: 'ថ្លៃដើមត្រូវបានលាក់', perPage: 'ជួរក្នុងមួយទំព័រ', all: 'សាខាទាំងអស់',
+        head: ['ឱសថ', 'សាខា', 'ឡូត៍', 'នៅសល់', 'ឯកតា', 'តម្លៃ (ថ្លៃដើម)', 'ស្ថានភាព'], filters: ['សាខា: ទាំងអស់', 'ប្រភេទ', 'ស្ថានភាព'], units: { tab: 'គ្រាប់', cap: 'គ្រាប់', sachet: 'កញ្ចប់', kit: 'ឈុត' }, batches: 'ឡូត៍' },
+      en: { brand: 'Pharmacy', brandSub: 'System Management', search: 'Search medicines, invoices, customers…', collapse: 'Collapse', crumb: 'Stock  /  Stock on hand', title: 'Stock on hand', export: 'Export ▾', action: '+ New stock take', findMed: 'Search medicine or barcode', costHidden: 'Cost columns hidden for your role', perPage: 'Rows per page', all: 'All branches',
+        head: ['Medicine', 'Branch', 'Batches', 'On hand', 'Unit', 'Value (cost)', 'Status'], filters: ['Branch: PP1', 'Category', 'Status'], units: { tab: 'tab', cap: 'cap', sachet: 'sachet', kit: 'kit' }, batches: 'batches' },
+    };
+    const tone = {
+      ok: { fg: '#1E6B3F', bg: '#E3F3E9', bd: '#BFE2CC', dot: '#2E9B5C', en: 'Available', km: 'មាន' },
+      near: { fg: '#7A4F00', bg: '#FDF1D6', bd: '#F0D48E', dot: '#D99A1E', en: 'Near expiry', km: 'ជិតផុតកំណត់' },
+      quar: { fg: '#7A4F00', bg: '#FDF1D6', bd: '#F0D48E', dot: '#D99A1E', en: 'Quarantined', km: 'ដាក់ដាច់ដោយឡែក' },
+    };
+    const B = {
+      rx: { icon: '℞', en: 'Rx only', km: 'វេជ្ជបញ្ជា', bg: '#3438A0', fg: '#fff' },
+      ctl: { icon: '◆', en: 'Controlled', km: 'ឱសថគ្រប់គ្រង', bg: '#A01D52', fg: '#fff' },
+      promo: { icon: '%', en: 'Buy 2 get 1', km: 'ទិញ ២ ថែម ១', bg: '#6D3FB0', fg: '#fff' },
+      hamper: { icon: '▣', en: 'Hamper', km: 'កញ្ចប់', bg: '#6B5A12', fg: '#fff' },
+    };
+    const allRows = [
+      { name: 'Paracetamol 500 mg', b: [], branch: 'PP1', n: 3, qty: '1,240', u: 'tab', value: '$124.00', st: 'ok', rx: false },
+      { name: 'Amoxicillin 500 mg', b: ['rx'], branch: 'PP1', n: 2, qty: '340', u: 'cap', value: '$51.00', st: 'near', rx: true },
+      { name: 'Diazepam 5 mg', b: ['ctl'], branch: 'PP1', n: 1, qty: '180', u: 'tab', value: '$27.00', st: 'ok', rx: true },
+      { name: 'Cetirizine 10 mg', b: [], branch: 'PP2', n: 2, qty: '920', u: 'tab', value: '$73.60', st: 'ok' },
+      { name: 'ORS sachet', b: ['promo'], branch: 'SR1', n: 1, qty: '45', u: 'sachet', value: '$9.00', st: 'quar' },
+      { name: 'Omeprazole 20 mg', b: [], branch: 'PP2', n: 2, qty: '600', u: 'cap', value: '$90.00', st: 'near' },
+      { name: 'First-aid kit', b: ['hamper'], branch: 'PP1', n: '—', qty: '12', u: 'kit', value: '$96.00', st: 'ok' },
+      { name: 'Cetirizine 10 mg', b: [], branch: 'PP1', n: 1, qty: '410', u: 'tab', value: '$32.80', st: 'ok' },
+    ];
+    const mkRows = (lang, filter) => allRows.filter(filter).map(r => ({
+      name: r.name, branch: r.branch, batches: lang === 'km' ? r.n : r.n, qty: r.qty, unit: L[lang].units[r.u], value: r.value,
+      badges: r.b.map(k => ({ ...B[k], label: B[k][lang] })),
+      st: { ...tone[r.st], label: tone[r.st][lang] },
+    }));
+
+    const G = [
+      ['dash', '▦', 'Dashboard', 'ផ្ទាំងគ្រប់គ្រង', [['Dashboard', 'ផ្ទាំងគ្រប់គ្រង']]],
+      ['pos', '◎', 'POS', 'ការលក់', [['POS', 'លក់'], ['Sale Template', 'គំរូលក់'], ['Sale Suspend', 'ការលក់ផ្អាក'], ['Sale Order', 'បញ្ជាលក់'], ['List Sale', 'បញ្ជីលក់'], ['Sale Return', 'ការប្រគល់វិញ'], ['List Commission', 'កម្រៃជើងសារ'], ['Items Promotion', 'ប្រូម៉ូសិន']]],
+      ['rx', '℞', 'Prescriptions', 'វេជ្ជបញ្ជា', [['Patients', 'អ្នកជំងឺ'], ['Doctors', 'វេជ្ជបណ្ឌិត'], ['Prescriptions', 'វេជ្ជបញ្ជា'], ['Dispense from Rx', 'ចែកតាមវេជ្ជបញ្ជា']]],
+      ['ctl', '◆', 'Controlled drugs', 'ឱសថគ្រប់គ្រង', [['Register', 'បញ្ជី'], ['Discrepancies', 'ភាពខុសគ្នា'], ['Register export', 'នាំចេញបញ្ជី']]],
+      ['stock', '▤', 'Stock', 'ស្តុក', [['Stock on hand', 'ស្តុកដែលមាន', 'all'], ['Batches & expiry', 'ឡូត៍ និងថ្ងៃផុតកំណត់'], ['Stock Take', 'ការរាប់ស្តុក', 'all'], ['Shelf locations', 'ទីតាំងធ្នើ'], ['Movements', 'ចលនាស្តុក'], ['Re-order list', 'បញ្ជីបញ្ជាទិញឡើងវិញ'], ['Re-order settings', 'កំណត់ការបញ្ជាទិញឡើងវិញ'], ['Recall', 'ការរំលឹកមកវិញ']]],
+      ['wh', '▣', 'Warehouse', 'ឃ្លាំង', [['Product', 'ផលិតផល'], ['Categories & brands', 'ប្រភេទ និងម៉ាក'], ['Hamper', 'កញ្ចប់'], ['Import Product', 'នាំចូលផលិតផល'], ['Print Label', 'បោះពុម្ពស្លាក'], ['Initialize', 'ស្តុកដើមគ្រា']]],
+      ['po', '⊕', 'Purchase', 'ការទិញ', [['Purchase Request', 'សំណើទិញ'], ['Purchase Order', 'បញ្ជាទិញ'], ['Receiving Goods', 'ទទួលទំនិញ'], ['Receipts', 'បង្កាន់ដៃទទួល'], ['Purchase Payment', 'ទូទាត់'], ['Supplier Return', 'ប្រគល់អ្នកផ្គត់ផ្គង់']]],
+      ['tr', '⇄', 'Transfer', 'ការផ្ទេរ', [['Stock Transfer Request', 'សំណើផ្ទេរ'], ['Stock Transfer', 'ផ្ទេរស្តុក'], ['Shrinkage', 'ការខូចខាត']]],
+      ['ct', '☰', 'Contacts', 'ទំនាក់ទំនង', [['Customer Group', 'ក្រុមអតិថិជន'], ['Customer', 'អតិថិជន', 'all'], ['Customer Payment', 'ការបង់ប្រាក់អតិថិជន'], ['Supplier Group', 'ក្រុមអ្នកផ្គត់ផ្គង់'], ['Supplier', 'អ្នកផ្គត់ផ្គង់']]],
+      ['rep', '▥', 'Report', 'របាយការណ៍', [['Sale Detail', 'លម្អិតការលក់'], ['Expire Alert', 'ជូនដំណឹងផុតកំណត់'], ['Profit', 'ប្រាក់ចំណេញ'], ['ABC Analysis', 'វិភាគ ABC'], ['+29 more', '+២៩ ទៀត']]],
+      ['um', '◐', 'User Management', 'គ្រប់គ្រងអ្នកប្រើ', [['User', 'អ្នកប្រើ'], ['Role', 'តួនាទី'], ['User Log', 'កំណត់ហេតុ'], ['Commission rules', 'ច្បាប់កម្រៃ']]],
+      ['set', '⚙', 'Settings', 'ការកំណត់', [['Branches', 'សាខា'], ['Exchange rate', 'អត្រាប្តូរប្រាក់'], ['Notifications', 'ការជូនដំណឹង'], ['My profile', 'ប្រវត្តិរូប', 'all']]],
+    ];
+    const roleGroups = {
+      owner: G.map(g => g[0]),
+      cashier: ['dash', 'pos', 'stock', 'ct', 'set'],
+      pharm: ['dash', 'pos', 'rx', 'ctl', 'stock', 'tr', 'ct', 'rep', 'set'],
+    };
+    const navFor = (lang, role, expanded) => G.filter(g => roleGroups[role].includes(g[0])).map(([k, icon, en, km, items]) => {
+      const active = k === 'stock';
+      const its = items.filter(i => role !== 'cashier' || i[2] === 'all' || k === 'pos' && i[0] !== 'List Commission' && i[0] !== 'Items Promotion');
+      return {
+        icon, label: lang === 'km' ? km : en, open: active && expanded, chev: active ? '▾' : '▸',
+        bg: active && !expanded ? '#DDF1EF' : 'transparent', fg: active ? '#0B5F5C' : '#3A4645', w: active ? 600 : 500,
+        items: its.map(i => ({ label: lang === 'km' ? i[1] : i[0], ...(i[0] === 'Stock on hand' ? { bg: '#EFF8F7', fg: '#0B5F5C', w: 600, bd: '#0E7470' } : { bg: 'transparent', fg: '#3A4645', w: 400, bd: 'transparent' }) })),
+      };
+    });
+    const langToggle = lang => lang === 'km' ? { kmBg: '#0E7470', kmFg: '#fff', enBg: '#fff', enFg: '#3A4645' } : { kmBg: '#fff', kmFg: '#3A4645', enBg: '#0E7470', enFg: '#fff' };
+
+    const mkDesk = ({ id, lang, role, expanded, frameName, roleNote, userName, userKm, initials, roleLabel, branchCode, branchName, bell, userMenu }) => {
+      const l = L[lang], showCost = role === 'owner';
+      const filter = role === 'owner' ? () => true : r => r.branch === 'PP1' && (role !== 'cashier' || !r.rx);
+      const rows = mkRows(lang, filter);
+      return {
+        id, frameName, roleNote, userName, userKm, initials, roleLabel, branchCode, branchName, bell, userMenu: !!userMenu,
+        L: l, expanded, sideW: expanded ? 248 : 64, navPad: expanded ? '0 10px' : '0', navJustify: expanded ? 'flex-start' : 'center',
+        collapseIcon: expanded ? '«' : '»', navLh: lang === 'km' ? 22 : 18, titleLh: lang === 'km' ? 44 : 36,
+        groups: navFor(lang, role, expanded), ...langToggle(lang),
+        filters: role === 'owner' ? l.filters : l.filters.map((f, i) => i === 0 ? (lang === 'km' ? 'សាខា: PP1' : 'Branch: PP1') : f),
+        costHidden: !showCost, showCost,
+        cols: showCost ? 'minmax(0,2.6fr) 90px 90px 110px 90px 130px 170px' : 'minmax(0,2.6fr) 90px 90px 110px 90px 170px',
+        head: l.head.filter((_, i) => showCost || i !== 5).map((label, i) => ({ label, align: [2, 3].includes(i) || (showCost && i === 5) ? 'right' : 'left' })),
+        rows, count: lang === 'km' ? `១–${rows.length} នៃ ${role === 'owner' ? '៤២៨' : '១៤២'}` : `1–${rows.length} of ${role === 'owner' ? 428 : 142}`,
+        userBg: userMenu ? '#EEF1F0' : 'transparent',
+        menu: [
+          { label: 'My profile', meta: '', fg: '#17201F' },
+          { label: 'Change PIN', meta: '', fg: '#17201F' },
+          { label: 'Two-factor (2FA)', meta: 'On', fg: '#17201F' },
+          { label: 'Language', meta: 'EN / ខ្មែរ', fg: '#17201F' },
+          { label: 'Log out', meta: '', fg: '#B42318' },
+        ],
+      };
+    };
+
+    const desktop = [
+      mkDesk({ id: '2a', lang: 'km', role: 'owner', expanded: true, frameName: 'Shell / Stock on hand / Desktop 1366 / KM', roleNote: 'Owner · all branches', userName: 'ហេង សុវណ្ណ', userKm: 'Heng Sovann', initials: 'HS', roleLabel: 'ម្ចាស់', branchCode: 'ALL', branchName: L.km.all, bell: 4 }),
+      mkDesk({ id: '2b', lang: 'en', role: 'cashier', expanded: true, frameName: 'Shell / Stock on hand / Desktop 1366 / EN', roleNote: 'Cashier · PP1 · no cost, no Rx menus', userName: 'Meas Vibol', userKm: 'មាស វិបុល', initials: 'MV', roleLabel: 'Cashier', branchCode: 'PP1', branchName: 'Toul Kork', bell: 1, userMenu: true }),
+      mkDesk({ id: '2c', lang: 'en', role: 'pharm', expanded: false, frameName: 'Shell / Stock on hand / Desktop 1366 / EN · sidebar collapsed', roleNote: 'Pharmacist · PP1', userName: 'Lim Srey Neang', userKm: 'លឹម ស្រីនាង', initials: 'LN', roleLabel: 'Pharmacist', branchCode: 'PP1', branchName: 'Toul Kork', bell: 2 }),
+    ];
+
+    const tabsFor = (lang, active) => [['home', '⌂', 'Home', 'ទំព័រដើម'], ['pos', '◎', 'POS', 'លក់'], ['scan', '▦', 'Scan', 'ស្កេន'], ['appr', '✓', 'Approvals', 'អនុម័ត'], ['more', '☰', 'More', 'ច្រើនទៀត']].map(([k, icon, en, km]) => {
+      const scan = k === 'scan', on = k === active;
+      return { icon, label: lang === 'km' ? km : en, fg: on ? '#0B5F5C' : '#66706F', w: on ? 600 : 500, size: scan ? 48 : 28, r: scan ? 24 : 6, bg: scan ? '#0E7470' : on ? '#DDF1EF' : 'transparent', ic: scan ? '#fff' : 'inherit', mt: scan ? -18 : 0, badge: k === 'appr' ? 4 : false };
+    });
+    const chips = lang => [lang === 'km' ? 'PP1' : 'PP1', lang === 'km' ? 'ជិតផុតកំណត់' : 'Near expiry', lang === 'km' ? 'ឡូត៍ទាំងអស់' : 'All batches'].map((label, i) => ({ label, bg: i === 0 ? '#DDF1EF' : '#fff', fg: i === 0 ? '#0B5F5C' : '#3A4645', bd: i === 0 ? '#B8E0DC' : '#C4CBCA' }));
+    const mobRows = lang => mkRows(lang, r => r.branch === 'PP1').map(r => ({ ...r, batches: r.batches === '—' ? '' : `${r.batches} ${L[lang].batches}` }));
+
+    const mobile = [
+      { id: '2d', frameName: 'Shell / Stock on hand / Mobile 390 / KM', roleNote: 'Manager · PP1, PP2', api: 'GET /api/inventory/v1/stock', isList: true, isMore: false, branchCode: 'PP1', initials: 'CS', crumb: L.km.crumb, title: L.km.title, findMed: L.km.findMed, lh: 22, titleLh: 34, chips: chips('km'), rows: mobRows('km'), tabs: tabsFor('km', 'more'), ...langToggle('km') },
+      { id: '2e', frameName: 'Shell / Stock on hand / Mobile 390 / EN', roleNote: 'Manager · PP1, PP2', api: 'GET /api/inventory/v1/stock', isList: true, isMore: false, branchCode: 'PP1', initials: 'CS', crumb: L.en.crumb, title: L.en.title, findMed: L.en.findMed, lh: 18, titleLh: 28, chips: chips('en'), rows: mobRows('en'), tabs: tabsFor('en', 'more'), ...langToggle('en') },
+      { id: '2f', frameName: 'Shell / More menu / Mobile 390 / KM', roleNote: 'Pharmacist · menu filtered by role', api: 'GET /api/auth/v1/me (permissions, menu)', isList: false, isMore: true, branchCode: 'PP1', initials: 'LN', crumb: 'ច្រើនទៀត', title: 'ម៉ឺនុយទាំងអស់', lh: 22, titleLh: 34,
+        groups: G.filter(g => roleGroups.pharm.includes(g[0]) && g[0] !== 'dash').map(([k, icon, en, km, items]) => ({ icon, label: km, count: items.length, items: items.slice(0, 4).map(i => ({ label: i[1] })) })),
+        tabs: tabsFor('km', 'more'), ...langToggle('km') },
+    ];
+
+    return { desktop, mobile };
+  }
+}
+</script>
+</body>
+</html>

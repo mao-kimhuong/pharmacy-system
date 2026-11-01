@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Kantumruy+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E9EDEC;color:#17201F;font-family:'Inter','Kantumruy Pro',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0E7470}a:hover{color:#0B5F5C}
+*{box-sizing:border-box}
+</style>
+</helmet>
+<div style="padding:48px;display:flex;flex-direction:column;gap:32px;font-variant-numeric:tabular-nums;max-width:1400px">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#66706F">DELIVERABLE 4 · SHARED STATES</div>
+    <h1 style="margin:0;font-size:28px;line-height:36px;font-weight:600">Shared states</h1>
+    <div style="font-size:14px;color:#3A4645;max-width:860px;line-height:22px">Designed once, used everywhere. Each panel shows the state inside a content area at real size. Error-code wording lives in <a href="Design System.dc.html#errors">Design System · 13</a>; MFA_SETUP_REQUIRED and account locked are full screens in <a href="Auth.dc.html#15e">Auth 15e</a> and <a href="Auth.dc.html#15f">15f</a>.</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(2,640px);gap:32px">
+
+    <div id="16a" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:8px;align-items:center"><span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">16a</span><b style="font-size:14px">Empty · with next action</b><span style="font-size:12px;color:#66706F">KM + EN</span></div>
+      <div style="height:360px;background:#fff;border:1px solid #DDE2E1;border-radius:10px;display:grid;grid-template-columns:1fr 1fr">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;text-align:center;border-right:1px solid #EEF1F0">
+          <span style="width:48px;height:48px;border-radius:50%;background:#EEF1F0;display:flex;align-items:center;justify-content:center;color:#66706F;font-size:20px">⇄</span>
+          <b style="font-size:16px">No transfers in transit</b>
+          <span style="font-size:13px;color:#3A4645;line-height:20px">Transfers you dispatch or expect to receive will appear here.</span>
+          <span style="height:38px;padding:0 14px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;font-size:13px;font-weight:600;margin-top:6px">+ Transfer request</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;text-align:center;font-family:'Kantumruy Pro','Inter'">
+          <span style="width:48px;height:48px;border-radius:50%;background:#EEF1F0;display:flex;align-items:center;justify-content:center;color:#66706F;font-size:20px">⌕</span>
+          <b style="font-size:16px;line-height:26px">រកមិនឃើញលទ្ធផល</b>
+          <span style="font-size:13px;color:#3A4645;line-height:22px">គ្មានឱសថត្រូវនឹង "amoxyc" ទេ។ សូមពិនិត្យអក្ខរាវិរុទ្ធ ឬលុបតម្រង។</span>
+          <span style="height:38px;padding:0 14px;border-radius:6px;border:1px solid #C4CBCA;display:flex;align-items:center;font-size:13px;font-weight:500;margin-top:6px">លុបតម្រង</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="16b" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:8px;align-items:center"><span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">16b</span><b style="font-size:14px">Loading skeleton · table + tiles</b></div>
+      <div style="height:360px;background:#F6F8F7;border:1px solid #DDE2E1;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><sc-for list="{{ three }}" as="x" hint-placeholder-count="3"><div style="background:#fff;border:1px solid #DDE2E1;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px"><span style="height:10px;width:60%;border-radius:4px;background:#EEF1F0"></span><span style="height:22px;width:80%;border-radius:4px;background:#E3E8E7"></span></div></sc-for></div>
+        <div style="flex:1;background:#fff;border:1px solid #DDE2E1;border-radius:8px;overflow:hidden;display:flex;flex-direction:column">
+          <div style="height:36px;background:#F6F8F7;border-bottom:1px solid #DDE2E1"></div>
+          <sc-for list="{{ skel }}" as="s" hint-placeholder-count="5"><div style="display:flex;gap:16px;align-items:center;padding:12px 14px;border-bottom:1px solid #EEF1F0"><span style="height:10px;width:{{ s.a }}%;border-radius:4px;background:#EEF1F0"></span><span style="height:10px;width:{{ s.b }}%;border-radius:4px;background:#F1F3F2"></span><span style="margin-left:auto;height:10px;width:60px;border-radius:4px;background:#EEF1F0"></span></div></sc-for>
+        </div>
+        <span style="font-size:12px;color:#66706F">Skeleton keeps the final layout so nothing jumps. Shown after 300 ms; before that, nothing.</span>
+      </div>
+    </div>
+
+    <div id="16c" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:8px;align-items:center"><span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">16c</span><b style="font-size:14px">Server error · retry</b></div>
+      <div style="height:360px;background:#fff;border:1px solid #DDE2E1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:32px;text-align:center">
+        <span style="width:48px;height:48px;border-radius:50%;background:#FDE8E6;display:flex;align-items:center;justify-content:center;color:#B42318;font-size:20px;font-weight:700">!</span>
+        <b style="font-size:16px">Couldn't load stock</b>
+        <span style="font-family:'Kantumruy Pro';font-size:14px;color:#3A4645;line-height:24px">មិនអាចផ្ទុកស្តុកបានទេ</span>
+        <span style="font-size:13px;color:#66706F;line-height:20px;max-width:380px">The server didn't respond. Your work is not lost. Try again, or tell your manager if this keeps happening.</span>
+        <div style="display:flex;gap:8px;margin-top:6px"><span style="height:38px;padding:0 16px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;font-size:13px;font-weight:600">Try again</span><span style="height:38px;padding:0 14px;border-radius:6px;border:1px solid #C4CBCA;display:flex;align-items:center;font-size:13px">Copy error ID</span></div>
+        <span style="font-family:'JetBrains Mono';font-size:11px;color:#8C9594">ERR 503 · req 7f2a-91c0 · 31/10/2026 14:07</span>
+      </div>
+    </div>
+
+    <div id="16d" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:8px;align-items:center"><span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">16d</span><b style="font-size:14px">Offline · POS keeps scanning</b></div>
+      <div style="height:360px;background:#F6F8F7;border:1px solid #DDE2E1;border-radius:10px;overflow:hidden;display:flex;flex-direction:column">
+        <div style="padding:10px 16px;background:#3A4645;color:#fff;display:flex;gap:10px;align-items:center;font-size:13px"><span style="width:8px;height:8px;border-radius:50%;background:#F3C24B"></span><b>Offline</b><span>Sales are saved on this device and will sync.</span><span style="margin-left:auto;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.15)">3 sales waiting</span></div>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+          <div style="height:48px;border:2px solid #0E7470;border-radius:8px;background:#fff;padding:0 14px;display:flex;align-items:center;color:#8C9594">Scan or search medicine…</div>
+          <div style="background:#fff;border:1px solid #DDE2E1;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between"><span>Available offline</span><span style="color:#1E6B3F;font-weight:500">Cash · scan · print · suspend</span></div>
+            <div style="display:flex;justify-content:space-between"><span>Not available</span><span style="color:#A3201A;font-weight:500">KHQR · credit · Rx lookup · controlled</span></div>
+            <div style="display:flex;justify-content:space-between"><span>Stock & prices</span><span style="color:#3A4645">from 14:02 (5 min ago)</span></div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;padding:10px 12px;background:#FDF1D6;border-radius:8px;color:#5C3B00;line-height:20px"><span style="font-weight:700">!</span>Rx-only and controlled items are blocked while offline because patient and register checks need the server.</div>
+          <div style="display:flex;gap:10px;align-items:center;padding:10px 12px;background:#E3F3E9;border-radius:8px;color:#164E2E"><span>✓</span>Back online → "3 sales synced" toast, conflicts listed if stock went negative.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="16e" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:8px;align-items:center"><span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">16e</span><b style="font-size:14px">403 · no permission</b></div>
+      <div style="height:360px;background:#fff;border:1px solid #DDE2E1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:32px;text-align:center">
+        <span style="width:48px;height:48px;border-radius:50%;background:#EEF1F0;display:flex;align-items:center;justify-content:center;font-size:20px">🔒</span>
+        <b style="font-size:16px">You don't have permission to view this page</b>
+        <span style="font-family:'Kantumruy Pro';font-size:14px;color:#3A4645;line-height:24px">អ្នកមិនមានសិទ្ធិមើលទំព័រនេះទេ</span>
+        <span style="font-size:13px;color:#66706F;line-height:20px;max-width:400px">Sale Margin By Item needs the "See cost" permission. Your role: Cashier · PP1.</span>
+        <div style="display:flex;gap:8px;margin-top:6px"><span style="height:38px;padding:0 14px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;font-size:13px;font-weight:600">Go to dashboard</span><span style="height:38px;padding:0 14px;border-radius:6px;border:1px solid #C4CBCA;display:flex;align-items:center;font-size:13px">Ask manager for access</span></div>
+      </div>
+    </div>
+
+    <div id="16f" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:8px;align-items:center"><span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">16f</span><b style="font-size:14px">404 · not found</b></div>
+      <div style="height:360px;background:#fff;border:1px solid #DDE2E1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:32px;text-align:center">
+        <span style="font-size:40px;font-weight:700;color:#C4CBCA;line-height:44px">404</span>
+        <b style="font-size:16px">This page or record doesn't exist</b>
+        <span style="font-family:'Kantumruy Pro';font-size:14px;color:#3A4645;line-height:24px">រកមិនឃើញទំព័រ ឬកំណត់ត្រានេះទេ</span>
+        <span style="font-size:13px;color:#66706F;line-height:20px;max-width:400px">Invoice <span style="font-family:'JetBrains Mono';font-size:12px">PP1-INV-009999</span> was not found. It may belong to a branch you can't access.</span>
+        <div style="display:flex;gap:8px;margin-top:6px"><span style="height:38px;padding:0 14px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;font-size:13px;font-weight:600">Search invoices</span><span style="height:38px;padding:0 14px;border-radius:6px;border:1px solid #C4CBCA;display:flex;align-items:center;font-size:13px">Back</span></div>
+      </div>
+    </div>
+
+    <div id="16g" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:8px;align-items:center"><span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">16g</span><b style="font-size:14px">PIN locked</b><span style="font-family:'JetBrains Mono';font-size:11px;color:#0B5F5C;background:#DDF1EF;padding:2px 6px;border-radius:4px">PIN_LOCKED</span></div>
+      <div style="height:360px;background:rgba(23,32,31,.42);border-radius:10px;display:flex;align-items:center;justify-content:center">
+        <div style="width:400px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25)">
+          <div style="padding:16px 20px;background:#B42318;color:#fff;display:flex;gap:10px;align-items:center"><span style="width:26px;height:26px;border-radius:50%;background:#fff;color:#B42318;display:flex;align-items:center;justify-content:center">🔒</span><b style="font-size:16px">PIN locked · <span style="font-family:'Kantumruy Pro'">PIN ត្រូវបានចាក់សោ</span></b></div>
+          <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;font-size:13px;line-height:20px">
+            <span>5 wrong PIN entries for <b>Lim Srey Neang</b>. PIN actions are blocked until <b>14:22</b> (15 min).</span>
+            <span style="color:#3A4645">You can still sell non-Rx items. Another pharmacist can complete the controlled sale, or the Owner can unlock now.</span>
+          </div>
+          <div style="padding:12px 20px;background:#F6F8F7;display:flex;gap:8px;justify-content:flex-end"><span style="height:38px;padding:0 12px;border-radius:6px;border:1px solid #C4CBCA;background:#fff;display:flex;align-items:center;font-size:13px">Hand to another pharmacist</span><span style="height:38px;padding:0 12px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;font-size:13px;font-weight:600">OK</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="16h" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:8px;align-items:center"><span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">16h</span><b style="font-size:14px">Session expired · re-enter password</b></div>
+      <div style="height:360px;background:rgba(23,32,31,.42);border-radius:10px;display:flex;align-items:center;justify-content:center">
+        <div style="width:400px;background:#fff;border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);font-size:13px">
+          <b style="font-size:17px">Your session expired</b>
+          <span style="font-family:'Kantumruy Pro';color:#66706F;line-height:22px;margin-top:-8px">វគ្គរបស់អ្នកបានផុតកំណត់</span>
+          <span style="color:#3A4645;line-height:20px">Signed out after 30 minutes without activity. Enter your password to continue where you left off; the open cart is kept.</span>
+          <span style="height:42px;border:1px solid #DDE2E1;background:#F6F8F7;border-radius:6px;padding:0 12px;display:flex;align-items:center;color:#3A4645">Chan Sophea · +855 12 990 418</span>
+          <span style="height:42px;border:2px solid #0E7470;box-shadow:0 0 0 3px #CDEBE8;border-radius:6px;padding:0 12px;display:flex;align-items:center;letter-spacing:4px">••••••</span>
+          <div style="display:flex;gap:8px;justify-content:flex-end"><span style="height:38px;padding:0 12px;border-radius:6px;border:1px solid #C4CBCA;display:flex;align-items:center">Switch user</span><span style="height:38px;padding:0 14px;border-radius:6px;background:#0E7470;color:#fff;display:flex;align-items:center;font-weight:600">Continue</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="16i" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:8px;align-items:center"><span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">16i</span><b style="font-size:14px">Toasts · success / failure / undo</b></div>
+      <div style="height:360px;background:#F6F8F7;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-end;gap:10px">
+        <sc-for list="{{ toasts }}" as="t" hint-placeholder-count="4"><div style="width:380px;display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:8px;background:#17201F;color:#fff;font-size:13px;box-shadow:0 8px 24px rgba(23,32,31,.2)"><span style="color:{{ t.c }};font-weight:700;width:14px">{{ t.i }}</span><span style="flex:1;display:flex;flex-direction:column;line-height:18px"><span>{{ t.en }}</span><span style="font-family:'Kantumruy Pro';opacity:.75;font-size:12px;line-height:20px">{{ t.km }}</span></span><span style="color:#5FD0C4;font-weight:600">{{ t.a }}</span></div></sc-for>
+        <span style="font-size:12px;color:#66706F">Bottom-right, max 3 stacked. Success 4 s, failure stays until dismissed.</span>
+      </div>
+    </div>
+
+    <div id="16j" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:8px;align-items:center"><span style="font-family:'JetBrains Mono';font-size:12px;font-weight:500;background:#17201F;color:#fff;padding:3px 8px;border-radius:4px">16j</span><b style="font-size:14px">Inline field errors · form submit</b></div>
+      <div style="height:360px;background:#fff;border:1px solid #DDE2E1;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:12px;font-size:13px">
+        <div style="padding:10px 12px;background:#FDE8E6;border:1px solid #F4C3BD;border-radius:8px;color:#7A1610">2 fields need attention. <span style="text-decoration:underline">Jump to first</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Phone *</span><span style="height:38px;border:1px solid #B42318;border-radius:6px;display:flex;align-items:center;overflow:hidden"><span style="padding:0 10px;height:100%;display:flex;align-items:center;background:#F6F8F7;border-right:1px solid #DDE2E1">+855</span><span style="padding:0 10px">12 888 204</span></span><span style="font-size:12px;color:#B42318;line-height:18px">✕ DUPLICATE_PHONE · Already used by Keo Malis. <a>Open record</a></span></label>
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Name (EN) *</span><span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center">Keo Malis</span></label>
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Credit limit</span><span style="height:38px;border:1px solid #B42318;border-radius:6px;padding:0 10px;display:flex;align-items:center;justify-content:space-between"><span style="color:#66706F">$</span>-50.00</span><span style="font-size:12px;color:#B42318;line-height:18px">✕ Must be 0 or more</span></label>
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:500">Date of birth</span><span style="height:38px;border:1px solid #C4CBCA;border-radius:6px;padding:0 10px;display:flex;align-items:center">12/03/1992</span><span style="font-size:12px;color:#66706F">DD/MM/YYYY</span></label>
+        </div>
+        <span style="font-size:12px;color:#66706F;line-height:18px">Errors show on blur and on submit, never while typing. Field keeps the user's value. Message names the fix.</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      three: [1, 2, 3],
+      skel: [{ a: 34, b: 18 }, { a: 28, b: 22 }, { a: 40, b: 14 }, { a: 30, b: 20 }, { a: 36, b: 16 }],
+      toasts: [
+        { i: '✓', c: '#5FD0C4', en: 'Transfer TR-PP1-PP2-0058 dispatched', km: 'បានបញ្ជូនការផ្ទេរ', a: 'View' },
+        { i: '✓', c: '#5FD0C4', en: 'Customer deactivated', km: 'បានបិទដំណើរការអតិថិជន', a: 'Undo' },
+        { i: '✕', c: '#FF8A7E', en: 'Label printer not responding', km: 'ម៉ាស៊ីនបោះពុម្ពស្លាកមិនឆ្លើយតប', a: 'Retry' },
+        { i: '↻', c: '#F3C24B', en: '3 offline sales synced · 1 conflict', km: 'បានធ្វើសមកាលកម្ម ៣ ការលក់', a: 'Review' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
