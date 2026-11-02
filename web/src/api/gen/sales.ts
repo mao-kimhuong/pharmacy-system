@@ -630,7 +630,7 @@ export interface components {
              * Note
              * @default
              */
-            note: string;
+            note?: string;
         };
         /** CartOut */
         CartOut: {
@@ -687,7 +687,7 @@ export interface components {
              * @default USD_KHR
              * @enum {string}
              */
-            change_in: "USD" | "KHR" | "USD_KHR";
+            change_in?: "USD" | "KHR" | "USD_KHR";
             /** Customer Id */
             customer_id?: string | null;
             /**
@@ -803,12 +803,12 @@ export interface components {
              * @description Hold the stock (FEFO) for the order
              * @default false
              */
-            reserve: boolean;
+            reserve?: boolean;
             /**
              * Reserve Days
              * @default 3
              */
-            reserve_days: number;
+            reserve_days?: number;
         };
         /** Conflict */
         Conflict: {
@@ -830,7 +830,7 @@ export interface components {
              * @default USD
              * @enum {string}
              */
-            currency: "USD" | "KHR";
+            currency?: "USD" | "KHR";
             /**
              * Method
              * @enum {string}
@@ -889,7 +889,7 @@ export interface components {
              * @default USD_KHR
              * @enum {string}
              */
-            change_in: "USD" | "KHR" | "USD_KHR";
+            change_in?: "USD" | "KHR" | "USD_KHR";
             /** Customer Id */
             customer_id?: string | null;
             /**
@@ -903,7 +903,7 @@ export interface components {
              * Note
              * @default
              */
-            note: string;
+            note?: string;
             /** Payments */
             payments: components["schemas"]["PaymentIn"][];
             /**
@@ -1038,13 +1038,13 @@ export interface components {
              * @description The till's own reference for the cart
              * @default
              */
-            cart_ref: string;
+            cart_ref?: string;
             /**
              * Currency
              * @default USD
              * @enum {string}
              */
-            currency: "USD" | "KHR";
+            currency?: "USD" | "KHR";
         };
         /** KhqrOut */
         KhqrOut: {
@@ -1117,7 +1117,7 @@ export interface components {
              * @description Duplicate-therapy warning seen and accepted
              * @default false
              */
-            acknowledge_warnings: boolean;
+            acknowledge_warnings?: boolean;
             /**
              * Allergy Override Reason
              * @description Pharmacist with prescriptions.override_warning: sell despite an allergy warning
@@ -1199,12 +1199,12 @@ export interface components {
              * Is Controlled
              * @default false
              */
-            is_controlled: boolean;
+            is_controlled?: boolean;
             /**
              * Is Hamper
              * @default false
              */
-            is_hamper: boolean;
+            is_hamper?: boolean;
             /** Line No */
             line_no: number;
             /** Line Total */
@@ -1213,7 +1213,7 @@ export interface components {
              * Manual Discount
              * @default 0.00
              */
-            manual_discount: string;
+            manual_discount?: string;
             /** Manual Discount By */
             manual_discount_by?: string | null;
             /**
@@ -1256,12 +1256,12 @@ export interface components {
              * Promo Discount
              * @default 0.00
              */
-            promo_discount: string;
+            promo_discount?: string;
             /**
              * Promotion Ids
              * @default []
              */
-            promotion_ids: string[];
+            promotion_ids?: string[];
             /** Qty */
             qty: number;
             /** Qty Base */
@@ -1308,7 +1308,7 @@ export interface components {
              * @default USD_KHR
              * @enum {string}
              */
-            change_in: "USD" | "KHR" | "USD_KHR";
+            change_in?: "USD" | "KHR" | "USD_KHR";
             /** Discount Approval Token */
             discount_approval_token?: string | null;
             /** Lines */
@@ -1317,7 +1317,7 @@ export interface components {
              * Note
              * @default
              */
-            note: string;
+            note?: string;
             /** Payments */
             payments: components["schemas"]["PaymentIn"][];
             /** Pin Token */
@@ -1329,7 +1329,7 @@ export interface components {
              * Acknowledge Warnings
              * @default false
              */
-            acknowledge_warnings: boolean;
+            acknowledge_warnings?: boolean;
             /** Allergy Override Reason */
             allergy_override_reason?: string | null;
             /** Batch Id */
@@ -1456,7 +1456,7 @@ export interface components {
              * @default USD
              * @enum {string}
              */
-            currency: "USD" | "KHR";
+            currency?: "USD" | "KHR";
             /**
              * Deposit Id
              * @description method deposit: the customer's deposit (sale order)
@@ -1587,12 +1587,12 @@ export interface components {
              * Is Hamper
              * @default false
              */
-            is_hamper: boolean;
+            is_hamper?: boolean;
             /**
              * Is Rx Only
              * @default false
              */
-            is_rx_only: boolean;
+            is_rx_only?: boolean;
             /** Line No */
             line_no: number;
             /** Line Total */
@@ -1657,7 +1657,7 @@ export interface components {
              * Note
              * @default
              */
-            note: string;
+            note?: string;
             /**
              * Valid Until
              * @description The quoted prices; 7 days by default
@@ -1759,7 +1759,7 @@ export interface components {
              * @default stock
              * @enum {string}
              */
-            to: "stock" | "quarantine";
+            to?: "stock" | "quarantine";
         };
         /** ReturnLineIn */
         ReturnLineIn: {
@@ -1772,7 +1772,7 @@ export interface components {
              * Opened
              * @default false
              */
-            opened: boolean;
+            opened?: boolean;
             /**
              * Qty
              * @description In the line's pack unit
@@ -2016,7 +2016,7 @@ export interface components {
              * Note
              * @default
              */
-            note: string;
+            note?: string;
         };
         /** TemplateLineIn */
         TemplateLineIn: {

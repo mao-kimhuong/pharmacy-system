@@ -17,3 +17,4 @@ export { cx } from './cx';
 export * from './Popover';
 export * from './OtpInput';
 export * from './PdfPreview';
+export * from './MultiSelect';

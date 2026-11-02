@@ -299,7 +299,7 @@ export interface components {
              * @default 0
              * @example 200.00
              */
-            credit_limit: number | string;
+            credit_limit?: number | string;
             /** Group Id */
             group_id?: string | null;
             /** Name */
@@ -308,12 +308,12 @@ export interface components {
              * Name Km
              * @default
              */
-            name_km: string;
+            name_km?: string;
             /**
              * Note
              * @default
              */
-            note: string;
+            note?: string;
             /**
              * Phone
              * @example 012 345 678
@@ -454,7 +454,7 @@ export interface components {
              * Default Discount Pct
              * @default 0
              */
-            default_discount_pct: number | string;
+            default_discount_pct?: number | string;
             /**
              * Name En
              * @example Clinic
@@ -464,7 +464,7 @@ export interface components {
              * Name Km
              * @default
              */
-            name_km: string;
+            name_km?: string;
         };
         /** GroupOut */
         GroupOut: {
@@ -519,7 +519,7 @@ export interface components {
              * Reference
              * @default
              */
-            reference: string;
+            reference?: string;
         };
         /** PaymentOut */
         PaymentOut: {

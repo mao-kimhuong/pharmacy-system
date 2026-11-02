@@ -688,7 +688,7 @@ export interface components {
              * Name Km
              * @default
              */
-            name_km: string;
+            name_km?: string;
             /**
              * Price
              * @example 2.50
@@ -706,12 +706,12 @@ export interface components {
              * Create Missing
              * @default false
              */
-            create_missing: boolean;
+            create_missing?: boolean;
             /**
              * Skip Invalid
              * @default false
              */
-            skip_invalid: boolean;
+            skip_invalid?: boolean;
         };
         /** ImportDetail */
         ImportDetail: {
@@ -823,7 +823,7 @@ export interface components {
              * Name Km
              * @default
              */
-            name_km: string;
+            name_km?: string;
         };
         /** LookupOut */
         LookupOut: {
@@ -898,7 +898,7 @@ export interface components {
              * @default
              * @example tablet
              */
-            dosage_form: string;
+            dosage_form?: string;
             /**
              * Drug Classes
              * @example [
@@ -917,19 +917,19 @@ export interface components {
              * Manufacturer
              * @default
              */
-            manufacturer: string;
+            manufacturer?: string;
             /**
              * Name Km
              * @default
              */
-            name_km: string;
+            name_km?: string;
             /** Pack Units */
             pack_units?: components["schemas"]["PackUnitCreate"][];
             /**
              * Reorder Level
              * @default 0
              */
-            reorder_level: number;
+            reorder_level?: number;
             /**
              * Sku
              * @example PARA500
@@ -940,13 +940,13 @@ export interface components {
              * @default room
              * @enum {string}
              */
-            storage: "room" | "cold";
+            storage?: "room" | "cold";
             /**
              * Strength
              * @default
              * @example 500mg
              */
-            strength: string;
+            strength?: string;
         };
         /** MedicineOut */
         MedicineOut: {
@@ -962,7 +962,7 @@ export interface components {
              * Components
              * @default []
              */
-            components: components["schemas"]["ComponentOut"][];
+            components?: components["schemas"]["ComponentOut"][];
             /** Controlled Schedule */
             controlled_schedule: ("I" | "II" | "III" | "IV") | null;
             /**
@@ -989,7 +989,7 @@ export interface components {
              * Kind
              * @default medicine
              */
-            kind: string;
+            kind?: string;
             /** Manufacturer */
             manufacturer: string;
             /** Name Km */
@@ -1188,7 +1188,7 @@ export interface components {
              * @description Also Rx-only and controlled medicines
              * @default false
              */
-            include_rx: boolean;
+            include_rx?: boolean;
             /** Max Uses Per Customer */
             max_uses_per_customer?: number | null;
             /** Max Uses Total */
@@ -1201,12 +1201,12 @@ export interface components {
              * Name Km
              * @default
              */
-            name_km: string;
+            name_km?: string;
             /**
              * Stackable
              * @default false
              */
-            stackable: boolean;
+            stackable?: boolean;
             /** Starts At */
             starts_at?: string | null;
             /** Tiers */
@@ -1399,7 +1399,7 @@ export interface components {
              * Components
              * @default []
              */
-            components: components["schemas"]["ComponentOut"][];
+            components?: components["schemas"]["ComponentOut"][];
             /** Controlled Schedule */
             controlled_schedule: ("I" | "II" | "III" | "IV") | null;
             /**
@@ -1426,7 +1426,7 @@ export interface components {
              * Kind
              * @default medicine
              */
-            kind: string;
+            kind?: string;
             /** Manufacturer */
             manufacturer: string;
             /** Matched Pack Unit Id */

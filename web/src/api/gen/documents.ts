@@ -107,7 +107,7 @@ export interface components {
              * @default km
              * @enum {string}
              */
-            lang: "km" | "en";
+            lang?: "km" | "en";
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -129,7 +129,7 @@ export interface components {
              * @default km
              * @enum {string}
              */
-            lang: "km" | "en";
+            lang?: "km" | "en";
             /**
              * Line No
              * @description Left out: every Rx line
@@ -190,7 +190,7 @@ export interface components {
              * Copies
              * @default 1
              */
-            copies: number;
+            copies?: number;
             /**
              * Pack Unit Id
              * Format: uuid
@@ -312,7 +312,7 @@ export interface components {
              * @default km
              * @enum {string}
              */
-            lang: "km" | "en";
+            lang?: "km" | "en";
             /**
              * Supplier Return Id
              * Format: uuid

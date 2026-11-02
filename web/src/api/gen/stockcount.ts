@@ -380,13 +380,13 @@ export interface components {
              * Note
              * @default
              */
-            note: string;
+            note?: string;
             /**
              * Scope
              * @default full
              * @enum {string}
              */
-            scope: "full" | "category" | "location" | "controlled";
+            scope?: "full" | "category" | "location" | "controlled";
         };
         /** EntryIn */
         EntryIn: {

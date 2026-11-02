@@ -703,7 +703,7 @@ export interface components {
              * All Devices
              * @default false
              */
-            all_devices: boolean;
+            all_devices?: boolean;
             /** Refresh Token */
             refresh_token?: string | null;
         };
@@ -729,7 +729,7 @@ export interface components {
              * Has Pin
              * @default false
              */
-            has_pin: boolean;
+            has_pin?: boolean;
             /**
              * Id
              * Format: uuid
@@ -743,19 +743,19 @@ export interface components {
              * Menu
              * @default []
              */
-            menu: components["schemas"]["MenuItemOut"][];
+            menu?: components["schemas"]["MenuItemOut"][];
             /**
              * Mfa Setup Required
              * @default false
              */
-            mfa_setup_required: boolean;
+            mfa_setup_required?: boolean;
             /** Name */
             name: string;
             /**
              * Permissions
              * @default []
              */
-            permissions: string[];
+            permissions?: string[];
             /** Phone */
             phone: string;
             /** Role */
@@ -764,7 +764,7 @@ export interface components {
              * Totp Enabled
              * @default false
              */
-            totp_enabled: boolean;
+            totp_enabled?: boolean;
         };
         /** PermissionOut */
         PermissionOut: {
@@ -838,7 +838,7 @@ export interface components {
              * Description
              * @default
              */
-            description: string;
+            description?: string;
             /**
              * Key
              * @example senior_cashier
@@ -850,7 +850,7 @@ export interface components {
              * Permissions
              * @default []
              */
-            permissions: string[];
+            permissions?: string[];
         };
         /** RoleOut */
         RoleOut: {
@@ -858,7 +858,7 @@ export interface components {
              * Active Users
              * @default 0
              */
-            active_users: number;
+            active_users?: number;
             /**
              * All Permissions
              * @description True for the owner role
@@ -941,12 +941,12 @@ export interface components {
              * Mfa Required
              * @default false
              */
-            mfa_required: boolean;
+            mfa_required?: boolean;
             /**
              * Mfa Setup Required
              * @default false
              */
-            mfa_setup_required: boolean;
+            mfa_setup_required?: boolean;
             /** Mfa Token */
             mfa_token?: string | null;
             /** Refresh Token */
@@ -956,7 +956,7 @@ export interface components {
              * @default bearer
              * @constant
              */
-            token_type: "bearer";
+            token_type?: "bearer";
             user?: components["schemas"]["MeResponse"] | null;
         };
         /** TwoFactorEnableRequest */
@@ -982,18 +982,18 @@ export interface components {
              * Branch Ids
              * @default []
              */
-            branch_ids: string[];
+            branch_ids?: string[];
             /**
              * Is Pharmacist
              * @default false
              */
-            is_pharmacist: boolean;
+            is_pharmacist?: boolean;
             /**
              * Locale
              * @default km
              * @enum {string}
              */
-            locale: "km" | "en";
+            locale?: "km" | "en";
             /** Name */
             name: string;
             /** Password */

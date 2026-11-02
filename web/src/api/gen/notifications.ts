@@ -165,7 +165,7 @@ export interface components {
              * Is Active
              * @default true
              */
-            is_active: boolean;
+            is_active?: boolean;
         };
         /** ChatOut */
         ChatOut: {

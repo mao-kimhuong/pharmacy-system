@@ -468,8 +468,13 @@ Front end (`web/`, plan: `docs/plans/frontend-plan.md`, design handoff: `docs/de
 Decided: F-sprints hide designed details the API lacks (choice A alternative); refresh token in the httpOnly cookie
 (B); offline POS needs S9 backend work first (C); e2e against `BASE_URL` (D); openapi-typescript + openapi-fetch (E);
 dev-only `/dev/design` (F). The `web` service is Traefik `PathPrefix(/)` priority 1 (static nginx, its own CSP).
+POS (`web/src/features/pos`): the cart holds only choices; prices, totals and checks come from `/carts/preview`
+(debounced). `can_post` ignores unresolved *requirements* (PIN, patient ID, approval), so Pay also waits for those.
+Rx warnings come back under one code for the cart: actions follow `details.warnings[].kind` (allergy → override
+reason, duplicate_therapy → acknowledge). The checkout Idempotency-Key follows the exact request body (a retry
+replays; any change makes a new key). The scan box frees itself on Enter (scanners send the next code at once).
 - [x] F0 Design system + app shell + auth + shared states
-- [ ] F1 POS – all 9 flows on `/carts/preview`, POS lite, POS back office
+- [x] F1 POS – all 9 flows on `/carts/preview`, POS lite, POS back office
 - [ ] F2 Prescriptions + controlled drugs
 - [ ] F3 Warehouse + stock (incl. mobile stock count)
 - [ ] F4 Purchase + transfer (incl. mobile receiving)

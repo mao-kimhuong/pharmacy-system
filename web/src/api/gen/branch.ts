@@ -182,7 +182,7 @@ export interface components {
              * Address
              * @default
              */
-            address: string;
+            address?: string;
             /**
              * Code
              * @example PP1
@@ -192,7 +192,7 @@ export interface components {
              * License No
              * @default
              */
-            license_no: string;
+            license_no?: string;
             /** Name En */
             name_en: string;
             /** Name Km */
@@ -201,7 +201,7 @@ export interface components {
              * Phone
              * @default
              */
-            phone: string;
+            phone?: string;
         };
         /** BranchOut */
         BranchOut: {
@@ -414,7 +414,7 @@ export interface components {
              * City
              * @default Phnom Penh
              */
-            city: string;
+            city?: string;
             /**
              * Currencies
              * @default [
@@ -422,7 +422,7 @@ export interface components {
              *       "KHR"
              *     ]
              */
-            currencies: ("USD" | "KHR")[];
+            currencies?: ("USD" | "KHR")[];
             /**
              * Merchant Id
              * @description Merchant KHQR: the bank's merchant id

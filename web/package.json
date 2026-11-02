@@ -13,7 +13,7 @@
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint . --max-warnings 0 && node scripts/check-api-usage.mjs",
     "format": "prettier --write .",
-    "test": "vitest run --coverage",
+    "test": "node -e \"require('fs').rmSync('node_modules/.vitest-cache',{recursive:true,force:true})\" && vitest run --coverage",
     "test:watch": "vitest",
     "size": "node scripts/check-bundle-size.mjs",
     "api-types": "node scripts/api-types.mjs",

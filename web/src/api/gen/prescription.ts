@@ -400,7 +400,7 @@ export interface components {
              * @default
              * @example rash in 2024
              */
-            note: string;
+            note?: string;
             /**
              * Value
              * @example Amoxicillin
@@ -464,7 +464,7 @@ export interface components {
              * Clinic
              * @default
              */
-            clinic: string;
+            clinic?: string;
             /** Licence No */
             licence_no: string;
             /** Name */
@@ -475,7 +475,7 @@ export interface components {
              * Specialty
              * @default
              */
-            specialty: string;
+            specialty?: string;
         };
         /** DoctorOut */
         DoctorOut: {
@@ -562,7 +562,7 @@ export interface components {
              * Chronic Conditions
              * @default
              */
-            chronic_conditions: string;
+            chronic_conditions?: string;
             /** Customer Id */
             customer_id?: string | null;
             /** Dob */
@@ -571,17 +571,17 @@ export interface components {
              * Name En
              * @default
              */
-            name_en: string;
+            name_en?: string;
             /**
              * Name Km
              * @default
              */
-            name_km: string;
+            name_km?: string;
             /**
              * Notes
              * @default
              */
-            notes: string;
+            notes?: string;
             /** Phone */
             phone?: string | null;
             /**
@@ -731,7 +731,7 @@ export interface components {
              * Name
              * @default
              */
-            name: string;
+            name?: string;
         };
         /** ReasonRequest */
         ReasonRequest: {
@@ -824,7 +824,7 @@ export interface components {
              * Notes
              * @default
              */
-            notes: string;
+            notes?: string;
             /**
              * Patient Id
              * Format: uuid
@@ -835,7 +835,7 @@ export interface components {
              * @description The number on the doctor's paper prescription
              * @default
              */
-            rx_no: string;
+            rx_no?: string;
             /**
              * Valid Until
              * @description Left out: issued_on + the branch's rx_valid_days
@@ -849,7 +849,7 @@ export interface components {
              * @default
              * @example 1 tablet
              */
-            dosage: string;
+            dosage?: string;
             /** Duration Days */
             duration_days?: number | null;
             /**
@@ -857,7 +857,7 @@ export interface components {
              * @default
              * @example 3 times a day after meals
              */
-            frequency: string;
+            frequency?: string;
             /**
              * Medicine Id
              * Format: uuid
@@ -873,7 +873,7 @@ export interface components {
              * @description Refills after the first fill
              * @default 0
              */
-            repeats_allowed: number;
+            repeats_allowed?: number;
         };
         /** RxItemOut */
         RxItemOut: {

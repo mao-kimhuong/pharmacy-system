@@ -38,6 +38,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       type={type}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
+      aria-keyshortcuts={kbd && kbd !== 'Enter' && kbd !== 'Esc' ? kbd : kbd === 'Esc' ? 'Escape' : kbd}
       className={cx(
         'inline-flex items-center justify-center border font-medium whitespace-nowrap transition-colors select-none',
         'disabled:cursor-not-allowed disabled:opacity-45',
@@ -52,9 +53,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       {children}
       {kbd && (
         <kbd
+          aria-hidden
           className={cx(
             'rounded-sm px-1.5 py-0.5 font-mono text-[11px] font-normal',
-            variant === 'primary' || variant === 'danger' ? 'bg-white/20' : variant === 'danger-outline' ? 'bg-danger-bg' : 'bg-neutral-100 text-neutral-700',
+            variant === 'primary' || variant === 'danger' ? 'bg-primary-900/40' : variant === 'danger-outline' ? 'bg-danger-bg' : 'bg-neutral-100 text-neutral-700',
           )}
         >
           {kbd}

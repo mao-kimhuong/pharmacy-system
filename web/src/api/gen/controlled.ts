@@ -197,7 +197,7 @@ export interface components {
              * Destruction Method
              * @default
              */
-            destruction_method: string;
+            destruction_method?: string;
             /**
              * Kind
              * @enum {string}
@@ -485,12 +485,12 @@ export interface components {
              * @description Add a correction entry: register = stock
              * @default false
              */
-            correct_register: boolean;
+            correct_register?: boolean;
             /**
              * Note
              * @default
              */
-            note: string;
+            note?: string;
             /** Pin Token */
             pin_token?: string | null;
             /** Reason */

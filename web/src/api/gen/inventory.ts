@@ -1142,7 +1142,7 @@ export interface components {
              * @default
              * @example A3
              */
-            code: string;
+            code?: string;
             /**
              * Medicine Id
              * Format: uuid
@@ -1517,7 +1517,7 @@ export interface components {
              * @description Who asked: MoH letter, the manufacturer...
              * @default
              */
-            source: string;
+            source?: string;
         };
         /** RecallLineOut */
         RecallLineOut: {
@@ -1630,7 +1630,7 @@ export interface components {
              * Qty Damaged
              * @default 0
              */
-            qty_damaged: number;
+            qty_damaged?: number;
             /**
              * Qty Received
              * @description Good, goes into stock
@@ -1827,12 +1827,12 @@ export interface components {
              * @description Required for controlled medicines
              * @default
              */
-            destruction_method: string;
+            destruction_method?: string;
             /**
              * Note
              * @default
              */
-            note: string;
+            note?: string;
             /**
              * Pin Token
              * @description Controlled: your PIN (auth /pin/verify)
@@ -1880,7 +1880,7 @@ export interface components {
              * Has Photo
              * @default false
              */
-            has_photo: boolean;
+            has_photo?: boolean;
             /**
              * Id
              * Format: uuid
@@ -1892,7 +1892,7 @@ export interface components {
              * Lot No
              * @default
              */
-            lot_no: string;
+            lot_no?: string;
             /**
              * Medicine Id
              * Format: uuid
@@ -2226,14 +2226,14 @@ export interface components {
              * In Transit
              * @default 0
              */
-            in_transit: number;
+            in_transit?: number;
             /** Line No */
             line_no: number;
             /**
              * Lot No
              * @default
              */
-            lot_no: string;
+            lot_no?: string;
             /** Override Reason */
             override_reason: string | null;
             /** Qty Base */
@@ -2256,7 +2256,7 @@ export interface components {
              * Note
              * @default
              */
-            note: string;
+            note?: string;
             /**
              * To Branch Id
              * Format: uuid
@@ -2279,7 +2279,7 @@ export interface components {
              * Reason
              * @default
              */
-            reason: string;
+            reason?: string;
             /**
              * To Branch Id
              * Format: uuid

@@ -729,7 +729,7 @@ export interface components {
              * Name Km
              * @default
              */
-            name_km: string;
+            name_km?: string;
         };
         /** GroupOut */
         GroupOut: {
@@ -775,7 +775,7 @@ export interface components {
              * Reference
              * @default
              */
-            reference: string;
+            reference?: string;
             /**
              * Supplier Id
              * Format: uuid
@@ -853,7 +853,7 @@ export interface components {
              * Note
              * @default
              */
-            note: string;
+            note?: string;
             /**
              * Supplier Id
              * Format: uuid
@@ -1021,7 +1021,7 @@ export interface components {
              * Note
              * @default
              */
-            note: string;
+            note?: string;
         };
         /** PRDecision */
         PRDecision: {
@@ -1046,7 +1046,7 @@ export interface components {
              * Reason
              * @default
              */
-            reason: string;
+            reason?: string;
         };
         /** PRLineOut */
         PRLineOut: {
@@ -1112,7 +1112,7 @@ export interface components {
              * Progress
              * @default
              */
-            progress: string;
+            progress?: string;
             /** Source Ref */
             source_ref: string | null;
             /** Status */
@@ -1263,14 +1263,14 @@ export interface components {
              * Allow Over
              * @default false
              */
-            allow_over: boolean;
+            allow_over?: boolean;
             /** Lines */
             lines: components["schemas"]["ReceiveLineIn"][];
             /**
              * Supplier Invoice No
              * @default
              */
-            supplier_invoice_no: string;
+            supplier_invoice_no?: string;
         };
         /** ReturnLineIn */
         ReturnLineIn: {
@@ -1384,14 +1384,14 @@ export interface components {
              * Refund Reference
              * @default
              */
-            refund_reference: string;
+            refund_reference?: string;
             /**
              * Settle
              * @description credit: on the supplier's account (default); refund: money back (owner/manager)
              * @default credit
              * @enum {string}
              */
-            settle: "credit" | "refund";
+            settle?: "credit" | "refund";
             /**
              * Witness Token
              * @description Controlled lines: a witness
@@ -1404,7 +1404,7 @@ export interface components {
              * Address
              * @default
              */
-            address: string;
+            address?: string;
             /**
              * Code
              * @example DKSH
@@ -1421,17 +1421,17 @@ export interface components {
              * Name Km
              * @default
              */
-            name_km: string;
+            name_km?: string;
             /**
              * Payment Terms Days
              * @default 0
              */
-            payment_terms_days: number;
+            payment_terms_days?: number;
             /**
              * Phone
              * @default
              */
-            phone: string;
+            phone?: string;
         };
         /** SupplierOut */
         SupplierOut: {
@@ -1485,7 +1485,7 @@ export interface components {
              * Note
              * @default
              */
-            note: string;
+            note?: string;
             /**
              * Reason
              * @enum {string}
@@ -1567,7 +1567,7 @@ export interface components {
              * Note
              * @default
              */
-            note: string;
+            note?: string;
             /**
              * Supplier Id
              * Format: uuid

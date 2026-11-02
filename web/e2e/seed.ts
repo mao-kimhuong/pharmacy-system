@@ -8,6 +8,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Http, apiLogin, secretFromUri, totpCode, waitFor } from './lib/api';
+import { ensureSalesData, type SalesData } from './lib/data';
 
 export const SEED_FILE = path.resolve(import.meta.dirname, '.auth/seed.json');
 export const PIN = '482915';
@@ -15,7 +16,7 @@ export const PASSWORD = 'E2e-Passw0rd-2026';
 
 export type Role = 'owner' | 'manager' | 'pharmacist' | 'pharmacist2' | 'cashier';
 export interface Account { id?: string; name: string; phone: string; password: string; totp?: string; role: string }
-export interface Seed { branchId: string; branchCode: string; accounts: Record<Role, Account>; extra: Record<string, unknown> }
+export interface Seed { branchId: string; branchCode: string; accounts: Record<Role, Account>; extra: { sales?: SalesData } & Record<string, unknown> }
 
 const rand = (n: number) => Array.from({ length: n }, () => Math.floor(Math.random() * 10)).join('');
 
@@ -112,5 +113,8 @@ export default async function seed() {
   owner.id = ome.data.id;
   if (!ome.data.has_pin) await oh.put('/api/auth/v1/me/pin', { password: owner.password, pin: PIN });
 
-  saveSeed({ branchId: branchId!, branchCode: branchCode!, accounts, extra: s?.extra ?? {} });
+  const extra = s?.extra ?? {};
+  saveSeed({ branchId: branchId!, branchCode: branchCode!, accounts, extra });
+  extra.sales = await ensureSalesData(oh, branchId!, extra.sales);
+  saveSeed({ branchId: branchId!, branchCode: branchCode!, accounts, extra });
 }

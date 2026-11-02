@@ -1,0 +1,168 @@
+{
+  "title": "POS",
+  "online": "Online",
+  "offline": "Offline",
+  "rate": "1 USD = ៛{{rate}}",
+  "noRate": "No exchange rate",
+  "scan": "Scan or search medicine…",
+  "noMatch": "No medicine matches \"{{q}}\"",
+  "cols": {
+    "medicine": "Medicine",
+    "unit": "Unit",
+    "qty": "Qty",
+    "price": "Price",
+    "disc": "Disc.",
+    "total": "Total"
+  },
+  "hint": "+/− change quantity · Del removes the line · ↑↓ move",
+  "items": "{{count}} items",
+  "empty": "Scan a barcode or search to start a sale",
+  "keys": {
+    "search": "Search",
+    "customer": "Customer",
+    "discount": "Discount",
+    "rx": "Link Rx",
+    "suspend": "Suspend",
+    "pay": "Pay",
+    "cancel": "Cancel"
+  },
+  "customer": {
+    "label": "Customer",
+    "walkIn": "Walk-in customer",
+    "search": "Search name or phone",
+    "balance": "Owes {{amount}}",
+    "limit": "limit {{amount}}",
+    "available": "{{amount}} credit left",
+    "remove": "Remove customer"
+  },
+  "totals": {
+    "subtotal": "Subtotal",
+    "promo": "Promotion",
+    "discount": "Discount",
+    "total": "Total",
+    "rounding": "KHR rounded to ៛100"
+  },
+  "actions": {
+    "discount": "Discount",
+    "suspend": "Suspend",
+    "credit": "Pay later",
+    "khqr": "KHQR",
+    "pay": "Pay",
+    "cancel": "Cancel sale",
+    "back": "Back to cart",
+    "complete": "Complete & print",
+    "newSale": "New sale",
+    "reprint": "Reprint",
+    "a4": "A4 invoice",
+    "label": "Dispensing labels",
+    "remove": "Remove item",
+    "options": "Line options"
+  },
+  "pay": {
+    "method": {
+      "cash": "Cash",
+      "card": "Card",
+      "ABA": "ABA",
+      "KHQR": "KHQR",
+      "credit": "Credit",
+      "deposit": "Deposit"
+    },
+    "tendered": "Cash received",
+    "usd": "USD",
+    "khr": "KHR",
+    "exact": "Exact",
+    "change": "Change",
+    "changeIn": "Give change in",
+    "changeUsdKhr": "$ + ៛",
+    "paid": "Paid",
+    "due": "Still due",
+    "credit": "On credit",
+    "add": "Add payment",
+    "lines": "Payments",
+    "amount": "Amount",
+    "riel100": "Riel in whole hundreds",
+    "overpay": "Only cash can be more than the total"
+  },
+  "khqr": {
+    "title": "Scan to pay with KHQR",
+    "waiting": "Waiting for payment…",
+    "paid": "Paid",
+    "expired": "Expired. Make a new code.",
+    "expires": "Expires {{time}}",
+    "fakePay": "Mark paid (test)",
+    "again": "New code",
+    "currency": "Currency"
+  },
+  "complete": {
+    "title": "Sale complete",
+    "giveChange": "Give change",
+    "noChange": "No change",
+    "invoice": "Invoice {{number}}"
+  },
+  "suspend": {
+    "title": "Suspend sale",
+    "note": "Note (who is it for?)",
+    "done": "Suspended as {{number}}",
+    "hint": "The cart is kept without reserving stock. Resume it from Sale Suspend; prices and stock are checked again."
+  },
+  "resumed": {
+    "title": "Resumed {{number}}",
+    "changes": "Changed since it was suspended:",
+    "none": "Nothing changed."
+  },
+  "cancelSale": {
+    "title": "Cancel this sale?",
+    "body": "The cart is cleared. Nothing was saved yet.",
+    "confirm": "Clear cart"
+  },
+  "line": {
+    "discountPct": "Discount %",
+    "discountAmount": "Discount USD",
+    "patientId": "Patient ID card / passport no.",
+    "allergyReason": "Allergy override reason",
+    "acknowledge": "I checked with the patient (duplicate therapy)",
+    "batch": "Sell from batch (pharmacist)",
+    "batchFefo": "FEFO (automatic)",
+    "batchReason": "Reason for this batch",
+    "rx": "Prescription",
+    "unlink": "Unlink",
+    "lots": "Lots",
+    "exp": "Exp {{date}}"
+  },
+  "find": {
+    "pin": "Enter PIN",
+    "approval": "Ask for approval",
+    "linkRx": "Link Rx",
+    "fix": "Fix",
+    "override": "Override",
+    "ack": "Acknowledge",
+    "customer": "Choose customer",
+    "approved": "Approved by {{name}}",
+    "pinOk": "PIN confirmed · {{name}}",
+    "blocked": "Fix the items marked in red before paying."
+  },
+  "rx": {
+    "title": "Link prescription",
+    "patient": "Patient name or phone",
+    "active": "Active prescriptions",
+    "none": "No active prescription with this medicine.",
+    "remaining": "Remaining",
+    "fill": "One fill",
+    "canNow": "Can dispense now",
+    "repeats": "Repeats",
+    "link": "Link & continue",
+    "validTo": "valid to {{date}}",
+    "allergies": "Allergies",
+    "noAllergies": "No known allergies",
+    "newRx": "+ New prescription",
+    "pharmacistOnly": "Only a pharmacist can dispense prescription medicines. Suspend the sale for a pharmacist, or remove the item."
+  },
+  "lite": {
+    "cart": "Cart",
+    "pay": "Pay {{amount}}",
+    "scan": "Scan"
+  },
+  "below": "Sale below cost",
+  "handoff": "Hand to pharmacist (suspend)",
+  "pickBranch": "Choose a branch to sell from"
+}

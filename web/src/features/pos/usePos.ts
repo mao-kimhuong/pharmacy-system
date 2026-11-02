@@ -1,0 +1,126 @@
+// The POS controller shared by the desktop POS and POS lite: cart, tender, preview, tokens, checkout.
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation, useNavigate } from 'react-router';
+import { api, call, withKey } from '@/api/client';
+import { isApiError } from '@/api/errors';
+import type { SalesS } from '@/api/types';
+import { useUser } from '@/app/auth';
+import { useBranch } from '@/app/branch';
+import type { PinToken } from '@/design';
+import { cartReducer, emptyCart, emptyTender, toLinesIn, toPayments, type CartLine, type CartState, type ChangeIn, type PaymentIn, type Tender } from './cart';
+import { useMedicines, usePreview, useRate, useRequestKey, toCartMedicine, type Finding } from './hooks';
+
+export interface PosLoad {
+  lines: { medicine_id: string; pack_unit_id: string; qty: number }[];
+  customer?: { id: string; name: string; phone: string } | null;
+  resumed?: { number: string; changes: unknown[] } | null;
+}
+
+/** A PIN / approval token is good for 2 minutes and for one sale. */
+function fresh(t: PinToken | null): PinToken | null {
+  return t && Date.parse(t.expires_at) > Date.now() + 5_000 ? t : null;
+}
+
+export function usePos() {
+  const user = useUser();
+  const { oneBranch } = useBranch();
+  const branchId = oneBranch?.id;
+  const qc = useQueryClient();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [cart, dispatch] = useReducer(cartReducer, emptyCart);
+  const [mode, setMode] = useState<'cart' | 'pay'>('cart');
+  const [tender, setTender] = useState<Tender>(emptyTender);
+  const [changeIn, setChangeIn] = useState<ChangeIn>('USD_KHR');
+  const [pin, setPin] = useState<PinToken | null>(null);
+  const [approval, setApproval] = useState<PinToken | null>(null);
+  const [done, setDone] = useState<SalesS['InvoiceOut'] | null>(null);
+  const [pending, setPending] = useState<PosLoad | null>(null);
+  const rate = useRate(branchId);
+
+  // lines handed over by the back office (resume, template, order): load their medicines first
+  useEffect(() => {
+    const st = location.state as { load?: PosLoad } | null;
+    if (st?.load) {
+      setPending(st.load);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state, location.pathname, navigate]);
+  const meds = useMedicines(pending?.lines.map((l) => l.medicine_id) ?? []);
+  useEffect(() => {
+    if (!pending || meds.some((m) => m.isLoading)) return;
+    const lines: CartLine[] = pending.lines.flatMap((l, i) => {
+      const m = meds[i]?.data;
+      return m ? [{ key: `${l.medicine_id}-${i}-${Date.now()}`, medicine: toCartMedicine(m), pack_unit_id: l.pack_unit_id, qty: l.qty }] : [];
+    });
+    dispatch({ type: 'load', lines, customer: pending.customer ?? null, resumedFrom: pending.resumed ?? null });
+    setPending(null);
+  }, [pending, meds]);
+
+  const payments: PaymentIn[] = useMemo(() => (mode === 'pay' ? toPayments(tender) : []), [mode, tender]);
+  const pinToken = fresh(pin)?.pin_token ?? null;
+  const approvalToken = fresh(approval)?.pin_token ?? null;
+  const preview = usePreview({ branchId, lines: cart.lines, customerId: cart.customer?.id, payments, changeIn, pinToken, approvalToken });
+  const p = preview.data && preview.body ? preview.data : undefined;
+
+  const all: Finding[] = p ? [...p.hard_stops, ...p.requirements, ...p.warnings, ...p.lines.flatMap((l) => [...l.hard_stops, ...l.requirements, ...l.warnings])] : [];
+  const unresolved = all.filter((f) => !f.resolved && f.severity !== 'info');
+  const requirementsOpen = unresolved.some((f) => f.severity === 'requirement');
+  const canPay = !!p && preview.fresh && p.can_post && !requirementsOpen && cart.lines.length > 0;
+
+  const invoiceBody = useMemo(() => branchId ? {
+    branch_id: branchId,
+    customer_id: cart.customer?.id ?? null,
+    lines: toLinesIn(cart.lines),
+    payments: toPayments(tender),
+    change_in: changeIn,
+    pin_token: pinToken,
+    discount_approval_token: approvalToken,
+  } : null, [branchId, cart.customer, cart.lines, tender, changeIn, pinToken, approvalToken]);
+  const key = useRequestKey(JSON.stringify(invoiceBody));
+
+  const complete = useMutation({
+    mutationFn: () => call(api.sales.POST('/api/sales/v1/invoices', { body: invoiceBody!, ...withKey(key) })),
+    onSuccess: (inv) => {
+      setDone(inv);
+      setPin(null);
+      setApproval(null);
+      void qc.invalidateQueries({ queryKey: ['sales', 'invoices'] });
+    },
+    onError: (e) => {
+      // a used token cannot be used again: ask for it again
+      if (isApiError(e) && (e.code === 'PIN_INVALID' || e.code === 'PIN_REQUIRED')) setPin(null);
+      if (isApiError(e) && e.code === 'DISCOUNT_APPROVAL_REQUIRED') setApproval(null);
+    },
+  });
+
+  const reset = useCallback(() => {
+    dispatch({ type: 'clear' });
+    setTender(emptyTender);
+    setMode('cart');
+    setPin(null);
+    setApproval(null);
+    setDone(null);
+    complete.reset();
+  }, [complete]);
+
+  const addOther = (method: PaymentIn['method'], extra: Partial<PaymentIn> = {}) => {
+    const total = Number(p?.total ?? 0);
+    const paid = Number(p?.payment?.paid ?? 0) + Number(p?.payment?.credit ?? 0);
+    const due = Math.max(0, total - (mode === 'pay' ? paid : 0));
+    if (due <= 0 && !extra.amount) return;
+    setTender((t) => ({ ...t, others: [...t.others, { method, currency: 'USD', amount: due.toFixed(2), ...extra }] }));
+    setMode('pay');
+  };
+
+  return {
+    user, branch: oneBranch, branchId, rate: rate.data?.khr_per_usd ?? null, rateQuery: rate,
+    cart, dispatch, mode, setMode, tender, setTender, changeIn, setChangeIn,
+    pin, setPin, approval, setApproval, preview, p, all, unresolved, canPay,
+    complete, done, reset, addOther, loading: !!pending,
+  };
+}
+
+export type Pos = ReturnType<typeof usePos>;
+export type { CartState };
