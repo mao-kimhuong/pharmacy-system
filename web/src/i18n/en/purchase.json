@@ -1,0 +1,111 @@
+{
+  "pr": {
+    "title": "Purchase requests",
+    "new": "New request",
+    "qtyBase": "Qty (base unit)",
+    "neededBy": "Needed by",
+    "reason": "Why",
+    "approve": "Approve",
+    "reject": "Reject",
+    "cancel": "Cancel request",
+    "toPo": "Order from a supplier",
+    "byTransfer": "Fill by transfer",
+    "sourceBranch": "From branch",
+    "routeHint": "Approve first, then route the lines: one PO per branch for the chosen supplier, or a transfer from a branch with stock.",
+    "progress": "Progress",
+    "fulfilled": "Fulfilled",
+    "unitCost": "Unit cost (USD)",
+    "group": "PO group {{number}}",
+    "empty": "No purchase requests"
+  },
+  "po": {
+    "title": "Purchase orders",
+    "new": "New purchase order",
+    "expected": "Expected on",
+    "send": "Mark as sent",
+    "cancel": "Cancel PO",
+    "print": "PO PDF",
+    "receive": "Receive goods",
+    "received": "Received",
+    "ordered": "Ordered",
+    "lineTotal": "Line total",
+    "group": "Group",
+    "groupPdf": "Group printout",
+    "editDraft": "Only a draft can be edited.",
+    "empty": "No purchase orders",
+    "status": {
+      "draft": "Draft",
+      "sent": "Sent",
+      "partially_received": "Partly received",
+      "received": "Received",
+      "cancelled": "Cancelled"
+    }
+  },
+  "receive": {
+    "title": "Receiving goods",
+    "pickPo": "Choose a sent purchase order",
+    "invoiceNo": "Supplier invoice no.",
+    "lot": "Lot",
+    "expiry": "Expiry",
+    "addLot": "+ Another lot",
+    "allowOver": "Receive more than ordered",
+    "submit": "Receive",
+    "done": "Received as {{number}}",
+    "open": "Still to receive",
+    "short": "Short expiry",
+    "noPhoto": "Supplier invoice photo: no upload in the API yet."
+  },
+  "stockIn": {
+    "title": "Quick stock-in (no PO)",
+    "reason": "Reason",
+    "submit": "Add to stock",
+    "done": "Stock added"
+  },
+  "receipts": {
+    "title": "Receipts & supplier payments",
+    "receipts": "Receipts",
+    "payments": "Payments",
+    "due": "Due on",
+    "balance": "Balance",
+    "paid": "Paid",
+    "statement": "Statement"
+  },
+  "pay": {
+    "title": "Pay a supplier",
+    "new": "New payment",
+    "owed": "Owed",
+    "overdue": "Overdue",
+    "method": {
+      "cash": "Cash",
+      "bank": "Bank transfer",
+      "ABA": "ABA",
+      "KHQR": "KHQR"
+    },
+    "reference": "Reference",
+    "paidOn": "Paid on",
+    "allocHint": "Paid to the branch's oldest open bills first.",
+    "cancel": "Cancel payment",
+    "allocations": "Applied to",
+    "done": "Payment {{number}} posted"
+  },
+  "sret": {
+    "title": "Supplier returns",
+    "new": "New supplier return",
+    "reason": {
+      "damaged": "Damaged",
+      "expired": "Expired",
+      "recalled": "Recalled",
+      "wrong_item": "Wrong item",
+      "overstock": "Overstock"
+    },
+    "batch": "Batch from this supplier",
+    "submit": "Submit",
+    "settle": "Settle as",
+    "credit": "Credit to next bills",
+    "refund": "Refund (money in)",
+    "refundMethod": "Refund method",
+    "cancel": "Cancel draft",
+    "pdf": "Return note PDF",
+    "empty": "No supplier returns"
+  }
+}

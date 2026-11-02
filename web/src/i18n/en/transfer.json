@@ -1,0 +1,85 @@
+{
+  "req": {
+    "title": "Transfer requests",
+    "new": "Request stock",
+    "from": "From (has stock)",
+    "to": "To",
+    "incoming": "Asked of us",
+    "outgoing": "We asked",
+    "approve": "Approve and create transfer",
+    "reject": "Reject",
+    "cancel": "Cancel",
+    "otherStock": "Stock at other branches: no API yet (only your branches are shown).",
+    "empty": "No transfer requests"
+  },
+  "tr": {
+    "title": "Stock transfers",
+    "push": "Send stock (no request)",
+    "direction": "Direction",
+    "out": "Outgoing",
+    "in": "Incoming",
+    "inTransit": "In transit",
+    "pick": "Pick FEFO",
+    "pickChoose": "Choose batches",
+    "dispatch": "Dispatch",
+    "receive": "Receive",
+    "received": "Received",
+    "damaged": "Damaged",
+    "note": "Transfer note PDF",
+    "cancel": "Cancel transfer",
+    "picks": "Picked batches",
+    "differences": "Differences",
+    "resolve": "Resolve",
+    "resolution": {
+      "write_off": "Write off",
+      "return_to_source": "Back to the source branch",
+      "accept": "Accept extra",
+      "reject": "Reject"
+    },
+    "kind": {
+      "short": "Short",
+      "damaged": "Damaged",
+      "extra": "Extra"
+    },
+    "controlled": "Controlled lines: PIN and a witness on dispatch and on receive.",
+    "location": "Shelf",
+    "scanTitle": "Receive by QR",
+    "scanHint": "Scan the QR on the transfer note or type its number",
+    "notFound": "No transfer with this number for your branch",
+    "empty": "No transfers",
+    "status": {
+      "approved": "Approved",
+      "picked": "Picked",
+      "dispatched": "Dispatched",
+      "received": "Received",
+      "closed": "Closed",
+      "cancelled": "Cancelled",
+      "requested": "Requested",
+      "rejected": "Rejected"
+    }
+  },
+  "shr": {
+    "title": "Shrinkage",
+    "new": "Record shrinkage",
+    "reason": {
+      "expired": "Expired",
+      "damaged": "Damaged",
+      "broken": "Broken",
+      "lost_theft": "Lost / theft",
+      "recalled": "Recalled"
+    },
+    "method": "Destruction method",
+    "photo": "Photo",
+    "addPhoto": "Add photo",
+    "approve": "Approve",
+    "reject": "Reject",
+    "pendingHint": "Above the branch limit it waits for someone else to approve.",
+    "controlled": "Controlled: PIN and a witness (destroying needs a manager or owner).",
+    "empty": "No shrinkage records",
+    "status": {
+      "posted": "Posted",
+      "rejected": "Rejected",
+      "pending_approval": "Pending approval"
+    }
+  }
+}

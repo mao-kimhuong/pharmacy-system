@@ -44,7 +44,7 @@ export function useCustomerNames(ids: (string | null | undefined)[]) {
 
 const TONES: Record<string, PillTone> = {
   completed: 'success', fulfilled: 'success', paid: 'success', received: 'success', closed: 'neutral', approved: 'success', credited: 'success', refunded: 'success', posted: 'success',
-  pending: 'warning', submitted: 'warning', partly_fulfilled: 'warning', partly_received: 'warning', partly_dispensed: 'warning', partly_returned: 'warning', needs_attention: 'danger', in_transit: 'info', dispatched: 'info', picked: 'info',
+  pending: 'warning', pending_approval: 'warning', submitted: 'warning', partly_fulfilled: 'warning', partly_received: 'warning', partly_dispensed: 'warning', partly_returned: 'warning', needs_attention: 'danger', in_transit: 'info', dispatched: 'info', picked: 'info',
   quote: 'neutral', draft: 'neutral', ordered: 'primary', sent: 'primary', active: 'primary', open: 'primary', suspended: 'info', counting: 'info', review: 'warning',
   cancelled: 'cancelled', failed: 'danger', expired: 'danger', rejected: 'danger', recalled: 'danger', quarantined: 'warning', fully_dispensed: 'neutral',
   returned: 'purple', resumed: 'neutral', cancelling: 'warning', lifted: 'neutral',

@@ -3,6 +3,9 @@ import {
 } from 'react';
 import { cx } from './cx';
 
+/** A width in className (w-48…) replaces the default full width. */
+export const sized = (base: string, className?: string) => (className && /(^|\s)w-/.test(className) ? base.replace(/(^|\s)w-full(?=\s|$)/, ' ') : base);
+
 export const controlClass = (invalid?: boolean, size: 'md' | 'lg' = 'md') =>
   cx(
     'w-full rounded-md border bg-white px-3 text-[14px] text-neutral-900 placeholder:text-neutral-400',
@@ -64,7 +67,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   ref,
 ) {
   if (!prefix && !suffix) {
-    return <input ref={ref} aria-invalid={invalid || undefined} className={cx(controlClass(invalid, fieldSize), className)} {...rest} />;
+    return <input ref={ref} aria-invalid={invalid || undefined} className={cx(sized(controlClass(invalid, fieldSize), className), className)} {...rest} />;
   }
   return (
     <span
@@ -109,7 +112,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
       <select
         ref={ref}
         aria-invalid={invalid || undefined}
-        className={cx(controlClass(invalid, fieldSize), 'appearance-none bg-[length:10px] bg-[right_12px_center] bg-no-repeat pr-8', className)}
+        className={cx(sized(controlClass(invalid, fieldSize), className), 'appearance-none bg-[length:10px] bg-[right_12px_center] bg-no-repeat pr-8', className)}
         style={{
           backgroundImage:
             "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2366706F'/%3E%3C/svg%3E\")",

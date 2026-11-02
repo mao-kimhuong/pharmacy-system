@@ -477,7 +477,7 @@ replays; any change makes a new key). The scan box frees itself on Enter (scanne
 - [x] F1 POS – all 9 flows on `/carts/preview`, POS lite, POS back office
 - [x] F2 Prescriptions + controlled drugs
 - [x] F3 Warehouse + stock (incl. mobile stock count)
-- [ ] F4 Purchase + transfer (incl. mobile receiving)
+- [x] F4 Purchase + transfer (incl. mobile receiving)
 - [ ] F5 Contacts
 - [ ] F6 Dashboard + reports
 - [ ] F7 User management + settings

@@ -113,6 +113,9 @@ export default async function seed() {
   owner.id = ome.data.id;
   if (!ome.data.has_pin) await oh.put('/api/auth/v1/me/pin', { password: owner.password, pin: PIN });
 
+  // the e2e stack uses every module (the owner turns these on in Settings → Feature switches)
+  const feats = await oh.get<{ key: string; enabled: boolean }[]>('/api/branch/v1/features');
+  for (const f of feats.data.filter((x) => !x.enabled && x.key !== 'ai')) await oh.put(`/api/branch/v1/features/${f.key}`, { enabled: true });
   const extra = s?.extra ?? {};
   saveSeed({ branchId: branchId!, branchCode: branchCode!, accounts, extra });
   extra.sales = await ensureSalesData(oh, branchId!, extra.sales);

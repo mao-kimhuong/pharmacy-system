@@ -39,7 +39,7 @@ export function Shell() {
   }, [toggle]);
 
   const content = (
-    <main id="main" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+    <main id="main" className={phone ? 'flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto pb-[92px]' : 'flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto'}>
       <UpdateBanner />
       <OfflineBanner />
       <RouteErrorBoundary>
@@ -73,7 +73,7 @@ export function Shell() {
             <UserMenu />
           </header>
         )}
-        <div className={phone ? 'flex min-h-0 flex-1 flex-col pb-tabbar' : 'flex min-h-0 flex-1 flex-col'}>{content}</div>
+        <div className="flex min-h-0 flex-1 flex-col">{content}</div>
       </div>
       {phone && <MobileTabs onScan={() => setScan(true)} />}
       <CommandPalette open={palette.open} initial={palette.initial} onClose={() => setPalette({ open: false, initial: '' })} />
