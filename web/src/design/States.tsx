@@ -37,7 +37,7 @@ export function SkeletonRows({ rows = 5, className }: { rows?: number; className
   const show = useDelayed(true);
   if (!show) return <div className={cx('min-h-40', className)} aria-busy />;
   return (
-    <div className={cx('flex flex-col gap-3.5 p-4', className)} aria-busy aria-label="loading">
+    <div role="status" className={cx('flex flex-col gap-3.5 p-4', className)} aria-busy aria-label="loading">
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="flex items-center gap-3">
           <div className="shimmer size-8 rounded-md" />

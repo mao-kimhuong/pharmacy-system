@@ -19,7 +19,7 @@ export default function FeaturesPage() {
       <ApiErrorAlert error={set.error} />
       <DataTable rows={q.data} loading={q.isLoading} error={q.error} onRetry={() => void q.refetch()} rowKey={(r) => r.key}
         columns={[
-          { key: 'l', header: t('common:label.name'), cell: (r) => <span className="font-medium">{r.label}<span className="ml-2 font-mono text-[11px] text-neutral-400">{r.key}</span></span> },
+          { key: 'l', header: t('common:label.name'), cell: (r) => <span className="font-medium">{r.label}<span className="ml-2 font-mono text-[11px] text-neutral-500">{r.key}</span></span> },
           { key: 'h', header: t('features.hides'), cell: (r) => <span className="flex flex-wrap gap-1">{r.hides.map((k) => <Tag key={k}>{t(`nav:item.${k}`, { defaultValue: k })}</Tag>)}</span> },
           { key: 's', header: '', align: 'right', cell: (r) => (
             <Switch label={<span className="sr-only">{r.label}</span>} checked={r.enabled} disabled={set.isPending && set.variables?.key === r.key} onChange={(enabled) => set.mutate({ key: r.key, enabled })} />

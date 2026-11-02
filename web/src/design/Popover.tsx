@@ -40,7 +40,7 @@ export function Popover({
 export function MenuItem({ children, onClick, danger, aside, active }: { children: ReactNode; onClick?: () => void; danger?: boolean; aside?: ReactNode; active?: boolean }) {
   return (
     <button type="button" role="menuitem" onClick={onClick}
-      className={cx('flex items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left hover:bg-neutral-50', danger ? 'text-danger' : 'text-neutral-900', active && 'bg-primary-50 font-semibold')}>
+      className={cx('flex items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left hover:bg-neutral-50 pointer-coarse:min-h-11', danger ? 'text-danger' : 'text-neutral-900', active && 'bg-primary-50 font-semibold')}>
       <span className="flex items-center gap-2">{children}</span>
       {aside && <span className="text-[12px] text-neutral-500">{aside}</span>}
     </button>

@@ -1,6 +1,6 @@
 // POS (3a–3o) on desktop and tablet; phones get POS lite (4a–4d). All 9 flows run on POST /carts/preview: Pay stays
 // disabled until the preview says can_post and every requirement (PIN, patient ID, approval) is met.
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { ApiErrorAlert, BranchTag, ConfirmDialog, PinDialog, WitnessDialog, cx, useToast } from '@/design';
@@ -62,6 +62,10 @@ function PosDesktop() {
   const [dlg, setDlg] = useState<Dlg>({ kind: '' });
   const [notFound, setNotFound] = useState<string | null>(null);
   const sel = pos.cart.lines[pos.cart.selected];
+  // After a dialog closes or payment is left, the cashier is back at the scan box.
+  useEffect(() => {
+    if (dlg.kind === '' && pos.mode === 'cart' && !pos.done) scan.current?.focus();
+  }, [dlg.kind, pos.mode, pos.done]);
   const ui = {
     linkRx: (key: string) => setDlg({ kind: 'rx', key }),
     options: (key: string) => setDlg({ kind: 'options', key }),
@@ -79,7 +83,12 @@ function PosDesktop() {
     F7: (e) => { e.preventDefault(); if (sel && (sel.medicine.is_rx_only || sel.medicine.controlled)) ui.linkRx(sel.key); },
     F8: (e) => { e.preventDefault(); if (pos.cart.lines.length) setDlg({ kind: 'suspend' }); },
     F9: (e) => { e.preventDefault(); if (pos.canPay) pos.setMode('pay'); },
-    Escape: () => { if (pos.mode === 'pay') pos.setMode('cart'); else if (pos.cart.lines.length) setDlg({ kind: 'cancel' }); },
+    // Esc: leave payment, else back to the scan box, else (already there) cancel the sale.
+    Escape: () => {
+      if (pos.mode === 'pay') pos.setMode('cart');
+      else if (!scan.current?.isFocused()) scan.current?.focus();
+      else if (pos.cart.lines.length) setDlg({ kind: 'cancel' });
+    },
     ArrowDown: (e) => { if ((e.target as HTMLElement).tagName !== 'SELECT') pos.dispatch({ type: 'select', index: pos.cart.selected + 1 }); },
     ArrowUp: (e) => { if ((e.target as HTMLElement).tagName !== 'SELECT') pos.dispatch({ type: 'select', index: pos.cart.selected - 1 }); },
     Delete: () => { if (sel) pos.dispatch({ type: 'remove', key: sel.key }); },

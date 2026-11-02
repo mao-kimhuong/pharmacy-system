@@ -13,7 +13,7 @@ export function MenuTiles({ skip = [] as string[] }) {
           <div className="flex items-center gap-2.5 text-[14px] font-semibold">
             <span className="w-5 text-center text-primary-600" aria-hidden>{g.icon}</span>
             {t(`group.${g.key}`)}
-            <span className="ml-auto text-[12px] font-normal text-neutral-400">{g.items.length}</span>
+            <span className="ml-auto text-[12px] font-normal text-neutral-500">{g.items.length}</span>
           </div>
           <div className="flex flex-wrap gap-1.5 pl-[30px]">
             {g.items.map((it) => (

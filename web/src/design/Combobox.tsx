@@ -42,6 +42,7 @@ export function Combobox<T>({
   const [active, setActive] = useState(0);
   const q = useDebounced(text.trim());
   const listId = useId();
+  const listShown = open && q.length >= minChars;
   const wrap = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setText(value ? itemLabel(value) : '');
@@ -70,8 +71,8 @@ export function Combobox<T>({
         <input
           id={id}
           role="combobox"
-          aria-expanded={open}
-          aria-controls={listId}
+          aria-expanded={listShown}
+          aria-controls={listShown ? listId : undefined}
           aria-autocomplete="list"
           autoComplete="off"
           autoFocus={autoFocus}
@@ -95,7 +96,7 @@ export function Combobox<T>({
         />
         <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-neutral-500">{res.isFetching ? <Spinner className="size-3.5" /> : '▾'}</span>
       </div>
-      {open && q.length >= minChars && (
+      {listShown && (
         <div id={listId} role="listbox" className="absolute z-30 mt-1 flex max-h-72 w-full flex-col overflow-y-auto rounded-lg border border-neutral-200 bg-white p-1 shadow-menu">
           {items.map((it, i) => (
             <div

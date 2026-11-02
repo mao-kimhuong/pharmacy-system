@@ -11,7 +11,7 @@ export const controlClass = (invalid?: boolean, size: 'md' | 'lg' = 'md') =>
     'w-full rounded-md border bg-white px-3 text-[14px] text-neutral-900 placeholder:text-neutral-400',
     'focus:border-primary-600 focus:shadow-focus focus:outline-none',
     'disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-400',
-    size === 'lg' ? 'h-control-lg rounded-lg text-[16px]' : 'h-control',
+    size === 'lg' ? 'h-control-lg rounded-lg text-[16px]' : 'h-control pointer-coarse:h-11 pointer-coarse:text-[16px]',
     invalid ? 'border-danger' : 'border-neutral-300',
   );
 
@@ -127,7 +127,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
 
 export function Checkbox({ label, className, ...rest }: InputHTMLAttributes<HTMLInputElement> & { label?: ReactNode }) {
   return (
-    <label className={cx('inline-flex cursor-pointer items-center gap-2 text-[14px]', rest.disabled && 'cursor-not-allowed opacity-60', className)}>
+    <label className={cx('inline-flex cursor-pointer items-center gap-2 text-[14px] pointer-coarse:min-h-11', rest.disabled && 'cursor-not-allowed opacity-60', className)}>
       <input type="checkbox" className="size-4 rounded-sm accent-primary-600" {...rest} />
       {label}
     </label>
@@ -138,7 +138,7 @@ export function Switch({
   checked, onChange, label, disabled, id,
 }: { checked: boolean; onChange: (v: boolean) => void; label?: ReactNode; disabled?: boolean; id?: string }) {
   return (
-    <label className={cx('inline-flex items-center gap-2 text-[14px]', disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer')}>
+    <label className={cx('inline-flex items-center gap-2 text-[14px] pointer-coarse:min-h-11', disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer')}>
       <button
         id={id}
         type="button"
@@ -157,7 +157,7 @@ export function Switch({
 
 export function Radio({ label, className, ...rest }: InputHTMLAttributes<HTMLInputElement> & { label: ReactNode }) {
   return (
-    <label className={cx('inline-flex cursor-pointer items-center gap-2 text-[14px]', className)}>
+    <label className={cx('inline-flex cursor-pointer items-center gap-2 text-[14px] pointer-coarse:min-h-11', className)}>
       <input type="radio" className="size-4 accent-primary-600" {...rest} />
       {label}
     </label>
@@ -185,7 +185,7 @@ export function Segmented<T extends string | number>({
           aria-checked={o.value === value}
           onClick={() => onChange(o.value)}
           className={cx(
-            'font-medium',
+            'font-medium pointer-coarse:min-h-11',
             size === 'sm' ? 'px-2.5 py-1 text-[13px]' : 'px-2.5 py-[7px] text-[13px]',
             i > 0 && 'border-l border-neutral-300',
             o.value === value ? 'bg-primary-600 text-white' : 'text-neutral-700 hover:bg-neutral-50',

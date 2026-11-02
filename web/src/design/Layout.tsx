@@ -71,7 +71,7 @@ export function Tabs<T extends string>({ value, onChange, tabs, className }: { v
           aria-selected={tb.value === value}
           onClick={() => onChange(tb.value)}
           className={cx(
-            '-mb-px border-b-2 px-3 py-2 text-[13px] whitespace-nowrap',
+            '-mb-px border-b-2 px-3 py-2 text-[13px] whitespace-nowrap pointer-coarse:min-h-11',
             tb.value === value ? 'border-primary-600 font-semibold text-primary-700' : 'border-transparent text-neutral-700 hover:text-neutral-900',
           )}
         >

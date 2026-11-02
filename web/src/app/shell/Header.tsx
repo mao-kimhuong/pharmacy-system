@@ -28,7 +28,7 @@ export function BranchSwitcher({ compact }: { compact?: boolean }) {
   return (
     <Popover label={t('branchSwitch')} trigger={({ toggle, props }) => (
       <button type="button" onClick={toggle} {...props} aria-label={t('branchSwitch')}
-        className={cx('flex h-control items-center gap-2 rounded-md border border-neutral-300 bg-white px-3 text-[13px] whitespace-nowrap', compact && 'h-11 px-2.5')}>
+        className={cx('flex h-control items-center gap-2 rounded-md border border-neutral-300 bg-white px-3 text-[13px] whitespace-nowrap pointer-coarse:h-11', compact && 'h-11 px-2.5')}>
         <BranchTag code={cur?.code ?? 'ALL'} />
         {!compact && (cur ? (i18n.language === 'km' ? cur.name_km : cur.name_en) : t('branchAll'))}
         <span className="text-neutral-500" aria-hidden>▾</span>

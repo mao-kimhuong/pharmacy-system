@@ -67,7 +67,7 @@ export default function RolesPage() {
                     <fieldset key={g} className="rounded-lg border border-neutral-200 p-3">
                       <legend className="px-1 text-[12px] font-semibold uppercase tracking-wide text-neutral-500">{g}</legend>
                       <div className="grid grid-cols-1 gap-x-4 gap-y-2 tablet:grid-cols-2">
-                        {ps.map((p) => <Checkbox key={p.key} label={<span>{p.label} <span className="text-[11px] text-neutral-400">{p.key}</span></span>} disabled={locked} checked={checked.has(p.key)} onChange={(e) => flip(p.key, e.target.checked)} />)}
+                        {ps.map((p) => <Checkbox key={p.key} label={<span>{p.label} <span className="text-[11px] text-neutral-500">{p.key}</span></span>} disabled={locked} checked={checked.has(p.key)} onChange={(e) => flip(p.key, e.target.checked)} />)}
                       </div>
                     </fieldset>
                   ))}

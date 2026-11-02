@@ -80,7 +80,7 @@ export function CartTable({ lines, preview, selected, h, dark }: { lines: CartLi
                   </span>
                 </div>
                 <div role="cell" className="num px-2.5 text-right">{p ? usd(p.unit_price) : '…'}</div>
-                <div role="cell" className={cx('num px-2.5 text-right', disc > 0 ? (Number(p?.promo_discount) > 0 ? 'font-semibold text-safety-promotion' : 'font-semibold text-pill-danger-fg') : 'text-neutral-400')}>{disc > 0 ? `−${usd(disc).slice(1)}` : '—'}</div>
+                <div role="cell" className={cx('num px-2.5 text-right', disc > 0 ? (Number(p?.promo_discount) > 0 ? 'font-semibold text-safety-promotion' : 'font-semibold text-pill-danger-fg') : 'text-neutral-500')}>{disc > 0 ? `−${usd(disc).slice(1)}` : '—'}</div>
                 <div role="cell" className="num px-2.5 text-right text-[14px] font-semibold">{p ? usd(p.net) : '…'}</div>
               </div>
               {findings.length > 0 && (

@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(../../.venv/bin/pip install *)",
+      "Bash(../../.venv/bin/python -m pytest *)",
+      "Bash(make test *)",
+      "Bash(make test-docker *)",
+      "Bash(make up *)",
+      "Bash(make smoke *)",
+      "Bash(make resync *)",
+      "Bash(docker compose ps *)",
+      "Bash(docker compose logs *)",
+      "Bash(docker compose exec *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(echo *)"
+    ],
+    "deny": [
+      "Bash(docker compose down -v *)",
+      "Bash(git push *)",
+      "Bash(git reset --hard *)"
+    ]
+  }
+}

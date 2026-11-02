@@ -38,7 +38,7 @@ export function PosLite() {
   return (
     <div className="relative flex h-dvh flex-col bg-neutral-50">
       <header className="flex flex-none items-center gap-2 border-b border-neutral-200 bg-white px-4 py-2.5">
-        <Link to="/" aria-label={t('common:action.goHome')} className="flex size-9 items-center justify-center rounded-lg bg-primary-600 font-bold text-white no-underline">+</Link>
+        <Link to="/" aria-label={t('common:action.goHome')} className="flex size-9 items-center justify-center rounded-lg bg-primary-600 font-bold text-white no-underline pointer-coarse:size-11">+</Link>
         <b className="text-[15px]">{t('title')}</b>
         {pos.branch && <BranchTag code={pos.branch.code} />}
         <span className="ml-auto" />

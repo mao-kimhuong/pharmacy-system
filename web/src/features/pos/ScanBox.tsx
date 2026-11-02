@@ -9,6 +9,7 @@ import type { CatalogS } from '@/api/types';
 
 export interface ScanBoxHandle {
   focus: () => void;
+  isFocused: () => boolean;
 }
 
 export const ScanBox = forwardRef<ScanBoxHandle, { onAdd: (m: CartMedicine, packUnitId?: string) => void; dark?: boolean; onError?: (q: string) => void }>(
@@ -19,7 +20,7 @@ export const ScanBox = forwardRef<ScanBoxHandle, { onAdd: (m: CartMedicine, pack
     const [hits, setHits] = useState<CatalogS['SearchHit'][] | null>(null);
     const [active, setActive] = useState(0);
     const [busy, setBusy] = useState(false);
-    useImperativeHandle(ref, () => ({ focus: () => input.current?.focus() }));
+    useImperativeHandle(ref, () => ({ focus: () => input.current?.focus(), isFocused: () => document.activeElement === input.current }));
     const pick = (h: CatalogS['SearchHit'], pack?: string | null) => {
       onAdd(toCartMedicine(h), pack ?? h.matched_pack_unit_id ?? undefined);
       setHits(null);

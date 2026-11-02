@@ -40,7 +40,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       aria-busy={loading || undefined}
       aria-keyshortcuts={kbd && kbd !== 'Enter' && kbd !== 'Esc' ? kbd : kbd === 'Esc' ? 'Escape' : kbd}
       className={cx(
-        'inline-flex items-center justify-center border font-medium whitespace-nowrap transition-colors select-none',
+        'inline-flex items-center justify-center border font-medium whitespace-nowrap transition-colors select-none pointer-coarse:min-h-11',
         'disabled:cursor-not-allowed disabled:opacity-45',
         VARIANT[variant],
         SIZE[size],

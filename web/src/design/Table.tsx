@@ -168,9 +168,9 @@ export function Pager({ page, size, total, onPage, onSize }: Paging) {
       <span className="ml-auto num">{t('table.range', { from, to, total })}</span>
       <span className="flex gap-1">
         <button type="button" aria-label={t('table.prev')} disabled={page <= 1} onClick={() => onPage(page - 1)}
-          className="flex size-8 items-center justify-center rounded-md border border-neutral-300 disabled:border-neutral-200 disabled:text-neutral-300">‹</button>
+          className="flex size-8 items-center justify-center rounded-md border border-neutral-300 disabled:border-neutral-200 disabled:text-neutral-300 pointer-coarse:size-11">‹</button>
         <button type="button" aria-label={t('table.nextPage')} disabled={page >= last} onClick={() => onPage(page + 1)}
-          className="flex size-8 items-center justify-center rounded-md border border-neutral-300 disabled:border-neutral-200 disabled:text-neutral-300">›</button>
+          className="flex size-8 items-center justify-center rounded-md border border-neutral-300 disabled:border-neutral-200 disabled:text-neutral-300 pointer-coarse:size-11">›</button>
       </span>
     </div>
   );

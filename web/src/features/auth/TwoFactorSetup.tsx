@@ -17,7 +17,7 @@ export function BackupCodes({ codes, onDone, doneLabel }: { codes: string[]; onD
         <span className="text-[13px] text-neutral-700">{t('backup.sub')}</span>
       </div>
       <ol aria-label={t('setup.step3')} className="m-0 grid list-none grid-cols-2 gap-2 rounded-lg border border-neutral-200 bg-neutral-50 p-4 font-mono text-[14px]">
-        {codes.map((c, i) => <li key={c}><span className="mr-2 text-neutral-400">{i + 1}.</span>{c}</li>)}
+        {codes.map((c, i) => <li key={c}><span className="mr-2 text-neutral-500">{i + 1}.</span>{c}</li>)}
       </ol>
       <div className="flex flex-wrap gap-2">
         <Button onClick={() => { void navigator.clipboard?.writeText(codes.join('\n')); setCopied(true); }}>{copied ? t('common:action.copied') : t('backup.copyAll')}</Button>
