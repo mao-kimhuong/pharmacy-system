@@ -1,0 +1,115 @@
+{
+  "products": {
+    "title": "Products",
+    "new": "New medicine",
+    "export": "Export Excel",
+    "sku": "SKU",
+    "brandName": "Brand name",
+    "generic": "Generic name",
+    "strength": "Strength",
+    "form": "Dosage form",
+    "manufacturer": "Manufacturer",
+    "baseUnit": "Base unit (e.g. tab)",
+    "basePrice": "Base unit price (USD)",
+    "baseBarcode": "Base unit barcode",
+    "rxOnly": "Prescription only",
+    "schedule": "Controlled schedule",
+    "none": "Not controlled",
+    "storage": "Storage",
+    "room": "Room temperature",
+    "cold": "Cold chain",
+    "reorderLevel": "Re-order level",
+    "ingredients": "Active ingredients (; separated)",
+    "classes": "Drug classes (; separated)",
+    "filterRx": "Rx only",
+    "filterControlled": "Controlled",
+    "showInactive": "Show inactive",
+    "saved": "Medicine saved",
+    "info": "Information",
+    "controlledRx": "Controlled medicines are always prescription only."
+  },
+  "packs": {
+    "title": "Pack units & prices",
+    "name": "Pack unit",
+    "qtyInBase": "Base units in it",
+    "barcode": "Barcode",
+    "price": "Sell price (USD)",
+    "base": "Base",
+    "add": "Add pack unit",
+    "edit": "Edit pack unit"
+  },
+  "history": {
+    "title": "Price history",
+    "old": "Old",
+    "new": "New",
+    "when": "When",
+    "source": "Source",
+    "costNote": "Cost history: Cost Change report (purchases)."
+  },
+  "lookups": {
+    "title": "Categories & brands",
+    "categories": "Categories",
+    "brands": "Brands",
+    "new": "Add"
+  },
+  "hampers": {
+    "title": "Hampers",
+    "new": "New hamper",
+    "components": "Components (base units)",
+    "price": "Hamper price (USD)",
+    "available": "Can make now",
+    "save": "Save components",
+    "hint": "A hamper has no stock of its own: selling it takes each component FEFO, all or nothing."
+  },
+  "import": {
+    "title": "Import products",
+    "template": "Download template",
+    "upload": "Upload Excel (.xlsx)",
+    "rows": "Rows",
+    "errors": "Rows with errors",
+    "onlyErrors": "Only rows with errors",
+    "createMissing": "Create missing categories and brands",
+    "skipInvalid": "Skip invalid SKUs",
+    "commit": "Import",
+    "committed": "Imported: {{created}} new, {{updated}} updated",
+    "newCats": "New categories",
+    "newBrands": "New brands",
+    "row": "Row",
+    "action": "Action",
+    "problems": "Problems",
+    "history": "Earlier imports"
+  },
+  "labels": {
+    "title": "Print labels",
+    "layout": "Layout",
+    "copies": "Copies",
+    "print": "Make labels",
+    "add": "Add medicine",
+    "layouts": {
+      "shelf_50x30": "Shelf label 50×30 mm",
+      "barcode_40x25": "Barcode 40×25 mm",
+      "a4_sheet": "A4 sheet"
+    }
+  },
+  "init": {
+    "title": "Opening stock (Initialize)",
+    "locks": "Branches",
+    "locked": "Locked",
+    "open": "Open",
+    "unlock": "Unlock",
+    "unlockBody": "Owner only. Opening stock can be loaded again after unlocking.",
+    "template": "Download template",
+    "upload": "Upload opening stock (.xlsx)",
+    "lines": "Lines",
+    "errors": "Errors",
+    "commit": "Commit and lock branch",
+    "commitBody": "Stock is booked as opening and the branch is locked: only the owner can unlock it.",
+    "status": {
+      "validated": "Ready",
+      "has_errors": "Has errors",
+      "committed": "Committed"
+    },
+    "short": "Short expiry",
+    "history": "Uploads"
+  }
+}

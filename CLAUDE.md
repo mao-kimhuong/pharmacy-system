@@ -476,7 +476,7 @@ replays; any change makes a new key). The scan box frees itself on Enter (scanne
 - [x] F0 Design system + app shell + auth + shared states
 - [x] F1 POS – all 9 flows on `/carts/preview`, POS lite, POS back office
 - [x] F2 Prescriptions + controlled drugs
-- [ ] F3 Warehouse + stock (incl. mobile stock count)
+- [x] F3 Warehouse + stock (incl. mobile stock count)
 - [ ] F4 Purchase + transfer (incl. mobile receiving)
 - [ ] F5 Contacts
 - [ ] F6 Dashboard + reports

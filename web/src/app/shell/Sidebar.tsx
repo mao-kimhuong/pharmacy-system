@@ -57,7 +57,7 @@ export function Sidebar({ groups, collapsed, onToggle }: { groups: NavGroup[]; c
               {isOpen(g.key) && (
                 <div className="flex flex-col gap-px pt-0.5 pb-1.5 pl-[30px]">
                   {g.items.map((it) => (
-                    <NavLink key={it.path} to={it.path} end={it.path === '/'}
+                    <NavLink key={it.path} to={it.path} end={g.items.some((o) => o.path !== it.path && o.path.startsWith(`${it.path}/`))}
                       className={({ isActive }) => cx('rounded-md border-l-2 px-2.5 py-1.5 text-[13px] no-underline',
                         isActive ? 'border-primary-600 bg-primary-50 font-semibold text-primary-700' : 'border-transparent text-neutral-700 hover:bg-neutral-50')}>
                       {t(`item.${it.key}`)}

@@ -7,6 +7,7 @@ import { Scanner, Sheet, SkeletonRows } from '@/design';
 import { useMediaQuery } from '@/lib/hooks';
 import { RouteErrorBoundary } from '../RouteError';
 import { OfflineBanner } from './OfflineBanner';
+import { UpdateBanner } from './UpdateBanner';
 import { SessionExpiredDialog } from './SessionExpired';
 import { CommandPalette } from './CommandPalette';
 import { Bell, BranchSwitcher, LangToggle, SearchButton, UserMenu } from './Header';
@@ -39,6 +40,7 @@ export function Shell() {
 
   const content = (
     <main id="main" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+      <UpdateBanner />
       <OfflineBanner />
       <RouteErrorBoundary>
         <Suspense fallback={<SkeletonRows />}>
