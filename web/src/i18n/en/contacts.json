@@ -1,0 +1,69 @@
+{
+  "groups": {
+    "customer": "Customer groups",
+    "supplier": "Supplier groups",
+    "new": "New group",
+    "discount": "Default discount %",
+    "members": "Members",
+    "hidden": "Price level, default credit limit and promotion stacking are not group fields in the API."
+  },
+  "customers": {
+    "title": "Customers",
+    "new": "New customer",
+    "search": "Name or phone",
+    "group": "Group",
+    "limit": "Credit limit",
+    "balance": "Owes",
+    "available": "Credit left",
+    "note": "Note",
+    "limitPerm": "Only users allowed to set credit limits can change it.",
+    "saved": "Customer saved",
+    "empty": "No customers yet",
+    "listHidden": "Oldest unpaid and deposits per customer are on the customer's page (no list fields in the API)."
+  },
+  "detail": {
+    "unpaid": "Unpaid invoices",
+    "statement": "Statement",
+    "deposits": "Deposits",
+    "payments": "Payments",
+    "age": "Age (days)",
+    "due": "Due",
+    "reduced": "Reduced",
+    "opening": "Opening balance",
+    "closing": "Closing balance",
+    "debit": "Debit",
+    "credit": "Credit",
+    "doc": "Document",
+    "kind": "Entry",
+    "pdf": "Statement PDF",
+    "used": "Used",
+    "remaining": "Remaining",
+    "agingNote": "Debts have no due date in the API: age is counted from the invoice date."
+  },
+  "cpay": {
+    "title": "Customer payments",
+    "new": "Record payment",
+    "method": {
+      "cash": "Cash",
+      "card": "Card",
+      "ABA": "ABA",
+      "KHQR": "KHQR"
+    },
+    "hint": "Paid to the oldest unpaid invoices first. Amount in USD.",
+    "cancel": "Cancel payment",
+    "done": "Payment {{number}} recorded"
+  },
+  "suppliers": {
+    "title": "Suppliers",
+    "new": "New supplier",
+    "code": "Code",
+    "terms": "Payment terms (days)",
+    "owed": "Owed",
+    "overdue": "Overdue",
+    "bills": "Bills (receipts)",
+    "orders": "Purchase orders",
+    "returns": "Returns",
+    "hidden": "VAT TIN, contact person and early-payment discount are not supplier fields in the API.",
+    "saved": "Supplier saved"
+  }
+}

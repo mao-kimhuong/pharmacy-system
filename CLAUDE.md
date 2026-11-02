@@ -478,7 +478,7 @@ replays; any change makes a new key). The scan box frees itself on Enter (scanne
 - [x] F2 Prescriptions + controlled drugs
 - [x] F3 Warehouse + stock (incl. mobile stock count)
 - [x] F4 Purchase + transfer (incl. mobile receiving)
-- [ ] F5 Contacts
+- [x] F5 Contacts
 - [ ] F6 Dashboard + reports
 - [ ] F7 User management + settings
 - [ ] F8 Print layouts, offline POS sync, polish, accessibility pass
