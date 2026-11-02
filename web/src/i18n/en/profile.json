@@ -1,0 +1,40 @@
+{
+  "title": "My profile",
+  "details": "Details",
+  "pharmacist": "Pharmacist",
+  "notPharmacist": "Not a pharmacist",
+  "password": {
+    "title": "Password",
+    "current": "Current password",
+    "new": "New password",
+    "repeat": "New password again",
+    "mismatch": "The new passwords are different",
+    "change": "Change password",
+    "changed": "Password changed",
+    "hint": "At least 8 characters"
+  },
+  "pin": {
+    "title": "PIN",
+    "set": "Set PIN",
+    "change": "Change PIN",
+    "has": "A PIN is set",
+    "none": "No PIN yet. Pharmacists and managers need one for controlled drugs, approvals and witnessing."
+  },
+  "twofa": {
+    "title": "Two-factor authentication",
+    "on": "On",
+    "off": "Off",
+    "turnOn": "Turn on",
+    "required": "Required for owner and branch manager"
+  },
+  "sessions": {
+    "title": "Signed-in devices",
+    "current": "This device",
+    "started": "Signed in",
+    "lastUsed": "Last used",
+    "revoke": "Sign out",
+    "revokeTitle": "Sign this device out?",
+    "revokeBody": "It is signed out at once and must sign in again.",
+    "unknown": "Unknown device"
+  }
+}

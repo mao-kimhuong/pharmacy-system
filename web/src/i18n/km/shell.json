@@ -1,0 +1,49 @@
+{
+  "search": "ស្វែងរកឱសថ វិក្កយបត្រ អតិថិជន…",
+  "collapse": "បង្រួម",
+  "expand": "ពង្រីក",
+  "branchAll": "សាខាទាំងអស់",
+  "branchSwitch": "ប្តូរសាខា",
+  "notifications": "ការជូនដំណឹង",
+  "noNotifications": "គ្មានអ្វីរង់ចាំអ្នកទេ",
+  "pendingApprovals": "ការអនុម័ត {{count}} កំពុងរង់ចាំ",
+  "openDiscrepancies": "ភាពខុសគ្នាឱសថគ្រប់គ្រង {{count}} មិនទាន់ដោះស្រាយ",
+  "user": {
+    "profile": "ប្រវត្តិរូប",
+    "pin": "ប្តូរ PIN",
+    "twofa": "ផ្ទៀងផ្ទាត់ពីរជំហាន (2FA)",
+    "on": "បើក",
+    "off": "បិទ",
+    "language": "ភាសា",
+    "logout": "ចាកចេញ"
+  },
+  "role": {
+    "owner": "ម្ចាស់",
+    "branch_manager": "អ្នកគ្រប់គ្រងសាខា",
+    "pharmacist": "ឱសថការី",
+    "cashier": "អ្នកគិតលុយ"
+  },
+  "tabs": {
+    "home": "ទំព័រដើម",
+    "pos": "លក់",
+    "scan": "ស្កេន",
+    "approvals": "អនុម័ត",
+    "more": "ច្រើនទៀត"
+  },
+  "more": {
+    "title": "ម៉ឺនុយទាំងអស់"
+  },
+  "palette": {
+    "placeholder": "វាយដើម្បីស្វែងរក…",
+    "medicines": "ឱសថ",
+    "invoices": "វិក្កយបត្រ",
+    "customers": "អតិថិជន",
+    "patients": "អ្នកជំងឺ",
+    "pages": "ទំព័រ",
+    "hint": "↑↓ ដើម្បីផ្លាស់ទី · Enter ដើម្បីបើក · Esc ដើម្បីបិទ",
+    "none": "គ្មានលទ្ធផល"
+  },
+  "skip": "រំលងទៅមាតិកា",
+  "menu": "ម៉ឺនុយ",
+  "openMenu": "បើកម៉ឺនុយ"
+}

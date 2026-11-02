@@ -1,6 +1,6 @@
 SERVICES := auth branch catalog inventory stockcount prescription controlled sales customers purchasing reports notification document ai
 
-.PHONY: help env up down logs ps owner smoke test test-docker test-db test-db-down lint migrate revision resync backfill seed-demo bench-reports openapi
+.PHONY: help env up down logs ps owner smoke test test-docker test-db test-db-down lint migrate revision resync backfill seed-demo bench-reports openapi api-types web-install web-dev web-test web-e2e web-test-docker
 
 help:
 	@echo "make env       copy .env.example to .env (first time)"
@@ -18,6 +18,11 @@ help:
 	@echo "make seed-demo a year of demo data in the reports (APP_ENV=development, DEMO branches)"
 	@echo "make bench-reports  time every report over the demo year"
 	@echo "make openapi   write every service's OpenAPI document to openapi/*.json"
+	@echo "make api-types openapi + the web app's typed clients (web/src/api/gen)"
+	@echo "make web-dev   the web app on :5173 (Vite), /api proxied to http://localhost"
+	@echo "make web-test  web: typecheck, lint, unit tests with coverage, build, bundle size"
+	@echo "make web-e2e   web: Playwright against BASE_URL (default http://localhost)"
+	@echo "make web-test-docker   make web-test inside a node container"
 
 env:
 	@test -f .env || cp .env.example .env && echo ".env ready - change the passwords"
@@ -83,3 +88,28 @@ migrate:
 
 revision:
 	docker compose exec $(s) alembic revision --autogenerate -m "$(m)"
+
+# --- Web front end (web/). Needs Node 20+ (web/.nvmrc). ---
+WEB_NODE ?= $(shell for n in $$HOME/.nvm/versions/node/v2[4-9]*/bin $$HOME/.nvm/versions/node/v2[0-3]*/bin; do [ -x $$n/node ] && echo $$n && break; done)
+WEB_ENV = PATH="$(if $(WEB_NODE),$(WEB_NODE):)$$PATH"
+
+web-install:
+	cd web && $(WEB_ENV) npm ci --no-audit --no-fund
+
+api-types: openapi
+	cd web && $(WEB_ENV) npm run api-types
+
+web-dev:
+	cd web && $(WEB_ENV) npm run dev
+
+web-test:
+	cd web && $(WEB_ENV) npm run typecheck && $(WEB_ENV) npm run lint && $(WEB_ENV) npm test && $(WEB_ENV) npx vite build && $(WEB_ENV) npm run size
+
+web-e2e:
+	cd web && $(WEB_ENV) BASE_URL=$${BASE_URL:-http://localhost} npx playwright test
+
+web-test-docker:
+	docker run --rm -v "$(CURDIR)":/repo:ro -e CI=1 node:24-alpine sh -c "\
+	  mkdir -p /x/web /x/docs && cp -r /repo/docs/design /x/docs/ && \
+	  tar -C /repo/web --exclude=./node_modules --exclude=./dist --exclude=./coverage -cf - . | tar -C /x/web -xf - && \
+	  cd /x/web && npm ci --no-audit --no-fund && npm run typecheck && npm run lint && npm test && npx vite build && npm run size"

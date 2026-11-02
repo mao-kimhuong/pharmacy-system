@@ -1,0 +1,4 @@
+{
+  "hello": "Hello, {{name}}",
+  "sub": "Pick where to start."
+}

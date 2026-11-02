@@ -48,3 +48,18 @@ def test_login_steps_share_the_strict_rate_limit() -> None:
 
 def test_everything_else_in_auth_is_protected() -> None:
     assert "auth-forward" in _router_for("/api/auth/v1/me")[1]["middlewares"]
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["/api/auth/v1/login", "/api/auth/v1/me", "/api/sales/v1/invoices", "/api/reports/v1/dashboard", "/api/documents/v1/render"],
+)
+def test_api_paths_never_reach_the_web_app(path: str) -> None:
+    # The web router is PathPrefix(`/`) at priority 1: every API router must win.
+    assert _router_for(path)[0] != "web"
+
+
+def test_web_app_is_public_static_files() -> None:
+    name, router = _router_for("/pos")
+    assert name == "web"
+    assert "auth-forward" not in router["middlewares"]

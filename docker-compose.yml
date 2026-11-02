@@ -564,6 +564,24 @@ services:
     networks: [internal]
     restart: unless-stopped
 
+  # Web front end (static files). Lowest priority: every /api router (10-100) wins.
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+      args:
+        VITE_APP_ENV: ${APP_ENV:-}
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.web.loadbalancer.server.port=8080
+      - traefik.http.routers.web.rule=PathPrefix(`/`)
+      - traefik.http.routers.web.priority=1
+      - traefik.http.routers.web.entrypoints=web
+      - traefik.http.routers.web.service=web
+      - traefik.http.routers.web.middlewares=strip-identity-headers@file,ratelimit-flood@file
+    networks: [internal]
+    restart: unless-stopped
+
 networks:
   edge:
   internal:

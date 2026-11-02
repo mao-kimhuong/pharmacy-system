@@ -1,0 +1,11 @@
+# Used instead of the root .dockerignore for web/Dockerfile.
+**
+!web/
+!docs/design/tokens.json
+!docs/design/error-messages.json
+web/node_modules/
+web/dist/
+web/coverage/
+web/playwright-report/
+web/test-results/
+web/e2e/.auth/

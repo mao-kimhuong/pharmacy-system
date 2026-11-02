@@ -1,0 +1,75 @@
+@import 'tailwindcss';
+@config '../tailwind.config.ts';
+
+/* Self-hosted fonts (no Google Fonts at runtime: the app works offline). */
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/kantumruy-pro/khmer-400.css';
+@import '@fontsource/kantumruy-pro/khmer-500.css';
+@import '@fontsource/kantumruy-pro/khmer-600.css';
+@import '@fontsource/kantumruy-pro/khmer-700.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+
+@custom-variant dark (&:where(.pos-dark, .pos-dark *));
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
+  }
+  body {
+    @apply bg-neutral-50 font-sans text-body text-neutral-900;
+    margin: 0;
+  }
+  /* Khmer first and ×1.25 line heights when the page is in Khmer (tokens.json type.lhKm). */
+  html:lang(km) body {
+    @apply font-khmer;
+  }
+  html:lang(km) .text-pos-total { line-height: 80px; }
+  html:lang(km) .text-page-title { line-height: 44px; }
+  html:lang(km) .text-section-title { line-height: 34px; }
+  html:lang(km) .text-body { line-height: 26px; }
+  html:lang(km) .text-table { line-height: 24px; }
+  html:lang(km) .text-label { line-height: 20px; }
+  html:lang(km) .text-receipt { line-height: 18px; }
+  a {
+    @apply text-primary-600 hover:text-primary-700;
+  }
+  *:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px #cdebe8;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .km {
+    font-family: 'Kantumruy Pro', 'Inter', sans-serif;
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+  .shimmer {
+    background: linear-gradient(90deg, #eef1f0 0, #f6f8f7 50%, #eef1f0 100%);
+    background-size: 800px 100%;
+    animation: shimmer 1.4s linear infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+}
+
+@media print {
+  .no-print { display: none !important; }
+}

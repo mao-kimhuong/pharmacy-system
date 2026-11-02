@@ -1,0 +1,54 @@
+{
+  "empty": {
+    "title": "Nothing here yet",
+    "noResults": "No results",
+    "noResultsBody": "Nothing matches \"{{q}}\". Check the spelling or clear the filters.",
+    "clearFilters": "Clear filters"
+  },
+  "error": {
+    "title": "Couldn't load this",
+    "body": "The server didn't respond. Your work is not lost. Try again, or tell your manager if this keeps happening.",
+    "copyId": "Copy error ID"
+  },
+  "offline": {
+    "title": "Offline",
+    "body": "No connection. Changes cannot be saved until you are back online.",
+    "back": "Back online"
+  },
+  "forbidden": {
+    "title": "You don't have permission to view this page",
+    "body": "Your role: {{role}}. Ask your manager or the owner for access.",
+    "toDashboard": "Go to home"
+  },
+  "notFound": {
+    "title": "This page or record doesn't exist",
+    "body": "It may have been moved, or belong to a branch you can't access."
+  },
+  "pinLocked": {
+    "title": "PIN locked",
+    "body": "5 wrong PIN entries. PIN actions are blocked until {{time}} (15 min).",
+    "hint": "You can still sell non-Rx items. Another pharmacist can complete this."
+  },
+  "session": {
+    "title": "Your session expired",
+    "body": "Enter your password to continue where you left off.",
+    "switchUser": "Switch user"
+  },
+  "loading": "Loading…",
+  "fieldErrors": {
+    "count": "{{count}} fields need attention.",
+    "jump": "Jump to first",
+    "required": "Required",
+    "min": "At least {{min}}",
+    "positive": "Must be 0 or more",
+    "minChars": "At least {{min}} characters",
+    "invalid": "Not valid"
+  },
+  "update": {
+    "ready": "A new version is ready.",
+    "reload": "Reload"
+  },
+  "missing": {
+    "hidden": "Not available from the API yet"
+  }
+}

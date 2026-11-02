@@ -13,7 +13,7 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   current user from Traefik headers, outbox, JSON logging, app factory.
 - `services/<name>/<name>_service/` – `main.py`, `api/`, `services/` (business
   rules), `models/`, `schemas/`, `events/`; `migrations/` (Alembic); `tests/`.
-- `traefik/`, `infra/postgres/init/`, `docs/`, `web/` (front end, not started).
+- `traefik/`, `infra/postgres/init/`, `docs/`, `web/` (front end: React + Vite, see `web/README.md`).
 
 | Service | Prefix | Owns |
 | --- | --- | --- |
@@ -69,6 +69,8 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   once when a service starts listening after the data exists: RabbitMQ drops events for queues that did not exist yet)
 - `make backfill` – rebuild the reports' read models by replaying every service's outbox (safe to repeat; `--rebuild` empties first)
 - `make openapi` – every service's OpenAPI document to `openapi/*.json`
+- `make api-types` (openapi → `web/src/api/gen`), `make web-dev` (Vite :5173, /api → http://localhost), `make web-test`
+  (typecheck, lint, Vitest, build, bundle budget), `make web-e2e` (Playwright, `BASE_URL`), `make web-test-docker`
 - `make seed-demo` / `make bench-reports` – a year of demo data in the reports (APP_ENV=development, DEMO branches only) and
   the timing of every report (target < 2 s)
 
@@ -462,8 +464,11 @@ API matches the spec, migration included, tests pass (`make test` and `make test
   connections (SSL stays configurable for production) and make the test DB fixture retry its first connect.
 - [ ] S10 AI – DeepSeek phase A
 
-Front end (`web/`, plan: `docs/plans/frontend-plan.md`, design handoff: `docs/design/`):
-- [ ] F0 Design system + app shell + auth + shared states
+Front end (`web/`, plan: `docs/plans/frontend-plan.md`, design handoff: `docs/design/`, how it works: `web/README.md`).
+Decided: F-sprints hide designed details the API lacks (choice A alternative); refresh token in the httpOnly cookie
+(B); offline POS needs S9 backend work first (C); e2e against `BASE_URL` (D); openapi-typescript + openapi-fetch (E);
+dev-only `/dev/design` (F). The `web` service is Traefik `PathPrefix(/)` priority 1 (static nginx, its own CSP).
+- [x] F0 Design system + app shell + auth + shared states
 - [ ] F1 POS – all 9 flows on `/carts/preview`, POS lite, POS back office
 - [ ] F2 Prescriptions + controlled drugs
 - [ ] F3 Warehouse + stock (incl. mobile stock count)

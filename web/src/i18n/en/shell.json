@@ -1,0 +1,49 @@
+{
+  "search": "Search medicines, invoices, customers…",
+  "collapse": "Collapse",
+  "expand": "Expand",
+  "branchAll": "All branches",
+  "branchSwitch": "Switch branch",
+  "notifications": "Notifications",
+  "noNotifications": "Nothing waiting for you",
+  "pendingApprovals": "{{count}} approvals waiting",
+  "openDiscrepancies": "{{count}} controlled-drug discrepancies open",
+  "user": {
+    "profile": "My profile",
+    "pin": "Change PIN",
+    "twofa": "Two-factor (2FA)",
+    "on": "On",
+    "off": "Off",
+    "language": "Language",
+    "logout": "Log out"
+  },
+  "role": {
+    "owner": "Owner",
+    "branch_manager": "Branch manager",
+    "pharmacist": "Pharmacist",
+    "cashier": "Cashier"
+  },
+  "tabs": {
+    "home": "Home",
+    "pos": "POS",
+    "scan": "Scan",
+    "approvals": "Approvals",
+    "more": "More"
+  },
+  "more": {
+    "title": "All menus"
+  },
+  "palette": {
+    "placeholder": "Type to search…",
+    "medicines": "Medicines",
+    "invoices": "Invoices",
+    "customers": "Customers",
+    "patients": "Patients",
+    "pages": "Pages",
+    "hint": "↑↓ to move · Enter to open · Esc to close",
+    "none": "No matches"
+  },
+  "skip": "Skip to content",
+  "menu": "Menu",
+  "openMenu": "Open menu"
+}

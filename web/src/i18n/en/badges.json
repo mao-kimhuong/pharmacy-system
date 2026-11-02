@@ -1,0 +1,12 @@
+{
+  "rx": "Rx only",
+  "controlled": "Controlled",
+  "expired": "Expired",
+  "near-expiry": "Near expiry",
+  "quarantine": "Quarantine",
+  "allergy": "Allergy",
+  "recalled": "Recalled",
+  "hamper": "Hamper",
+  "promotion": "Promotion",
+  "duplicate-therapy": "Duplicate therapy"
+}
