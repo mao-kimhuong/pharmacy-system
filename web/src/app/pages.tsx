@@ -37,7 +37,10 @@ export interface PageDef {
 const P = (def: Omit<PageDef, 'Component'>, load: () => Promise<{ default: ComponentType }>): PageDef => ({ ...def, Component: lazy(load) });
 
 export const PAGES: PageDef[] = [
-  P({ key: 'dashboard', path: '/', group: 'dashboard', gate: undefined }, () => import('@/features/home/HomePage')),
+  P({ key: 'dashboard', path: '/', group: 'dashboard', gate: undefined }, () => import('@/features/dashboard/DashboardPage')),
+  P({ key: 'dashboard', path: '/approvals', nav: false, gate: { perms: ['dashboard.view'] } }, () => import('@/features/dashboard/ApprovalsPage')),
+  P({ key: 'reports', path: '/reports', group: 'reports', gate: { perms: ['reports.sales', 'reports.stock', 'reports.purchases', 'reports.customers', 'controlled.view', 'commission.view_own', 'commission.manage'] } }, () => import('@/features/reports/ReportsPage')),
+  P({ key: 'reports', path: '/reports/*', nav: false }, () => import('@/features/reports/ReportsPage').then((m) => ({ default: m.ReportView }))),
   P({ key: 'pos', path: '/pos', group: 'sales', gate: { menu: 'pos' }, bare: true }, () => import('@/features/pos/PosPage')),
   P({ key: 'sale_template', path: '/sales/templates', group: 'sales', gate: { menu: 'sale_template' } }, () => import('@/features/sales/TemplatesPage')),
   P({ key: 'sale_suspend', path: '/sales/suspended', group: 'sales', gate: { menu: 'sale_suspend' } }, () => import('@/features/sales/SuspendedPage')),
