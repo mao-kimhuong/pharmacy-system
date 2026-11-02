@@ -8,11 +8,12 @@ import type { SalesS } from '@/api/types';
 import { useUser } from '@/app/auth';
 import { useBranch } from '@/app/branch';
 import type { PinToken } from '@/design';
-import { cartReducer, emptyCart, emptyTender, toLinesIn, toPayments, type CartLine, type CartState, type ChangeIn, type PaymentIn, type Tender } from './cart';
+import { cartReducer, defaultPack, emptyCart, emptyTender, toLinesIn, toPayments, type CartLine, type CartState, type RxLink, type ChangeIn, type PaymentIn, type Tender } from './cart';
 import { useMedicines, usePreview, useRate, useRequestKey, toCartMedicine, type Finding } from './hooks';
 
 export interface PosLoad {
-  lines: { medicine_id: string; pack_unit_id: string; qty: number }[];
+  /** No pack unit: the base unit. rx: the line dispenses this prescription item. */
+  lines: { medicine_id: string; pack_unit_id?: string; qty: number; rx?: RxLink }[];
   customer?: { id: string; name: string; phone: string } | null;
   resumed?: { number: string; changes: unknown[] } | null;
 }
@@ -52,7 +53,9 @@ export function usePos() {
     if (!pending || meds.some((m) => m.isLoading)) return;
     const lines: CartLine[] = pending.lines.flatMap((l, i) => {
       const m = meds[i]?.data;
-      return m ? [{ key: `${l.medicine_id}-${i}-${Date.now()}`, medicine: toCartMedicine(m), pack_unit_id: l.pack_unit_id, qty: l.qty }] : [];
+      if (!m) return [];
+      const medicine = toCartMedicine(m);
+      return [{ key: `${l.medicine_id}-${i}-${Date.now()}`, medicine, pack_unit_id: l.pack_unit_id ?? defaultPack(medicine), qty: l.qty, rx: l.rx ?? null }];
     });
     dispatch({ type: 'load', lines, customer: pending.customer ?? null, resumedFrom: pending.resumed ?? null });
     setPending(null);

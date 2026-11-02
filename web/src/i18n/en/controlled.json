@@ -1,0 +1,93 @@
+{
+  "register": {
+    "title": "Controlled register",
+    "medicine": "Medicine",
+    "allMeds": "All controlled medicines",
+    "seq": "#",
+    "when": "When",
+    "type": "Entry",
+    "lot": "Lot",
+    "qty": "Qty",
+    "balance": "Balance",
+    "who": "By / witness",
+    "rx": "Rx / patient",
+    "chainOk": "Hash chain verified",
+    "chainBad": "Hash chain broken: tell the owner",
+    "adjust": "Adjust / destroy",
+    "export": "Register PDF",
+    "empty": "No entries in this period",
+    "appendOnly": "Append-only: a mistake is fixed with a correction entry; the old entry stays."
+  },
+  "entry": {
+    "title": "Register entry #{{seq}}",
+    "hash": "Entry hash",
+    "hashOk": "Hash matches",
+    "hashBad": "Hash does not match",
+    "prev": "Previous",
+    "next": "Next",
+    "correctedBy": "Corrected by",
+    "corrects": "Corrects entry",
+    "correct": "Correction",
+    "patientDoc": "Patient ID document",
+    "reason": "Reason"
+  },
+  "type": {
+    "receive": "Received",
+    "dispense": "Dispensed",
+    "return": "Returned",
+    "sale_cancel": "Sale cancelled",
+    "adjust_in": "Adjust in",
+    "adjust_out": "Adjust out",
+    "destroy": "Destroyed",
+    "correction": "Correction",
+    "opening": "Opening",
+    "transfer_in": "Transfer in",
+    "transfer_out": "Transfer out",
+    "count_adjust": "Count adjustment",
+    "shrinkage": "Shrinkage",
+    "supplier_return": "Supplier return"
+  },
+  "adjust": {
+    "title": "Adjust or destroy controlled stock",
+    "kind": "Action",
+    "adjust_in": "Adjust in (found)",
+    "adjust_out": "Adjust out",
+    "destroy": "Destroy",
+    "batch": "Batch",
+    "qty": "Quantity (base unit)",
+    "method": "Destruction method",
+    "witnessNote": "Your PIN, then a witness from this branch. Destroying needs a branch manager or owner as witness.",
+    "next": "Continue to PIN + witness",
+    "done": "Recorded in the register"
+  },
+  "correction": {
+    "title": "Correction entry",
+    "qty": "Corrected quantity (+ in, − out)",
+    "body": "A new entry is added that points to entry #{{seq}}; the original stays as it is."
+  },
+  "disc": {
+    "title": "Discrepancies",
+    "registerQty": "Register",
+    "stockQty": "Stock",
+    "difference": "Difference",
+    "found": "Found",
+    "resolve": "Resolve",
+    "resolveTitle": "Resolve discrepancy",
+    "correctRegister": "Add a correction entry so the register equals stock",
+    "note": "Note",
+    "open": "Open",
+    "resolved": "Resolved",
+    "empty": "No discrepancies",
+    "hint": "Checked every night at 00:20 (register against stock per batch)."
+  },
+  "chain": {
+    "title": "Chain verification",
+    "run": "Verify now",
+    "valid": "Valid",
+    "broken": "Broken",
+    "entries": "Entries",
+    "problem": "Problem",
+    "firstBad": "First bad entry",
+    "allOk": "Every chain of this branch is intact."
+  }
+}

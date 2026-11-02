@@ -475,7 +475,7 @@ reason, duplicate_therapy → acknowledge). The checkout Idempotency-Key follows
 replays; any change makes a new key). The scan box frees itself on Enter (scanners send the next code at once).
 - [x] F0 Design system + app shell + auth + shared states
 - [x] F1 POS – all 9 flows on `/carts/preview`, POS lite, POS back office
-- [ ] F2 Prescriptions + controlled drugs
+- [x] F2 Prescriptions + controlled drugs
 - [ ] F3 Warehouse + stock (incl. mobile stock count)
 - [ ] F4 Purchase + transfer (incl. mobile receiving)
 - [ ] F5 Contacts

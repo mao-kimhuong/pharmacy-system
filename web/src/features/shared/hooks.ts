@@ -50,3 +50,20 @@ const TONES: Record<string, PillTone> = {
   returned: 'purple', resumed: 'neutral', cancelling: 'warning', lifted: 'neutral',
 };
 export const toneOf = (status: string): PillTone => TONES[status] ?? 'neutral';
+
+/** Medicine display names by id (catalog GET per unique id, cached). */
+export function useMedicineNames(ids: string[]) {
+  const unique = [...new Set(ids)];
+  const qs = useQueries({
+    queries: unique.map((id) => ({
+      queryKey: ['catalog', 'medicine', id],
+      staleTime: 5 * 60_000,
+      queryFn: () => call(api.catalog.GET('/api/catalog/v1/medicines/{medicine_id}', { params: { path: { medicine_id: id } } })),
+    })),
+  });
+  const m = new Map(qs.flatMap((q) => (q.data ? [[q.data.id, q.data] as const] : [])));
+  return (id: string) => {
+    const x = m.get(id);
+    return x ? [x.brand_name, x.strength].filter(Boolean).join(' ') : '…';
+  };
+}

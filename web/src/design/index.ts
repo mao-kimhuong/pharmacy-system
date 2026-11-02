@@ -18,3 +18,4 @@ export * from './Popover';
 export * from './OtpInput';
 export * from './PdfPreview';
 export * from './MultiSelect';
+export * from './BlobViewer';
