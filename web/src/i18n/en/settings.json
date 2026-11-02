@@ -1,0 +1,141 @@
+{
+  "users": {
+    "title": "Users",
+    "new": "New user",
+    "edit": "Edit user",
+    "pharmacist": "Licensed pharmacist",
+    "password": "Password",
+    "language": "Language",
+    "twofa": "2FA",
+    "resetPassword": "Reset password",
+    "newPassword": "New password",
+    "reset2fa": "Reset 2FA",
+    "reset2faBody": "They set up 2FA again at the next sign-in.",
+    "clearPin": "Clear PIN",
+    "clearPinBody": "They set a new PIN in My profile. This also ends a PIN lockout.",
+    "done": "Done",
+    "allBranchesOwner": "The owner sees every branch."
+  },
+  "roles": {
+    "title": "Roles",
+    "new": "New role",
+    "key": "Key (e.g. senior_cashier)",
+    "description": "Description",
+    "ownerLocked": "Owner role is locked",
+    "users": "{{count}} users",
+    "saveMatrix": "Save permissions",
+    "costHint": "\"See cost and profit\" shows cost and profit everywhere.",
+    "permission": "Permission",
+    "saved": "Permissions saved"
+  },
+  "log": {
+    "title": "User Log",
+    "when": "When",
+    "who": "Who",
+    "action": "Action",
+    "what": "What",
+    "changes": "Changes",
+    "before": "Before",
+    "after": "After",
+    "field": "Field",
+    "service": "Service",
+    "system": "System"
+  },
+  "commission": {
+    "title": "Commission rules",
+    "new": "New rule",
+    "kind": "Kind",
+    "percent": "% of net",
+    "per_unit": "USD per base unit",
+    "value": "Value",
+    "scope": "Applies to",
+    "scopes": {
+      "all": "Everything",
+      "medicine": "One medicine",
+      "category": "One category",
+      "brand": "One brand"
+    },
+    "staff": "Only this staff member",
+    "branch": "Only this branch",
+    "starts": "From",
+    "ends": "Until",
+    "noEdit": "Rules cannot be edited: deactivate and add a new one."
+  },
+  "branches": {
+    "title": "Branches",
+    "new": "New branch",
+    "code": "Code",
+    "licence": "Licence no.",
+    "settings": "Branch settings",
+    "receiptHeader": "Receipt header",
+    "receiptFooter": "Receipt footer",
+    "receiptLang": "Receipt language",
+    "rxDays": "Rx valid (days)",
+    "ctlRxDays": "Controlled Rx valid (days, max 7)",
+    "labelSize": "Dispensing label size",
+    "expiryAlert": "Expiry alerts (days, comma separated)",
+    "openedPacks": "Take back opened packs",
+    "priceOverride": "Allow price override",
+    "doubleCount": "Double count above (USD)",
+    "ownerApproval": "Owner approves counts above (USD)",
+    "shrinkApproval": "Shrinkage approval above (USD)",
+    "reorderSales": "Re-order: average of (days)",
+    "reorderSafety": "Re-order: safety days",
+    "reorderLead": "Re-order: lead days",
+    "nearTransfer": "Near-expiry transfer window (days)",
+    "deposit": "Order deposit on cancel",
+    "depositOpt": {
+      "keep_as_credit": "Keep as credit",
+      "refund": "Refund",
+      "forfeit": "Forfeit"
+    },
+    "discountCaps": "Max manual discount % per role",
+    "khqr": "Bakong account (KHQR)",
+    "khqrAccount": "Account ID",
+    "khqrName": "Merchant name",
+    "khqrCity": "City",
+    "khqrShared": "Empty: the shared account is used.",
+    "saved": "Settings saved"
+  },
+  "rate": {
+    "title": "Exchange rate",
+    "current": "Current rate",
+    "new": "New rate (riel per USD)",
+    "set": "Set rate",
+    "history": "History",
+    "previous": "Previous",
+    "by": "Set by",
+    "when": "When",
+    "saved": "Rate saved"
+  },
+  "telegram": {
+    "title": "Telegram notifications",
+    "chats": "Chats",
+    "target": "For",
+    "owner": "Owner (cost and profit)",
+    "chatId": "Chat ID",
+    "active": "Sends",
+    "test": "Send test",
+    "messages": "Messages",
+    "runSummary": "Send today's summary now",
+    "attempts": "Tries",
+    "error": "Error",
+    "queued": "Queued",
+    "status": {
+      "sent": "Sent",
+      "queued": "Queued",
+      "failed": "Failed",
+      "skipped": "Skipped"
+    }
+  },
+  "notify": {
+    "title": "Notification settings",
+    "largePct": "Alert on manual discount above (%)",
+    "largeUsd": "…or above (USD)",
+    "fixed": "The daily summary goes at 20:00, the stock digest at 07:30 (fixed in this version). Other alert settings and a preview are not in the API yet."
+  },
+  "features": {
+    "title": "Feature switches",
+    "hides": "Hides when off"
+  }
+}
