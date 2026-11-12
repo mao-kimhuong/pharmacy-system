@@ -369,8 +369,8 @@ export interface paths {
         put?: never;
         /**
          * Create
-         * @description A dynamic KHQR for this amount on the branch's Bakong account (or the shared one).
-         *     Pay the sale with payments[{method: "KHQR", khqr_id, amount, currency}] once paid.
+         * @description A dynamic KHQR for this amount: ABA PayWay's QR API (KHQR_PROVIDER=payway) or the branch's Bakong account
+         *     (or the shared one). Pay the sale with payments[{method: "KHQR", khqr_id, amount, currency}] once paid.
          */
         post: operations["create_api_sales_v1_payments_khqr_post"];
         delete?: never;
@@ -388,11 +388,33 @@ export interface paths {
         };
         /**
          * Status
-         * @description pending / paid / expired / used / needs_refund. Asks Bakong at most every 2 s per QR.
+         * @description pending / paid / expired / cancelled / used / review / needs_refund / refunded. Asks the provider at most
+         *     every 2 s per QR.
          */
         get: operations["status_api_sales_v1_payments_khqr__khqr_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/v1/payments/khqr/{khqr_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel
+         * @description Give up a pending QR (closed at PayWay). Already paid → KHQR_STATE; a payment that still arrives later
+         *     becomes a refund due.
+         */
+        post: operations["cancel_api_sales_v1_payments_khqr__khqr_id__cancel_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -414,6 +436,90 @@ export interface paths {
          *     as a customer would, to try the till. 404 everywhere else.
          */
         post: operations["fake_pay_api_sales_v1_payments_khqr__khqr_id__fake_pay_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/v1/payments/khqr/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reconciliation
+         * @description What the daily check (00:40 Asia/Phnom_Penh) found: QR payments that do not agree with the provider.
+         */
+        get: operations["reconciliation_api_sales_v1_payments_khqr_reconciliation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/v1/payments/khqr/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Refunds
+         * @description Money to give back on KHQR payments (failed or cancelled sales, returns, late payments, wrong amounts).
+         */
+        get: operations["list_refunds_api_sales_v1_payments_khqr_refunds_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/v1/payments/khqr/refunds/{refund_id}/refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refund
+         * @description Give the money back (owner, branch manager of the branch; PIN, action sales.khqr_refund). PayWay: the
+         *     refund API, at once; Bakong has no refund API: this records that it was refunded at the bank. Never
+         *     twice: a refunded one comes back as it is.
+         */
+        post: operations["refund_api_sales_v1_payments_khqr_refunds__refund_id__refund_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/v1/payments/payway/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Payway Callback
+         * @description ABA PayWay's pushback after a payment (public: Traefik router sales-payway-callback, rate-limited per IP).
+         *     It is not signed, so nothing in it is believed: only its tran_id is read, and we ask PayWay
+         *     (check-transaction) ourselves. Idempotent; an unknown or malformed tran_id is answered the same way.
+         */
+        post: operations["payway_callback_api_sales_v1_payments_payway_callback_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -615,6 +721,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** CallbackOut */
+        CallbackOut: {
+            /**
+             * Received
+             * @default true
+             */
+            received?: boolean;
+        };
         /** CartIn */
         CartIn: {
             /**
@@ -1046,6 +1160,47 @@ export interface components {
              */
             currency?: "USD" | "KHR";
         };
+        /** KhqrIssueOut */
+        KhqrIssueOut: {
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Khqr Id
+             * Format: uuid
+             */
+            khqr_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "not_paid_at_provider" | "paid_not_recorded" | "amount_mismatch" | "refund_mismatch" | "paid_not_used" | "refund_open";
+            /** Ours */
+            ours: {
+                [key: string]: unknown;
+            };
+            /**
+             * Run Date
+             * Format: date
+             */
+            run_date: string;
+            /** Theirs */
+            theirs: {
+                [key: string]: unknown;
+            };
+        };
         /** KhqrOut */
         KhqrOut: {
             /** Amount */
@@ -1060,6 +1215,11 @@ export interface components {
             /** Currency */
             currency: string;
             /**
+             * Deeplink
+             * @description PayWay: opens the ABA app on a phone
+             */
+            deeplink: string | null;
+            /**
              * Expires At
              * Format: date-time
              */
@@ -1073,18 +1233,95 @@ export interface components {
             invoice_id: string | null;
             /** Md5 */
             md5: string;
+            /** Paid Amount */
+            paid_amount: string | null;
             /** Paid At */
             paid_at: string | null;
+            /** Paid Currency */
+            paid_currency: string | null;
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "fake" | "bakong" | "payway";
             /**
              * Qr String
              * @description The EMV-KHQR string; the POS draws the QR from it
              */
             qr_string: string;
+            /** Refunded Amount */
+            refunded_amount: string;
+            /** Review Reason */
+            review_reason: string | null;
             /**
              * Status
              * @enum {string}
              */
-            status: "pending" | "paid" | "expired" | "used" | "needs_refund";
+            status: "pending" | "paid" | "expired" | "cancelled" | "used" | "review" | "needs_refund" | "refunded";
+            /**
+             * Tran Id
+             * @description PayWay's transaction id (ours, sent to PayWay)
+             */
+            tran_id: string | null;
+        };
+        /** KhqrRefundIn */
+        KhqrRefundIn: {
+            /**
+             * Pin Token
+             * @description POST /pin/verify, action sales.khqr_refund
+             */
+            pin_token?: string | null;
+        };
+        /** KhqrRefundOut */
+        KhqrRefundOut: {
+            /** Amount */
+            amount: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Khqr Id
+             * Format: uuid
+             */
+            khqr_id: string;
+            /** Last Error */
+            last_error: string | null;
+            /**
+             * Method
+             * @description payway | by_hand (Bakong: refunded at the bank) | fake
+             */
+            method: string | null;
+            payment: components["schemas"]["KhqrOut"];
+            /** Reason */
+            reason: string;
+            /** Refunded At */
+            refunded_at: string | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "failed_sale" | "invoice_cancel" | "return" | "late_payment" | "review";
+            /** Source Ref */
+            source_ref: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "due" | "requested" | "refunded";
         };
         /** LineBatchOut */
         LineBatchOut: {
@@ -1751,9 +1988,10 @@ export interface components {
             reason: string;
             /**
              * Refund Method
+             * @description khqr: back to the customer's KHQR payment of this invoice (a refund due: the refund button)
              * @enum {string}
              */
-            refund_method: "cash" | "credit_note";
+            refund_method: "cash" | "credit_note" | "khqr";
             /**
              * To
              * @default stock
@@ -2367,7 +2605,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description KHQR_NOT_PAID, KHQR_USED */
+            /** @description KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2375,7 +2613,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "KHQR_NOT_PAID" | "KHQR_USED";
+                        code?: "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
                     };
                 };
             };
@@ -2400,6 +2638,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -3701,7 +3951,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ALLERGY_WARNING, BATCH_BLOCKED, BATCH_EXPIRED, DEPOSIT_EXCEEDED, DUPLICATE_THERAPY_WARNING, IDEMPOTENCY_IN_PROGRESS, KHQR_NOT_PAID, KHQR_USED, OUT_OF_STOCK, PRESCRIPTION_STATE, PROMOTION_LIMIT */
+            /** @description ALLERGY_WARNING, BATCH_BLOCKED, BATCH_EXPIRED, DEPOSIT_EXCEEDED, DUPLICATE_THERAPY_WARNING, IDEMPOTENCY_IN_PROGRESS, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE, OUT_OF_STOCK, PRESCRIPTION_STATE, PROMOTION_LIMIT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -3709,7 +3959,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "ALLERGY_WARNING" | "BATCH_BLOCKED" | "BATCH_EXPIRED" | "DEPOSIT_EXCEEDED" | "DUPLICATE_THERAPY_WARNING" | "IDEMPOTENCY_IN_PROGRESS" | "KHQR_NOT_PAID" | "KHQR_USED" | "OUT_OF_STOCK" | "PRESCRIPTION_STATE" | "PROMOTION_LIMIT";
+                        code?: "ALLERGY_WARNING" | "BATCH_BLOCKED" | "BATCH_EXPIRED" | "DEPOSIT_EXCEEDED" | "DUPLICATE_THERAPY_WARNING" | "IDEMPOTENCY_IN_PROGRESS" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE" | "OUT_OF_STOCK" | "PRESCRIPTION_STATE" | "PROMOTION_LIMIT";
                     };
                 };
             };
@@ -3734,6 +3984,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -3905,7 +4167,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ALLERGY_WARNING, BATCH_BLOCKED, BATCH_EXPIRED, DEPOSIT_EXCEEDED, DUPLICATE_THERAPY_WARNING, INVOICE_STATE, OUT_OF_STOCK, PRESCRIPTION_STATE */
+            /** @description ALLERGY_WARNING, BATCH_BLOCKED, BATCH_EXPIRED, DEPOSIT_EXCEEDED, DUPLICATE_THERAPY_WARNING, INVOICE_STATE, ORDER_STATE, OUT_OF_STOCK, PRESCRIPTION_STATE */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -3913,7 +4175,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "ALLERGY_WARNING" | "BATCH_BLOCKED" | "BATCH_EXPIRED" | "DEPOSIT_EXCEEDED" | "DUPLICATE_THERAPY_WARNING" | "INVOICE_STATE" | "OUT_OF_STOCK" | "PRESCRIPTION_STATE";
+                        code?: "ALLERGY_WARNING" | "BATCH_BLOCKED" | "BATCH_EXPIRED" | "DEPOSIT_EXCEEDED" | "DUPLICATE_THERAPY_WARNING" | "INVOICE_STATE" | "ORDER_STATE" | "OUT_OF_STOCK" | "PRESCRIPTION_STATE";
                     };
                 };
             };
@@ -3938,6 +4200,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -4109,7 +4383,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ALLERGY_WARNING, BATCH_BLOCKED, BATCH_EXPIRED, DEPOSIT_EXCEEDED, DUPLICATE_THERAPY_WARNING, INVOICE_STATE, OUT_OF_STOCK, PRESCRIPTION_STATE */
+            /** @description ALLERGY_WARNING, BATCH_BLOCKED, BATCH_EXPIRED, DEPOSIT_EXCEEDED, DUPLICATE_THERAPY_WARNING, INVOICE_STATE, ORDER_STATE, OUT_OF_STOCK, PRESCRIPTION_STATE */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4117,11 +4391,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "ALLERGY_WARNING" | "BATCH_BLOCKED" | "BATCH_EXPIRED" | "DEPOSIT_EXCEEDED" | "DUPLICATE_THERAPY_WARNING" | "INVOICE_STATE" | "OUT_OF_STOCK" | "PRESCRIPTION_STATE";
+                        code?: "ALLERGY_WARNING" | "BATCH_BLOCKED" | "BATCH_EXPIRED" | "DEPOSIT_EXCEEDED" | "DUPLICATE_THERAPY_WARNING" | "INVOICE_STATE" | "ORDER_STATE" | "OUT_OF_STOCK" | "PRESCRIPTION_STATE";
                     };
                 };
             };
-            /** @description CREDIT_LIMIT_EXCEEDED, CUSTOMER_REQUIRED, OPENED_PACK_RETURN, RETURN_EXCEEDS_SOLD, RX_EXPIRED, RX_QUANTITY_EXCEEDED, UNKNOWN_MEDICINE, VALIDATION_ERROR */
+            /** @description CREDIT_LIMIT_EXCEEDED, CUSTOMER_REQUIRED, KHQR_REFUND_TOO_MUCH, OPENED_PACK_RETURN, RETURN_EXCEEDS_SOLD, RX_EXPIRED, RX_QUANTITY_EXCEEDED, UNKNOWN_MEDICINE, VALIDATION_ERROR */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4129,7 +4403,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "CREDIT_LIMIT_EXCEEDED" | "CUSTOMER_REQUIRED" | "OPENED_PACK_RETURN" | "RETURN_EXCEEDS_SOLD" | "RX_EXPIRED" | "RX_QUANTITY_EXCEEDED" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR";
+                        code?: "CREDIT_LIMIT_EXCEEDED" | "CUSTOMER_REQUIRED" | "KHQR_REFUND_TOO_MUCH" | "OPENED_PACK_RETURN" | "RETURN_EXCEEDS_SOLD" | "RX_EXPIRED" | "RX_QUANTITY_EXCEEDED" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR";
                     };
                 };
             };
@@ -4142,6 +4416,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -4335,6 +4621,18 @@ export interface operations {
                     };
                 };
             };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
+                    };
+                };
+            };
             /** @description TEMPORARILY_UNAVAILABLE */
             503: {
                 headers: {
@@ -4405,6 +4703,18 @@ export interface operations {
                     };
                 };
             };
+            /** @description ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "ORDER_STATE";
+                    };
+                };
+            };
             /** @description VALIDATION_ERROR */
             422: {
                 headers: {
@@ -4426,6 +4736,136 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    cancel_api_sales_v1_payments_khqr__khqr_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                khqr_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KhqrOut"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED";
+                    };
+                };
+            };
+            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description KHQR_STATE, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "KHQR_STATE" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -4518,6 +4958,434 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    reconciliation_api_sales_v1_payments_khqr_reconciliation_get: {
+        parameters: {
+            query?: {
+                branch_id?: string | null;
+                date?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KhqrIssueOut"][];
+                };
+            };
+            /** @description NOT_AUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED";
+                    };
+                };
+            };
+            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    list_refunds_api_sales_v1_payments_khqr_refunds_get: {
+        parameters: {
+            query?: {
+                branch_id?: string | null;
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KhqrRefundOut"][];
+                };
+            };
+            /** @description NOT_AUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED";
+                    };
+                };
+            };
+            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    refund_api_sales_v1_payments_khqr_refunds__refund_id__refund_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                refund_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KhqrRefundIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KhqrRefundOut"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
+                    };
+                };
+            };
+            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description FILE_REJECTED, KHQR_REFUND_TOO_MUCH, VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "FILE_REJECTED" | "KHQR_REFUND_TOO_MUCH" | "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    payway_callback_api_sales_v1_payments_payway_callback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CallbackOut"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED";
+                    };
+                };
+            };
+            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -4880,7 +5748,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ORDER_STATE */
+            /** @description KHQR_STATE, ORDER_STATE */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4888,7 +5756,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "ORDER_STATE";
+                        code?: "KHQR_STATE" | "ORDER_STATE";
                     };
                 };
             };
@@ -4913,6 +5781,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -5242,6 +6122,18 @@ export interface operations {
                     };
                 };
             };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
+                    };
+                };
+            };
             /** @description TEMPORARILY_UNAVAILABLE */
             503: {
                 headers: {
@@ -5433,6 +6325,18 @@ export interface operations {
                     };
                 };
             };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
+                    };
+                };
+            };
             /** @description TEMPORARILY_UNAVAILABLE */
             503: {
                 headers: {
@@ -5507,6 +6411,18 @@ export interface operations {
                     };
                 };
             };
+            /** @description ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "ORDER_STATE";
+                    };
+                };
+            };
             /** @description UNKNOWN_MEDICINE, VALIDATION_ERROR */
             422: {
                 headers: {
@@ -5528,6 +6444,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };

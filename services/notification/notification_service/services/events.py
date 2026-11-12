@@ -25,7 +25,8 @@ from . import texts
 from .telegram import queue
 
 ROUTING_KEYS = ("branch.*", "user.*", "stock.low", "batch.expiring", "register.discrepancy", "register.chain_broken",
-                "invoice.created", "khqr.needs_refund", "batch.recalled")  # fmt: skip
+                "invoice.created", "khqr.needs_refund", "khqr.review", "khqr.refunded", "khqr.reconciled",
+                "batch.recalled")  # fmt: skip
 OWNER = "owner"
 
 
@@ -79,7 +80,16 @@ async def handle_event(session: AsyncSession, event_type: str, p: dict[str, Any]
         await _both(session, f"chain:{message_id}", "controlled", p["branch_id"], text, text)
     elif event_type == "khqr.needs_refund":
         text = texts.khqr_refund(await _branch(session, p["branch_id"]), p)
-        await _both(session, f"khqr:{p['khqr_id']}", "khqr_refund", p["branch_id"], text, text)
+        await _both(session, f"khqr:{p.get('refund_id') or p['khqr_id']}", "khqr_refund", p["branch_id"], text, text)
+    elif event_type == "khqr.review":
+        text = texts.khqr_review(await _branch(session, p["branch_id"]), p)
+        await _both(session, f"khqr_review:{p['khqr_id']}", "khqr_refund", p["branch_id"], text, text)
+    elif event_type == "khqr.refunded":
+        text = texts.khqr_refunded(await _branch(session, p["branch_id"]), p)
+        await _both(session, f"khqr_refunded:{p['refund_id']}", "khqr_refund", p["branch_id"], text, text)
+    elif event_type == "khqr.reconciled":
+        text = texts.khqr_reconciled(await _branch(session, p["branch_id"]), p)
+        await _both(session, f"khqr_check:{p['branch_id']}:{p['date']}", "khqr_refund", p["branch_id"], text, text)
     elif event_type == "batch.recalled":
         text = texts.recall(await _branch(session, p["branch_id"]), p)
         await _both(session, f"recall:{p['recall_id']}:{p['branch_id']}", "recall", p["branch_id"], text, text)

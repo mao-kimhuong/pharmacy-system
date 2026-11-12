@@ -226,7 +226,8 @@ class ReturnCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     lines: list[ReturnLineIn] = Field(min_length=1, max_length=200)
-    refund_method: Literal["cash", "credit_note"]
+    refund_method: Literal["cash", "credit_note", "khqr"] = Field(
+        description="khqr: back to the customer's KHQR payment of this invoice (a refund due: the refund button)")
     to: Literal["stock", "quarantine"] = "stock"
     reason: str = Field(min_length=1, max_length=255)
 

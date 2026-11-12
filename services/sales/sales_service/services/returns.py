@@ -55,6 +55,10 @@ async def return_steps(session: AsyncSession, ret: SaleReturn, inv: Invoice, act
                    **({"meta": {**controlled_meta(inv, by_id[x.invoice_line_id].line_no), "reason": ret.reason}}
                       if by_id[x.invoice_line_id].is_controlled else {})} for x in ret.lines],
     }, actor=actor, branch_id=ret.branch_id)  # fmt: skip
+    if ret.refund_method == "khqr":
+        from . import khqr
+
+        await khqr.add_return_refund(session, inv, ret)
     if ret.refund_method == "credit_note":
         await clients.customers.post("/credit/reverse", {
             "invoice_id": str(inv.id), "customer_id": str(inv.customer_id), "branch_id": str(ret.branch_id),
@@ -126,7 +130,7 @@ async def create_return(
         raise AppError(
             ErrorCode.CUSTOMER_REQUIRED, "A credit note needs the invoice's customer", status_code=422
         )
-    if inv.credit_amount > 0 and refund == "cash":
+    if inv.credit_amount > 0 and refund != "credit_note":
         raise AppError(ErrorCode.VALIDATION_ERROR, "A credit sale is refunded as a credit note", status_code=422,
                        details={"field": "refund_method"})  # fmt: skip
     settings = await session.get(BranchSettingsCopy, inv.branch_id)
@@ -165,6 +169,10 @@ async def create_return(
             ret.lines.append(SaleReturnLine(seq=seq, invoice_line_id=line.id, batch_id=batch.batch_id, qty_base=qty,
                                             amount=share, opened=bool(item.get("opened")),
                                             hamper_qty=qty_base if line.is_hamper and n == 0 else 0))  # fmt: skip
+    if refund == "khqr":
+        from . import khqr
+
+        await khqr.return_refund_amount(session, inv, ret.refund_usd)  # fits what is left on the QR, else 422
     inv.returned_total += ret.refund_usd
     session.add(ret)
     await session.commit()  # holds the returned quantities: a second return cannot take them again

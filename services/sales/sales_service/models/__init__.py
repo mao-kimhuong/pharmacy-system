@@ -26,7 +26,7 @@ from .extras import (
     SaleTemplateLine,
     SuspendedCart,
 )  # fmt: skip
-from .khqr import KhqrPayment
+from .khqr import KhqrPayment, KhqrReconcileIssue, KhqrRefund
 from .sales import (
     INVOICE_STATUSES,
     PAY_METHODS,
@@ -110,6 +110,8 @@ class ProductPackUnit(PackUnitCopyMixin, Base):
 
 __all__ = [
     "KhqrPayment",
+    "KhqrReconcileIssue",
+    "KhqrRefund",
     "Base", "BranchSettingsCopy", "DocSequence", "ExchangeRate", "INVOICE_STATUSES", "Invoice", "InvoiceLine",
     "InvoiceLineBatch", "InvoicePayment", "KnownBranch", "KnownCustomer", "OutboxEvent", "PAY_METHODS",
     "ProcessedMessage", "Product", "ProductPackUnit", "SaleReturn", "SaleReturnLine", "ORDER_STATUSES",

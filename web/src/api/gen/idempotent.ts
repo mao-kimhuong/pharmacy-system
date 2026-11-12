@@ -20,6 +20,7 @@ export const IDEMPOTENT: ReadonlySet<string> = new Set([
   "POST /api/sales/v1/invoices",
   "POST /api/sales/v1/invoices/{invoice_id}/returns",
   "POST /api/sales/v1/payments/khqr",
+  "POST /api/sales/v1/payments/khqr/refunds/{refund_id}/refund",
   "POST /api/sales/v1/sale-orders/{order_id}/confirm",
   "POST /api/sales/v1/sale-orders/{order_id}/invoice",
   "POST /api/stockcount/v1/counts/{count_id}/approve"

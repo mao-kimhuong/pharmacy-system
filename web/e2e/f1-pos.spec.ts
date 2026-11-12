@@ -191,7 +191,7 @@ test.describe('F1 POS', () => {
     await page.getByRole('button', { name: 'Clear cart' }).click();
   });
 
-  test('owner: KHQR paid (fake provider), then cancel with a reason and see it cancelled', async ({ as, seed }) => {
+  test('owner: KHQR paid (fake provider), cancelled with a reason, then the KHQR refunded with the PIN', async ({ as, seed }) => {
     const d = seed.extra.sales!;
     const page = await as('owner');
     await page.goto('/pos');
@@ -212,6 +212,16 @@ test.describe('F1 POS', () => {
     await page.getByLabel(/Reason/).fill('e2e: wrong item');
     await page.getByRole('dialog').getByRole('button', { name: 'Cancel invoice' }).click();
     await expect(page.getByText('Invoice cancelled')).toBeVisible();
+    // the money went to the bank: the invoice offers the refund, made one by one with the PIN
+    await expect(page.getByText('1 KHQR refund is due on this invoice.')).toBeVisible();
+    await page.getByRole('link', { name: /Refund it in KHQR Refunds/ }).click();
+    const row = page.getByRole('row').filter({ hasText: 'Sale cancelled' }).filter({ hasText: number });
+    await row.first().getByRole('button', { name: 'Refund' }).click();
+    await expect(page.getByRole('dialog')).toContainText('Type your PIN to confirm');
+    await page.keyboard.type(PIN); // 6 digits submit by themselves
+    await expect(page.getByText(/\$1\.00 refunded\./)).toBeVisible();
+    await page.getByRole('tab', { name: 'Refunded' }).click();
+    await expect(page.getByRole('row').filter({ hasText: number }).first()).toContainText('Refunded');
   });
 
   test('manager: partial return of a sale back to stock', async ({ as, seed }) => {

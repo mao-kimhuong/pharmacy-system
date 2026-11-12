@@ -1,5 +1,6 @@
 // 12f Sale return: per line up to sold − returned (in the line's pack unit), opened packs only where the branch
-// allows them (OPENED_PACK_RETURN), back to stock or quarantine, cash or credit note (credit sales: credit note).
+// allows them (OPENED_PACK_RETURN), back to stock or quarantine, cash, credit note (credit sales: credit note) or back
+// to the invoice's KHQR payment (a refund due: Sales → KHQR Refunds, owner / manager with PIN).
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -14,7 +15,8 @@ export function ReturnDialog({ invoice, open, onClose }: { invoice: SalesS['Invo
   const qc = useQueryClient();
   const [qty, setQty] = useState<Record<string, string>>({});
   const [opened, setOpened] = useState<Record<string, boolean>>({});
-  const [refund, setRefund] = useState<'cash' | 'credit_note'>(Number(invoice.credit_amount) > 0 ? 'credit_note' : 'cash');
+  const paidByKhqr = invoice.payments.some((p) => p.method === 'KHQR');
+  const [refund, setRefund] = useState<'cash' | 'credit_note' | 'khqr'>(Number(invoice.credit_amount) > 0 ? 'credit_note' : 'cash');
   const [to, setTo] = useState<'stock' | 'quarantine'>('stock');
   const [reason, setReason] = useState('');
   useEffect(() => { if (open) { setQty({}); setOpened({}); setReason(''); } }, [open]);
@@ -62,6 +64,7 @@ export function ReturnDialog({ invoice, open, onClose }: { invoice: SalesS['Invo
           <fieldset className="m-0 flex flex-col gap-1.5 border-0 p-0"><legend className="mb-1 text-[13px] font-medium">{t('returnForm.refund')}</legend>
             <Radio name="refund" label={t('returnForm.cash')} checked={refund === 'cash'} onChange={() => setRefund('cash')} disabled={Number(invoice.credit_amount) > 0} />
             <Radio name="refund" label={t('returnForm.creditNote')} checked={refund === 'credit_note'} onChange={() => setRefund('credit_note')} disabled={!invoice.customer_id} />
+            {paidByKhqr && <Radio name="refund" label={t('returnForm.khqr')} checked={refund === 'khqr'} onChange={() => setRefund('khqr')} disabled={Number(invoice.credit_amount) > 0} />}
           </fieldset>
           <fieldset className="m-0 flex flex-col gap-1.5 border-0 p-0"><legend className="mb-1 text-[13px] font-medium">{t('returnForm.to')}</legend>
             <Radio name="to" label={t('returnForm.stock')} checked={to === 'stock'} onChange={() => setTo('stock')} />

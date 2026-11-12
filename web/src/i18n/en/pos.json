@@ -91,7 +91,10 @@
     "expires": "Expires {{time}}",
     "fakePay": "Mark paid (test)",
     "again": "New code",
-    "currency": "Currency"
+    "currency": "Currency",
+    "cancelled": "Cancelled",
+    "review": "Paid a different amount: not taken",
+    "openAba": "Open in ABA Mobile"
   },
   "complete": {
     "title": "Sale complete",

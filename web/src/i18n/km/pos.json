@@ -91,7 +91,10 @@
     "expires": "ផុតកំណត់ {{time}}",
     "fakePay": "សម្គាល់ថាបានបង់ (សាកល្បង)",
     "again": "កូដថ្មី",
-    "currency": "រូបិយប័ណ្ណ"
+    "currency": "រូបិយប័ណ្ណ",
+    "cancelled": "បានលុបចោល",
+    "review": "បានបង់ចំនួនខុស៖ មិនទទួលយក",
+    "openAba": "បើកក្នុង ABA Mobile"
   },
   "complete": {
     "title": "លក់រួចរាល់",

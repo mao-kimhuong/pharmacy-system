@@ -133,12 +133,13 @@ async def compensate(
     return [p for p in problems if p]
 
 
-async def khqr_refunds(session: AsyncSession, inv: Invoice, reason: str) -> None:
-    """KHQR money of a sale that did not complete (or was cancelled): refunded by hand."""
+async def khqr_refunds(session: AsyncSession, inv: Invoice, reason: str, source: str = "failed_sale") -> None:
+    """KHQR money of a sale that did not complete (or was cancelled): a refund due (the refund button)."""
     for pay in [p for p in inv.payments if p.khqr_id]:
         row = await session.get(KhqrPayment, pay.khqr_id, with_for_update=True)
         if row is not None and row.status == "used":
-            khqr.needs_refund(session, row, reason)
+            khqr.needs_refund(session, row, reason, source=source,
+                              ref=f"{'cancel' if source == 'invoice_cancel' else 'invoice'}:{inv.id}")  # fmt: skip
 
 
 async def _fail(

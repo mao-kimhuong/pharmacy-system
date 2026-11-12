@@ -202,6 +202,24 @@ async def test_khqr_refund_and_recall_alerts(client) -> None:
     assert got == {("khqr_refund", "owner"), ("khqr_refund", str(PP1)), ("recall", "owner"), ("recall", str(PP1))}
 
 
+async def test_khqr_review_refunded_and_daily_check_alerts(client) -> None:
+    await set_chats(client)
+    kid = str(uuid4())
+    await event("khqr.review", {"khqr_id": kid, "branch_id": str(PP1), "amount": "1.50", "currency": "USD",
+                                "paid_amount": "1.00", "paid_currency": "USD", "bank_ref": "APV1"})  # fmt: skip
+    await event("khqr.refunded", {"khqr_id": kid, "refund_id": str(uuid4()), "branch_id": str(PP1), "amount": "1.00",
+                                  "currency": "USD", "method": "payway", "source": "review", "bank_ref": "APV1"})  # fmt: skip
+    await event("khqr.reconciled", {"branch_id": str(PP1), "date": "2026-11-11", "issues": 2,
+                                    "kinds": {"paid_not_used": 1, "refund_open": 1}})  # fmt: skip
+    texts = [m.text for m in await messages() if m.kind == "khqr_refund" and m.target == str(PP1)]
+    assert any("was paid 1.00 USD" in t for t in texts)
+    assert any("refund of 1.00 USD by ABA PayWay" in t for t in texts)
+    assert any("2 to look at (1 paid, no sale took it, 1 refund still due)" in t for t in texts)
+    await event("khqr.needs_refund", {"khqr_id": kid, "branch_id": str(PP1), "amount": "1.50", "currency": "USD",
+                                      "provider": "bakong", "refund_id": str(uuid4())})  # fmt: skip
+    assert any("refund it at the bank, then confirm it" in m.text for m in await messages())
+
+
 async def test_two_factor_off_or_reset_alerts_only_the_owner_with_no_secrets() -> None:
     await event("user.2fa_disabled", {"user_id": str(CASHIER_ID), "by": "self", "occurred_at": "2026-11-06T01:00:00+00:00"})
     await event("user.2fa_reset", {"user_id": str(CASHIER_ID), "by": "owner", "occurred_at": "2026-11-06T01:00:00+00:00"})

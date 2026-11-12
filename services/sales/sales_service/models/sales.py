@@ -220,7 +220,7 @@ class SaleReturn(IdMixin, Base):
     __tablename__ = "sale_returns"
     __mapper_args__ = {"eager_defaults": True}
     __table_args__ = (
-        CheckConstraint("refund_method IN ('cash', 'credit_note')", name="ck_returns_refund"),
+        CheckConstraint("refund_method IN ('cash', 'credit_note', 'khqr')", name="ck_returns_refund"),
         CheckConstraint(
             "status IN ('pending', 'completed', 'failed', 'needs_attention')", name="ck_returns_status"
         ),

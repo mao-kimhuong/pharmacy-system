@@ -1,6 +1,6 @@
 SERVICES := auth branch catalog inventory stockcount prescription controlled sales customers purchasing reports notification document ai
 
-.PHONY: help env up down logs ps owner smoke test test-docker test-db test-db-down lint migrate revision resync backfill seed-demo bench-reports openapi api-types web-install web-dev web-test web-e2e web-test-docker
+.PHONY: help env up down logs ps owner smoke payway-check test test-docker test-db test-db-down lint migrate revision resync backfill seed-demo bench-reports openapi api-types web-install web-dev web-test web-e2e web-test-docker
 
 help:
 	@echo "make env       copy .env.example to .env (first time)"
@@ -57,6 +57,11 @@ resync:
 
 backfill:
 	docker compose exec reports python -m reports_service.cli backfill
+
+# PayWay settings + a check-transaction of a made-up tran_id (must answer 6 = not found); QR=1 also makes a
+# 100 KHR sandbox QR. A one-off container: the running stack is not touched. Prints no secret.
+payway-check:
+	docker compose run --rm --no-deps --build sales python -m sales_service.cli payway-check $(if $(QR),--qr)
 
 seed-demo:
 	docker compose exec reports python -m reports_service.cli seed-demo

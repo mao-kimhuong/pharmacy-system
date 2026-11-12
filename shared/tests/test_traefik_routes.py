@@ -80,3 +80,12 @@ def test_web_app_files_have_their_own_larger_limit() -> None:
     text = (COMPOSE.parent / "traefik" / "dynamic" / "middlewares.yml").read_text()
     burst = int(re.search(r"ratelimit-static:\s+rateLimit:(?:\s+\w+: \S+)*?\s+burst: (\d+)", text)[1])
     assert burst >= 1000
+
+
+def test_payway_callback_is_public_but_limited_and_nothing_else_in_sales_is() -> None:
+    # PayWay cannot log in: its pushback must skip auth-forward (the route trusts nothing in it)
+    name, router = _router_for("/api/sales/v1/payments/payway/callback")
+    assert name == "sales-payway-callback"
+    assert "auth-forward" not in router["middlewares"] and "ratelimit-per-ip" in router["middlewares"]
+    for path in ("/api/sales/v1/payments/payway/callbackX", "/api/sales/v1/payments/khqr/refunds"):
+        assert "auth-forward" in _router_for(path)[1]["middlewares"]

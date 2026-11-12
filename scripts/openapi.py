@@ -9,6 +9,7 @@ from pathlib import Path
 
 os.environ.setdefault("OUTBOX_RELAY_ENABLED", "false")
 os.environ.setdefault("EVENT_CONSUMER_ENABLED", "false")
+os.environ["KHQR_PROVIDER"] = "fake"  # the documents do not depend on it; .env may say payway (keys only in Docker)
 SERVICES = ("auth", "branch", "catalog", "inventory", "stockcount", "prescription", "controlled", "sales",
             "customers", "purchasing", "reports", "notification", "document", "ai")  # fmt: skip
 

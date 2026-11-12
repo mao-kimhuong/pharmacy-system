@@ -49,6 +49,7 @@ export const PAGES: PageDef[] = [
   P({ key: 'list_sale', path: '/sales/invoices', group: 'sales', gate: { menu: 'list_sale' } }, () => import('@/features/sales/InvoicesPage')),
   P({ key: 'list_sale', path: '/sales/invoices/:id', nav: false, gate: { perms: ['sales.view', 'pos.sell'] } }, () => import('@/features/sales/InvoiceDetailPage')),
   P({ key: 'sale_return', path: '/sales/returns', group: 'sales', gate: { menu: 'sale_return' } }, () => import('@/features/sales/ReturnsPage')),
+  P({ key: 'khqr_refunds', path: '/sales/khqr-refunds', group: 'sales', gate: { menu: 'khqr_refunds' } }, () => import('@/features/sales/KhqrRefundsPage')),
   P({ key: 'list_commission', path: '/sales/commission', group: 'sales', gate: { menu: 'list_commission' } }, () => import('@/features/sales/CommissionPage')),
   P({ key: 'items_promotion', path: '/sales/promotions', group: 'sales', gate: { menu: 'items_promotion' } }, () => import('@/features/sales/PromotionsPage')),
   P({ key: 'patients', path: '/rx/patients', group: 'prescriptions', gate: { menu: 'patients' } }, () => import('@/features/rx/PatientsPage')),

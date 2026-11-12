@@ -1,5 +1,7 @@
-// 3l / 4d: dynamic KHQR for the amount due. Shows the QR, polls the status (GET payments/khqr/{id}); when paid,
-// the payment {method: KHQR, khqr_id} joins the sale. Outside production the owner can mark it paid (fake provider).
+// 3l / 4d: dynamic KHQR for the amount due (ABA PayWay or Bakong). Shows the QR, polls the status (GET
+// payments/khqr/{id}); when paid, the payment {method: KHQR, khqr_id} joins the sale. Closing it while it waits
+// cancels the QR (closed at PayWay; a payment that still arrives becomes a refund due). A different amount paid →
+// review (a manager refunds it). Outside production the owner can mark it paid (fake provider).
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import QRCode from 'qrcode';
@@ -38,13 +40,18 @@ export function KhqrDialog({ open, branchId, amountUsd, rate, onClose, onPaid }:
     if (!open) { create.reset(); setImg(null); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+  const cancel = useMutation({ mutationFn: (id: string) => call(api.sales.POST('/api/sales/v1/payments/khqr/{khqr_id}/cancel', { params: { path: { khqr_id: id } } })) });
+  const close = () => {
+    if (k && s?.status === 'pending') cancel.mutate(k.id); // the customer may not pay a QR the till gave up
+    onClose();
+  };
   const fake = useMutation({ mutationFn: () => call(api.sales.POST('/api/sales/v1/payments/khqr/{khqr_id}/fake-pay', { params: { path: { khqr_id: k!.id } } })), onSuccess: () => void status.refetch() });
   return (
-    <Dialog open={open} onClose={onClose} title={t('khqr.title')} width={420}
+    <Dialog open={open} onClose={close} title={t('khqr.title')} width={420}
       footer={<>
-        <Button onClick={onClose}>{t('common:action.cancel')}</Button>
+        <Button onClick={close}>{t('common:action.cancel')}</Button>
         {!k && <Button variant="primary" loading={create.isPending} onClick={() => create.mutate()}>{t('common:action.continue')}</Button>}
-        {s?.status === 'expired' && <Button variant="primary" onClick={() => create.mutate()}>{t('khqr.again')}</Button>}
+        {(s?.status === 'expired' || s?.status === 'cancelled') && <Button variant="primary" onClick={() => create.mutate()}>{t('khqr.again')}</Button>}
       </>}>
       <div className="flex flex-col items-center gap-3">
         {!k && (
@@ -62,6 +69,12 @@ export function KhqrDialog({ open, branchId, amountUsd, rate, onClose, onPaid }:
             {s?.status === 'pending' && <StatusPill tone="warning">{t('khqr.waiting')}</StatusPill>}
             {s?.status === 'paid' && <StatusPill tone="success">{t('khqr.paid')}</StatusPill>}
             {s?.status === 'expired' && <StatusPill tone="danger">{t('khqr.expired')}</StatusPill>}
+            {s?.status === 'cancelled' && <StatusPill tone="neutral">{t('khqr.cancelled')}</StatusPill>}
+            {s?.status === 'review' && <StatusPill tone="danger">{t('khqr.review')}</StatusPill>}
+            {s?.status === 'review' && <span className="text-center text-[12px] text-danger">{s.review_reason}</span>}
+            {s?.deeplink && s.status === 'pending' && (
+              <a className="text-[13px] font-medium text-primary underline pointer-fine:hidden" href={s.deeplink}>{t('khqr.openAba')}</a>
+            )}
             <span className="text-[12px] text-neutral-500">{t('khqr.expires', { time: time(k.expires_at) })}</span>
             {user.isOwner && import.meta.env.VITE_APP_ENV !== 'production' && s?.status === 'pending' && (
               <Button size="sm" variant="ghost" loading={fake.isPending} onClick={() => fake.mutate()}>{t('khqr.fakePay')}</Button>

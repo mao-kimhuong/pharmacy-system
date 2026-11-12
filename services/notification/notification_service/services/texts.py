@@ -86,8 +86,36 @@ def money_alert(branch: str, number: str, staff: str, kind: str, lines: list[dic
 
 
 def khqr_refund(branch: str, p: dict[str, Any]) -> str:
+    how = ("refund it at the bank, then confirm it in Sales → KHQR Refunds" if p.get("provider") == "bakong"
+           else "refund it in Sales → KHQR Refunds (PIN)")  # fmt: skip
     return (f"↩️ {branch}: KHQR payment of {p.get('amount')} {p.get('currency')} (bank ref {p.get('bank_ref') or '-'}) "
-            "was not used by a completed sale: refund it at the bank.")  # fmt: skip
+            f"was not used by a completed sale: {how}.")  # fmt: skip
+
+
+def khqr_review(branch: str, p: dict[str, Any]) -> str:
+    return (f"⚠️ {branch}: a KHQR for {p.get('amount')} {p.get('currency')} was paid {p.get('paid_amount')} "
+            f"{p.get('paid_currency')} (bank ref {p.get('bank_ref') or '-'}). Not taken for the sale: a manager "
+            "checks it in Sales → KHQR Refunds.")  # fmt: skip
+
+
+KHQR_METHOD = {"payway": "by ABA PayWay", "by_hand": "at the bank (confirmed)", "fake": "(test)"}
+
+
+def khqr_refunded(branch: str, p: dict[str, Any]) -> str:
+    return (f"✅ {branch}: KHQR refund of {p.get('amount')} {p.get('currency')} {KHQR_METHOD.get(p.get('method'), '')} "
+            f"(bank ref {p.get('bank_ref') or '-'}).").replace("  ", " ")  # fmt: skip
+
+
+KHQR_KINDS = {"not_paid_at_provider": "recorded as paid, not paid at the bank",
+              "paid_not_recorded": "paid at the bank, not recorded", "amount_mismatch": "amount differs",
+              "refund_mismatch": "refunds differ", "paid_not_used": "paid, no sale took it",
+              "refund_open": "refund still due"}  # fmt: skip
+
+
+def khqr_reconciled(branch: str, p: dict[str, Any]) -> str:
+    kinds = p.get("kinds") or {}
+    body = ", ".join(f"{n} {KHQR_KINDS.get(k, k)}" for k, n in sorted(kinds.items()))
+    return f"🔎 {branch}: KHQR check of {p.get('date')}: {p.get('issues')} to look at ({body}). Sales → KHQR Refunds."
 
 
 def recall(branch: str, p: dict[str, Any]) -> str:

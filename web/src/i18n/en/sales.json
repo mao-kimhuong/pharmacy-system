@@ -82,7 +82,8 @@
     "reason": "Reason",
     "submit": "Record return",
     "done": "Return {{number}} recorded",
-    "hint": "Search the invoice by number, then choose what comes back."
+    "hint": "Search the invoice by number, then choose what comes back.",
+    "khqr": "Back to their KHQR (refunded with PIN)"
   },
   "suspended": {
     "title": "Sale Suspend",
@@ -219,5 +220,51 @@
   },
   "returns": {
     "title": "Sale Return"
+  },
+  "khqrRefunds": {
+    "intro": "Money to give back on KHQR payments: a sale that failed or was cancelled, a return back to the KHQR, a payment that came after the QR was cancelled, or a wrong amount. Each one is refunded with your PIN; nothing is refunded automatically.",
+    "open": "To refund",
+    "refunded": "Refunded",
+    "check": "Daily check",
+    "none": "Nothing to refund.",
+    "checkNone": "The daily check found nothing to look at.",
+    "when": "When",
+    "why": "Why",
+    "amount": "Amount",
+    "payment": "Payment",
+    "refund": "Refund",
+    "confirmByHand": "Mark refunded",
+    "test": "Test",
+    "byHand": "at the bank",
+    "done": "{{amount}} refunded.",
+    "pinBody": "ABA PayWay sends the money back to the customer now. Type your PIN to confirm.",
+    "byHandBody": "Bakong has no refund API: refund the customer at the bank first, then type your PIN to record it.",
+    "day": "Day",
+    "issue": "What does not agree",
+    "ours": "Our record",
+    "theirs": "The bank",
+    "source": {
+      "failed_sale": "Sale not completed",
+      "invoice_cancel": "Sale cancelled",
+      "return": "Return",
+      "late_payment": "Paid after the QR was cancelled or expired",
+      "review": "Paid a different amount"
+    },
+    "status": {
+      "due": "To refund",
+      "requested": "Sent, waiting",
+      "refunded": "Refunded"
+    },
+    "kind": {
+      "not_paid_at_provider": "Recorded as paid, not paid at the bank",
+      "paid_not_recorded": "Paid at the bank, not recorded",
+      "amount_mismatch": "The amount differs",
+      "refund_mismatch": "The refunds differ",
+      "paid_not_used": "Paid, but no sale took it",
+      "refund_open": "A refund is still due"
+    },
+    "dueOnInvoice_one": "{{count}} KHQR refund is due on this invoice.",
+    "dueOnInvoice_other": "{{count}} KHQR refunds are due on this invoice.",
+    "goRefund": "Refund it in KHQR Refunds (PIN)"
   }
 }

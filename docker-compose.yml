@@ -364,6 +364,19 @@ services:
       KHQR_MERCHANT_ID: ${KHQR_MERCHANT_ID:-}
       KHQR_ACQUIRING_BANK: ${KHQR_ACQUIRING_BANK:-}
       BAKONG_TOKEN: ${BAKONG_TOKEN:-}
+      # ABA PayWay (KHQR_PROVIDER=payway). The key files are compose secrets (read-only at /run/secrets/);
+      # PAYWAY_RSA_*_KEY_SOURCE in .env names them on the host (default: a placeholder, so `up` works without).
+      PAYWAY_BASE_URL: ${PAYWAY_BASE_URL:-}
+      PAYWAY_MERCHANT_ID: ${PAYWAY_MERCHANT_ID:-}
+      PAYWAY_API_KEY: ${PAYWAY_API_KEY:-}
+      PAYWAY_CALLBACK_URL: ${PAYWAY_CALLBACK_URL:-}
+      PAYWAY_RSA_PUBLIC_KEY_FILE: /run/secrets/payway_rsa_public.pem
+      PAYWAY_RSA_PRIVATE_KEY_FILE: /run/secrets/payway_rsa_private.pem  # mounted, never read (no API needs it)
+    secrets:
+      - source: payway_rsa_public
+        target: payway_rsa_public.pem
+      - source: payway_rsa_private
+        target: payway_rsa_private.pem
     depends_on: *service-deps
     labels:
       - traefik.enable=true
@@ -374,6 +387,12 @@ services:
       - traefik.http.routers.sales-public.entrypoints=web
       - traefik.http.routers.sales-public.service=sales
       - traefik.http.routers.sales-public.middlewares=strip-identity-headers@file,security-headers-docs@file,ratelimit-per-ip@file
+      # public: ABA PayWay's callback (unsigned: it only makes the service ask PayWay), limited per IP
+      - traefik.http.routers.sales-payway-callback.rule=Path(`/api/sales/v1/payments/payway/callback`)
+      - traefik.http.routers.sales-payway-callback.priority=100
+      - traefik.http.routers.sales-payway-callback.entrypoints=web
+      - traefik.http.routers.sales-payway-callback.service=sales
+      - traefik.http.routers.sales-payway-callback.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-per-ip@file
       # protected: everything else needs a valid access token
       - traefik.http.routers.sales.rule=PathPrefix(`/api/sales`)
       - traefik.http.routers.sales.priority=10
@@ -587,6 +606,12 @@ services:
       - traefik.http.routers.web.middlewares=strip-identity-headers@file,ratelimit-static@file
     networks: [internal]
     restart: unless-stopped
+
+secrets:
+  payway_rsa_public:
+    file: ${PAYWAY_RSA_PUBLIC_KEY_SOURCE:-./infra/payway/not-set.pem}
+  payway_rsa_private:
+    file: ${PAYWAY_RSA_PRIVATE_KEY_SOURCE:-./infra/payway/not-set.pem}
 
 networks:
   edge:

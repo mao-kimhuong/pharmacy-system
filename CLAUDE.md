@@ -316,7 +316,7 @@ Traefik v3.6. Python 3.12. Lint with ruff.
 
 - **Scheduled jobs:** all in Asia/Phnom_Penh time (`clock.TIMEZONE`), each once at start-up too, one replica
   at a time (advisory lock): inventory expiry 00:05, prescription expiry 00:10, register check 00:20,
-  re-order lists + alerts 00:30, sales: suspended carts expire 00:01, order reservations every 10 min; notification:
+  re-order lists + alerts 00:30, sales: suspended carts expire 00:01, order reservations every 10 min, KHQR check 00:40; notification:
   stock digest 07:30, daily Telegram summary 20:00 (both also catch up at start-up), the sender every 10 s.
 - **Transfers (inventory, from S6):** request (`transfers.request`, destination) → approve / reject
   (`transfers.approve`, source) → transfer `PP1-TR-…`: approved → picked → dispatched → received → closed, or
@@ -431,6 +431,22 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   (`invoice_payments.khqr_id` unique, row locked) → `used`. A failed or cancelled sale → `needs_refund` +
   `khqr.needs_refund` (Telegram alert); refunds by hand. `KHQR_PROVIDER=fake|bakong` (production refuses fake; fake:
   `/internal/v1/khqr/fake/{id}/pay`, and `POST /payments/khqr/{id}/fake-pay` for the owner outside production).
+- **ABA PayWay (KHQR, after S8b):** `KHQR_PROVIDER=payway` – `sales_service/services/payway.py` (QR API, check-transaction-2,
+  close-transaction, refund; HMAC-SHA512 hashes; refund `merchant_auth` RSA PKCS#1 v1.5 in 117-byte chunks with ABA's public
+  key; `status.code` compared as text, "0" = "00"; a base URL with a path is cut before "/api/"). Settings PAYWAY_BASE_URL,
+  PAYWAY_MERCHANT_ID, PAYWAY_API_KEY (ABA's "Public Key" = the HMAC secret), PAYWAY_CALLBACK_URL; the RSA files are compose
+  secrets (`/run/secrets/payway_rsa_*.pem`, host files named by PAYWAY_RSA_*_KEY_SOURCE, default `infra/payway/not-set.pem`
+  so `up` works without them); the private key is mounted but never read. Start-up names a missing setting, never a value.
+  Never print, log or commit their values (`scripts/payway_setup.py` moves them from a credentials file into .env/secrets
+  without printing). Public callback `POST /payments/payway/callback` (router `sales-payway-callback`) only triggers a
+  check. Paid = status 0 AND amount + currency match, else `review`; cancel `POST /payments/khqr/{id}/cancel`; late payment
+  on an expired/cancelled QR → `needs_refund`. Refunds: `khqr_refunds` once per payment + source (failed sale, invoice
+  cancel, return `refund_method: "khqr"`, late payment, review) → `POST /payments/khqr/refunds/{id}/refund` (`sales.khqr_refund`
+  = owner + branch manager, own branch, PIN action `sales.khqr_refund`, never automatic; a lost answer stays `requested`
+  and the next try asks PayWay first; Bakong: `by_hand`). Daily check 00:40 → `khqr_reconcile_issues` + Telegram.
+  Web: Sales → KHQR Refunds (`/sales/khqr-refunds`), the invoice offers a due refund. `make payway-check [QR=1]` (QR=1:
+  sandbox only, a 100 KHR QR); `python -m sales_service.cli khqr-reconcile [--date]`. Known gap (S8b): a KHR KHQR whose
+  riel converts above the USD total is refused as overpaying (KHQR cannot overpay).
 - **Supplier returns (purchasing, from S8b):** `PP1-SRN-…` draft → credited | refunded, or cancelled (only a draft,
   reason); `purchasing.return`. Submit (Idempotency-Key): inventory `/internal/v1/movements/supplier-return` (movement
   type `supplier_return`, once per line, the batch must be the supplier's; controlled: PIN + witness, action

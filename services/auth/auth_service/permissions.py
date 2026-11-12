@@ -36,6 +36,7 @@ CATALOG: tuple[PermissionDef, ...] = (
     P("sales.templates", "Sales", "Sale templates"),
     P("sales.discount", "Sales", "Approve manual discounts above the cap (with PIN)"),
     P("sales.below_cost", "Sales", "Sell below cost"),
+    P("sales.khqr_refund", "Sales", "Refund KHQR payments (with PIN) and see the daily KHQR check"),
     P("catalog.promotions", "Sales", "Item promotions"),
     # Prescriptions and controlled drugs
     P("patients.view", "Prescriptions", "See patients"),
@@ -181,6 +182,7 @@ MENU: tuple[MenuItem, ...] = (
     M("sales", "sale_template", "Sale Template", ("sales.templates",)),
     M("sales", "list_sale", "List Sale", ("sales.view",)),
     M("sales", "sale_return", "Sale Return", ("sales.return",)),
+    M("sales", "khqr_refunds", "KHQR Refunds", ("sales.khqr_refund",)),
     M("sales", "items_promotion", "Items Promotion", ("catalog.promotions",)),
     M("prescriptions", "patients", "Patients", ("patients.view",)),
     M("prescriptions", "doctors", "Doctors", ("prescriptions.view",)),
