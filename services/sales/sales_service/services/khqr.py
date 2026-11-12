@@ -272,7 +272,9 @@ async def create(session: AsyncSession, actor: CurrentUser, data: dict[str, Any]
     p = KhqrPayment(branch_id=branch.id, cart_ref=data.get("cart_ref") or "",
                     amount=amount, currency=currency, provider=prov.name, status="pending", expires_at=expires_at,
                     created_by=actor.id, refunded_amount=Decimal("0"), created_at=clock.now())  # fmt: skip
-    await prov.make(p, {**account, "bill_no": f"{branch.code}-{clock.now():%y%m%d%H%M%S}"}, settings)
+    # a random tail: two tills asking the same amount in the same millisecond must not get the same QR (md5 unique)
+    bill_no = f"{branch.code}-{clock.now():%y%m%d%H%M%S}-{secrets.token_hex(2)}"
+    await prov.make(p, {**account, "bill_no": bill_no}, settings)
     session.add(p)
     await session.flush()
     audit(session, actor, "khqr.created", "khqr_payment", p.id, branch_id=branch.id,

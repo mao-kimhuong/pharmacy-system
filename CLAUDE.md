@@ -80,6 +80,16 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   restarting Docker Desktop, then run again.
 - `make seed-demo` / `make bench-reports` – a year of demo data in the reports (APP_ENV=development, DEMO branches only) and
   the timing of every report (target < 2 s)
+- `make seed-realistic` – a realistic Cambodian pharmacy for demos (APP_ENV=development only): 3 branches (PP1 Toul Kork,
+  PP2 BKK1, SR1 Siem Reap), owner + 15 staff with PINs (owner/managers with 2FA), ~160 products, suppliers, customers,
+  patients, doctors, stock by PO/receiving (SR1 by Initialize) and 90 days of trade, ALL through the services' APIs
+  (`scripts/seed_realistic/`, run in a one-off sales container: login → /verify headers → the service, as Traefik does),
+  then backfill + register check. Safe to repeat (seed-output/<project>/state.json; Idempotency-Keys are stable). Logins:
+  `seed-output/<compose project>/logins.md` (git-ignored; one folder per stack). `make seed-reset` = down -v + up + seed. SEED_DAYS / SEED_MIN / SEED_MAX.
+- **Dev clock (seed only):** `pharmacy_shared.clock` – `X-Dev-Clock: <ISO time>` + a valid `X-Service-Token` makes a request
+  run at that time (`now()`, `today()`, server-default timestamps via a before-insert hook, forwarded on internal calls,
+  `occurred_at` in User Log events). The middleware exists only when APP_ENV=development and ENVIRONMENT≠production
+  (`shared/tests/test_dev_clock.py`); never rely on it in code.
 
 ## How things work (from S0)
 - **Who is calling:** `user: CurrentUser = Depends(current_user)`; then `user.require_branch(branch_id)`.

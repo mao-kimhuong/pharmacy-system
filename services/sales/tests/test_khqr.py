@@ -119,3 +119,10 @@ async def test_cancelling_a_khqr_sale_flags_the_refund(client) -> None:
                           headers={**MANAGER, "Idempotency-Key": "khqr-cancel-01"})  # fmt: skip
     assert r.status_code == 200, r.text
     assert (await client.get(f"{PREFIX}/payments/khqr/{qr['id']}", headers=CASHIER)).json()["status"] == "needs_refund"
+
+
+async def test_two_tills_same_amount_same_moment_get_different_qrs(client) -> None:
+    # regression: the EMV string (and its md5, unique) only had the second and the amount → 500 on the second QR
+    a = await new_qr(client, "0.90", key="qr-same-000001")
+    b = await new_qr(client, "0.90", key="qr-same-000002")  # clock.now() is frozen in the tests: the same moment
+    assert a["md5"] != b["md5"] and a["qr_string"] != b["qr_string"]

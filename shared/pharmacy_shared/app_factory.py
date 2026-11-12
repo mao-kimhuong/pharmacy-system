@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, FastAPI
 from fastapi.openapi.utils import get_openapi
 from pydantic import BaseModel
 
+from . import clock
 from .auth import CurrentUser, current_user
 from .config import BaseServiceSettings
 from .db import Database
@@ -109,7 +110,8 @@ def create_service_app(
     app.state.redis = redis
     register_error_handlers(app)
 
-    # Order: the last added runs first. Rate limit runs before idempotency.
+    # Order: the last added runs first. Rate limit runs before idempotency; the dev clock (development only,
+    # pharmacy_shared.clock) wraps everything, so idempotency replays and the rate limit see the same time.
     app.add_middleware(
         IdempotencyMiddleware,
         redis=redis,
@@ -126,6 +128,8 @@ def create_service_app(
         # The calling service already rate-limits the real user.
         exempt_prefixes=(f"{INTERNAL_PREFIX}/",),
     )
+    if clock.dev_clock_allowed(settings):
+        app.add_middleware(clock.DevClockMiddleware, service_token=settings.service_token)
 
     @app.get(f"{prefix}/health", tags=["system"])
     async def health() -> dict[str, str]:

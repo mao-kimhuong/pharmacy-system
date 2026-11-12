@@ -12,6 +12,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from . import clock
 from .auth import CurrentUser
 from .outbox import add_event
 
@@ -47,6 +48,8 @@ def audit_payload(
         "before": before or {},
         "after": after or {},
         "ip": ip,
+        # development only (the dev clock of make seed-realistic): the User Log keeps the seeded time
+        **({"occurred_at": clock.override().isoformat()} if clock.override() is not None else {}),
     }
 
 

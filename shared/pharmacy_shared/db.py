@@ -1,11 +1,14 @@
 import asyncio
 from collections.abc import AsyncIterator
 from datetime import datetime
+from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, func
+from sqlalchemy import DateTime, event, func
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+from . import clock
 
 
 def make_base() -> type[DeclarativeBase]:
@@ -15,6 +18,18 @@ def make_base() -> type[DeclarativeBase]:
 
     class Base(DeclarativeBase):
         pass
+
+    @event.listens_for(Base, "before_insert", propagate=True)
+    def _dev_clock_timestamps(mapper: Any, connection: Any, target: Any) -> None:  # noqa: ANN401, ARG001
+        """Dev clock only (pharmacy_shared.clock; never outside development): database-dated columns
+        (created_at, occurred_at … with a server default) take the dev clock's time instead of now()."""
+        at = clock.override()
+        if at is None:
+            return
+        for attr in mapper.column_attrs:
+            col = attr.columns[0]
+            if col.server_default is not None and isinstance(col.type, DateTime) and getattr(target, attr.key) is None:
+                setattr(target, attr.key, at)
 
     return Base
 

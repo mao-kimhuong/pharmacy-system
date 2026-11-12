@@ -53,6 +53,16 @@ def write_audit(
     )
 
 
+def _seeded_time(payload: dict[str, Any]) -> dict[str, Any]:
+    """Only events sent under the dev clock (development seed) carry occurred_at: keep their time."""
+    from datetime import datetime
+
+    try:
+        return {"occurred_at": datetime.fromisoformat(payload["occurred_at"])} if payload.get("occurred_at") else {}
+    except (TypeError, ValueError):
+        return {}
+
+
 async def store_event(session: AsyncSession, payload: dict[str, Any], message_id: UUID) -> None:
     """An `audit.recorded` event from another service."""
 
@@ -75,6 +85,7 @@ async def store_event(session: AsyncSession, payload: dict[str, Any], message_id
             after=payload.get("after") or {},
             ip=(str(payload["ip"])[:64] if payload.get("ip") else None),
             message_id=message_id,
+            **_seeded_time(payload),
         )
     )
 
