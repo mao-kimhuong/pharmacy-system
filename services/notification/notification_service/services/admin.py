@@ -50,6 +50,7 @@ async def set_chat(session: AsyncSession, user: CurrentUser, target: str, data: 
                  entity_id=target, actor=user, branch_id=branch, before=before,
                  after={"chat_id": chat.chat_id, "is_active": chat.is_active})  # fmt: skip
     await session.commit()
+    await session.refresh(chat)  # updated_at is set by the database: load it here, not lazily in the response
     return chat
 
 

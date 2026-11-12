@@ -10,7 +10,7 @@
     "resetPassword": "Reset password",
     "newPassword": "New password",
     "reset2fa": "Reset 2FA",
-    "reset2faBody": "They set up 2FA again at the next sign-in.",
+    "reset2faBody": "Lost phone: their key and backup codes stop working and all their sessions end. Confirm with your PIN.",
     "clearPin": "Clear PIN",
     "clearPinBody": "They set a new PIN in My profile. This also ends a PIN lockout.",
     "done": "Done",

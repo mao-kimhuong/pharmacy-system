@@ -41,6 +41,13 @@ async def set_chats(client) -> None:  # noqa: ANN001
     assert (await client.put(f"{PREFIX}/chats/{PP1}", json={"chat_id": "-1002"}, headers=MANAGER)).status_code == 200
 
 
+async def test_changing_a_saved_chat_answers_with_the_new_one(client) -> None:
+    # regression: updated_at expired at commit was loaded lazily in the response → 500 (MissingGreenlet)
+    await set_chats(client)
+    r = await client.put(f"{PREFIX}/chats/{PP1}", json={"chat_id": "-1003", "is_active": False}, headers=MANAGER)
+    assert r.status_code == 200 and r.json()["chat_id"] == "-1003" and r.json()["is_active"] is False
+
+
 async def test_chats_and_who_may_set_them(client) -> None:
     await set_chats(client)
     assert (await client.put(f"{PREFIX}/chats/owner", json={"chat_id": "-5555"}, headers=MANAGER)).status_code == 403
@@ -193,3 +200,15 @@ async def test_khqr_refund_and_recall_alerts(client) -> None:
                                    "sku": "AMOX500", "lots": ["L1"], "qty_base": 40})  # fmt: skip
     got = {(m.kind, m.target) for m in await messages()}
     assert got == {("khqr_refund", "owner"), ("khqr_refund", str(PP1)), ("recall", "owner"), ("recall", str(PP1))}
+
+
+async def test_two_factor_off_or_reset_alerts_only_the_owner_with_no_secrets() -> None:
+    await event("user.2fa_disabled", {"user_id": str(CASHIER_ID), "by": "self", "occurred_at": "2026-11-06T01:00:00+00:00"})
+    await event("user.2fa_reset", {"user_id": str(CASHIER_ID), "by": "owner", "occurred_at": "2026-11-06T01:00:00+00:00"})
+    await event("user.2fa_reset", {"user_id": str(uuid4()), "by": "server", "occurred_at": "2026-11-06T01:00:00+00:00"})
+    got = [m for m in await messages() if m.kind == "security"]
+    assert len(got) == 3 and all(m.target == "owner" for m in got)
+    assert any("turned off" in m.text for m in got) and any("reset by the owner" in m.text for m in got)
+    assert any("A user had two-factor login reset on the server" in m.text for m in got)
+    for m in got:
+        assert str(CASHIER_ID) not in m.text and "2026" not in m.text

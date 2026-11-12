@@ -66,6 +66,14 @@ def locked(name: str, what: str) -> str:
     return f"🔒 {name}'s {what} is locked after too many wrong tries."
 
 
+def two_factor(name: str, turned_off: bool, by: str) -> str:
+    """Name and what happened only: never a key, a code or an address."""
+    what = "turned off two-factor login" if turned_off else {
+        "self": "changed their two-factor key", "owner": "had two-factor login reset by the owner",
+        "server": "had two-factor login reset on the server"}.get(by, "had two-factor login reset")  # fmt: skip
+    return f"🛡 {name} {what}."
+
+
 def money_alert(branch: str, number: str, staff: str, kind: str, lines: list[dict[str, Any]], show_cost: bool) -> str:
     """Cost only in the owner's chat (choice H)."""
     head = {"below_cost": "sold below cost", "large_discount": "large discount"}[kind]

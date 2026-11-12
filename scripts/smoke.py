@@ -1684,7 +1684,8 @@ def s8b_checks(token: str) -> None:
                 print(f"        open {out}")
 
         # 6. 2FA backup code, then the session it opened is revoked
-        status, fresh = call("POST", "/api/auth/v1/2fa/backup-codes", {"password": OWNER_LOGIN["password"]},
+        status, fresh = call("POST", "/api/auth/v1/2fa/backup-codes", {"password": OWNER_LOGIN["password"],
+                             "code": input("6-digit code for new backup codes (a fresh one): ").strip()},
                              token=token)  # fmt: skip
         codes_ = fresh.get("codes") or []
         check(status == 200 and len(codes_) == 10, f"10 new backup codes ({status})")

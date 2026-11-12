@@ -29,7 +29,7 @@ function RuleForm({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
   const { branches, oneBranch } = useBranch();
   const { cats, brands } = useLookups();
-  const users = useQuery({ queryKey: ['auth', 'users', 'all'], enabled: user.has('settings.users'), staleTime: 5 * 60_000, queryFn: () => call(api.auth.GET('/api/auth/v1/users', { params: { query: { size: 200, is_active: true } } })) });
+  const users = useQuery({ queryKey: ['auth', 'users', 'all'], enabled: user.has('settings.users'), staleTime: 5 * 60_000, queryFn: () => call(api.auth.GET('/api/auth/v1/users', { params: { query: { size: 100, is_active: true } } })) });
   const [v, setV] = useState<Form>({ name: '', kind: 'percent', value: '', scope: 'all', target_id: '', medicine: null, staff_id: '', branch_id: user.isOwner ? '' : oneBranch?.id ?? '', starts_on: todayIso(), ends_on: '' });
   const target = v.scope === 'medicine' ? v.medicine?.id : v.target_id;
   const m = useMutation({

@@ -73,12 +73,16 @@ test-db:
 test-db-down:
 	docker compose -f docker-compose.test.yml down
 
+# Long runs keep a Mac awake: when it sleeps, the Docker VM clock drifts and every 2FA login
+# then fails (INVALID_MFA_CODE). caffeinate only exists on macOS; elsewhere this is empty.
+KEEP_AWAKE := $(shell command -v caffeinate >/dev/null 2>&1 && echo caffeinate -dims)
+
 test: test-db
-	./scripts/test-all.sh
+	$(KEEP_AWAKE) ./scripts/test-all.sh
 
 # Same suite in a container (with Pango + Khmer font, so label tests run too).
 test-docker: test-db
-	docker compose -f docker-compose.test.yml --profile runner run --rm --build tests
+	$(KEEP_AWAKE) docker compose -f docker-compose.test.yml --profile runner run --rm --build tests
 
 lint:
 	ruff check .
@@ -106,10 +110,10 @@ web-test:
 	cd web && $(WEB_ENV) npm run typecheck && $(WEB_ENV) npm run lint && $(WEB_ENV) npm test && $(WEB_ENV) npx vite build && $(WEB_ENV) npm run size
 
 web-e2e:
-	cd web && $(WEB_ENV) BASE_URL=$${BASE_URL:-http://localhost} npx playwright test
+	cd web && $(WEB_ENV) BASE_URL=$${BASE_URL:-http://localhost} $(KEEP_AWAKE) npx playwright test
 
 web-test-docker:
-	docker run --rm -v "$(CURDIR)":/repo:ro -e CI=1 node:24-alpine sh -c "\
+	$(KEEP_AWAKE) docker run --rm -v "$(CURDIR)":/repo:ro -e CI=1 node:24-alpine sh -c "\
 	  mkdir -p /x/web /x/docs && cp -r /repo/docs/design /x/docs/ && \
 	  tar -C /repo/web --exclude=./node_modules --exclude=./dist --exclude=./coverage -cf - . | tar -C /x/web -xf - && \
 	  cd /x/web && npm ci --no-audit --no-fund && npm run typecheck && npm run lint && npm test && npx vite build && npm run size"

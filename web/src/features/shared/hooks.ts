@@ -17,7 +17,7 @@ export function useStaffNames() {
     queryKey: ['auth', 'users', 'names'],
     enabled: user.has('settings.users'),
     staleTime: 5 * 60_000,
-    queryFn: () => call(api.auth.GET('/api/auth/v1/users', { params: { query: { size: 200 } } })),
+    queryFn: () => call(api.auth.GET('/api/auth/v1/users', { params: { query: { size: 100 } } })),
   });
   return useMemo(() => {
     const m = new Map<string, string>((q.data?.items ?? []).map((u) => [u.id, u.name]));

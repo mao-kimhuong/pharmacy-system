@@ -26,7 +26,7 @@ from pharmacy_shared.outbox import add_event
 
 from ..models import KnownBranch, OutboxEvent, RefreshToken, RoleRecord, User, UserBranch
 from ..permissions import ADMIN_PERMISSIONS, OWNER
-from . import sessions
+from . import backup_codes, pins, sessions, two_factor
 from .audit import write_audit
 from .passwords import MIN_PASSWORD_LENGTH, hash_password, verify_password
 from .phone import normalize_phone
@@ -142,6 +142,9 @@ async def _check_phone_free(session: AsyncSession, phone: str, except_id: UUID |
         query = query.where(User.id != except_id)
     if (await session.execute(query)).first():
         raise AppError(ErrorCode.DUPLICATE_PHONE, "This phone number is already used", status_code=409)
+
+
+RESET_2FA_ACTION = "auth.mfa_reset"  # PIN actions have no digits
 
 
 async def _end_sessions(session: AsyncSession, redis: Redis, user_id: UUID) -> None:
@@ -435,16 +438,18 @@ async def clear_pin(session: AsyncSession, actor: CurrentUser, user_id: UUID, ip
 
 
 async def reset_2fa(
-    session: AsyncSession, redis: Redis, actor: CurrentUser, user_id: UUID, ip: str | None
+    session: AsyncSession, redis: Redis, actor: CurrentUser, user_id: UUID, pin_token: str | None, ip: str | None
 ) -> None:
-    """For a lost phone: the user sets up 2FA again at the next login."""
+    """Lost phone: the owner, with their PIN. The user sets 2FA up again at the next login if the role needs it."""
+    if not actor.is_owner:
+        raise AppError(ErrorCode.FORBIDDEN, "Only the owner can reset another person's 2FA", status_code=403)
+    if not pin_token:
+        raise AppError(ErrorCode.PIN_REQUIRED, "Confirm with your PIN", status_code=401)
     user = await get_manageable(session, actor, user_id, lock=True)
     if user.id == actor.id:
-        raise AppError(ErrorCode.CANNOT_CHANGE_SELF, "Ask another owner to reset your 2FA", status_code=403)
-    user.totp_secret_enc = None
-    user.totp_enabled = False
-    user.totp_last_step = None
-    await _end_sessions(session, redis, user.id)
+        raise AppError(ErrorCode.CANNOT_CHANGE_SELF, "Reset your own 2FA on your profile", status_code=403)
+    await pins.consume(session, redis, pin_token, RESET_2FA_ACTION, "actor", actor.id)
+    await clear_2fa(session, redis, user, "owner")
     write_audit(
         session,
         action="user.2fa_reset",
@@ -458,3 +463,11 @@ async def reset_2fa(
         only_changes=False,
     )
     await session.commit()
+
+
+async def clear_2fa(session: AsyncSession, redis: Redis, user: User, by: str) -> None:
+    """2FA off for someone else (owner) or from the server: key and backup codes gone, every session ended."""
+    two_factor.clear_secrets(user)
+    await backup_codes.retire(session, user.id)
+    await _end_sessions(session, redis, user.id)
+    two_factor.security_event(session, user, "user.2fa_reset", by)

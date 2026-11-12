@@ -18,24 +18,26 @@ export function lineFrom(m: Medicine, packUnitId?: string): EditLine {
   return { key: `e${++n}`, medicine: m, pack_unit_id: packUnitId ?? (active.find((p) => p.is_base) ?? active[0]).id, qty: 1 };
 }
 
-export function LinesEditor({ lines, onChange, extraColumns = [], filter, unitLabel }: {
+export function LinesEditor({ lines, onChange, extraColumns = [], filter, unitLabel, compact }: {
   lines: EditLine[];
   onChange: (l: EditLine[]) => void;
   extraColumns?: { key: string; header: ReactNode; width?: string; render: (l: EditLine, set: (v: string) => void) => ReactNode }[];
   filter?: (m: Medicine) => boolean;
   unitLabel?: string;
+  /** For a narrow side panel: the table fits instead of scrolling. */
+  compact?: boolean;
 }) {
   const { t } = useTranslation(['common', 'pos']);
   const set = (key: string, patch: Partial<EditLine>) => onChange(lines.map((l) => (l.key === key ? { ...l, ...patch } : l)));
   return (
     <div className="flex flex-col gap-2">
       <div className="overflow-x-auto rounded-lg border border-neutral-200">
-        <table className="w-full min-w-[640px] border-collapse text-table">
+        <table className={compact ? 'w-full border-collapse text-table' : 'w-full min-w-[640px] border-collapse text-table'}>
           <thead>
             <tr className="bg-neutral-50 text-left text-[12px] font-semibold text-neutral-700">
               <th className="px-3 py-2">{t('label.medicine')}</th>
-              <th className="w-36 px-3 py-2">{unitLabel ?? t('label.unit')}</th>
-              <th className="w-28 px-3 py-2 text-right">{t('label.qty')}</th>
+              <th className={compact ? 'w-24 px-2 py-2' : 'w-36 px-3 py-2'}>{unitLabel ?? t('label.unit')}</th>
+              <th className={compact ? 'w-16 px-2 py-2 text-right' : 'w-28 px-3 py-2 text-right'}>{t('label.qty')}</th>
               {extraColumns.map((c) => <th key={c.key} className="px-3 py-2" style={{ width: c.width }}>{c.header}</th>)}
               <th className="w-10" />
             </tr>

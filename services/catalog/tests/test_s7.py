@@ -1,11 +1,13 @@
 """Hampers and promotions in the catalog (S7)."""
 
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from .conftest import CASHIER, OWNER, PREFIX, count, create_medicine, outbox, user
 
 HAMPERS = user("branch_manager", "products.view,catalog.hampers")
-PROMOS = user("branch_manager", "products.view,catalog.promotions")
+MY_BRANCH = uuid4()
+PROMOS = user("branch_manager", "products.view,catalog.promotions", (MY_BRANCH,))
 
 
 async def hamper(client, components: list[tuple[dict, int]], sku: str = "KIT-FLU", headers=HAMPERS):  # noqa: ANN001, ANN201
@@ -58,7 +60,8 @@ async def test_hamper_rules(client) -> None:
 
 
 async def promo(client, headers=PROMOS, **body):  # noqa: ANN001, ANN201
-    return await client.post(f"{PREFIX}/promotions", headers=headers, json={"name": "Promo", **body})
+    return await client.post(f"{PREFIX}/promotions", headers=headers,
+                             json={"name": "Promo", "branch_ids": [str(MY_BRANCH)], **body})  # fmt: skip
 
 
 async def test_promotion_types_are_checked_and_sent_as_events(client) -> None:
@@ -115,7 +118,7 @@ async def test_promotion_preview_sends_the_draft_to_sales_and_saves_nothing(clie
         branch = uuid4()
         manager = user("branch_manager", "products.view,catalog.promotions", (branch,))
         body = {"promotion": {"code": "new20", "name": "New 20", "type": "percent_off", "value": "20",
-                              "medicine_ids": [para["id"]]},
+                              "medicine_ids": [para["id"]], "branch_ids": [str(branch)]},
                 "cart": {"branch_id": str(branch), "lines": [{"medicine_id": para["id"],
                                                                 "pack_unit_id": para["pack_units"][0]["id"], "qty": 1}]}}  # fmt: skip
         r = await client.post(f"{PREFIX}/promotions/preview", json=body, headers=manager)
@@ -125,6 +128,80 @@ async def test_promotion_preview_sends_the_draft_to_sales_and_saves_nothing(clie
         assert (await count("promotions"), await count("outbox")) == before  # nothing saved
         bad = {**body, "promotion": {**body["promotion"], "value": "200"}}
         assert (await client.post(f"{PREFIX}/promotions/preview", json=bad, headers=manager)).status_code == 422
-        assert (await client.post(f"{PREFIX}/promotions/preview", json=body, headers=PROMOS)).status_code == 403
+        other = {**body, "promotion": {**body["promotion"], "branch_ids": [str(MY_BRANCH)]}}
+        assert (await client.post(f"{PREFIX}/promotions/preview", json=other, headers=PROMOS)).status_code == 403
     finally:
         app.dependency_overrides.clear()
+
+
+async def test_promotion_errors_name_the_field_and_a_reason_the_web_app_translates(client) -> None:
+    para = await create_medicine(client, "PARA500")
+    target = {"medicine_ids": [para["id"]]}
+    cases = [
+        (dict(type="percent_off", value="150", **target), "value", "percent_range"),
+        (dict(type="amount_off", **target), "value", "amount_required"),
+        (dict(type="buy_x_get_y", **target), "buy_qty", "buy_get_required"),
+        (dict(type="qty_tiers", **target), "tiers", "tiers_invalid"),
+        (dict(type="bundle_price", value="1.00", bundle_items=[{"medicine_id": para["id"], "qty_base": 1}]),
+         "bundle_items", "bundle_min"),
+        (dict(type="percent_off", value="10"), "medicine_ids", "targets_required"),
+        (dict(type="group_price", value="0.05", **target), "customer_group_ids", "groups_required"),
+        (dict(type="percent_off", value="5", starts_at="2026-11-02T00:00:00+07:00",
+              ends_at="2026-11-01T00:00:00+07:00", **target), "ends_at", "end_before_start"),
+        (dict(type="percent_off", value="5", medicine_ids=[str(uuid4())]), "medicine_ids", "unknown_id"),
+    ]  # fmt: skip
+    for i, (body, field, reason) in enumerate(cases):
+        r = await promo(client, code=f"E{i}", **body)
+        assert r.status_code == 422 and r.json()["details"] == {"field": field, "reason": reason}, r.text
+
+
+async def test_all_six_types_save_with_their_fields(client) -> None:
+    para, ors = await create_medicine(client, "PARA500"), await create_medicine(client, "ORS")
+    group = str(uuid4())
+    target = {"medicine_ids": [para["id"]]}
+    bodies = [
+        dict(type="percent_off", value="10", **target),
+        dict(type="amount_off", value="0.50", **target),
+        dict(type="buy_x_get_y", buy_qty=2, get_qty=1, **target),
+        dict(type="bundle_price", value="1.50", bundle_items=[{"medicine_id": para["id"], "qty_base": 1},
+                                                              {"medicine_id": ors["id"], "qty_base": 1}]),
+        dict(type="qty_tiers", tiers=[{"min_qty": 10, "percent": "5"}], **target),
+        dict(type="group_price", value="0.40", customer_group_ids=[group], **target),
+    ]  # fmt: skip
+    for i, body in enumerate(bodies):
+        r = await promo(client, code=f"T{i}", days_of_week=[0, 4], max_uses_total=100, max_uses_per_customer=2,
+                        stackable=True, include_rx=True, starts_at="2026-12-01T09:30:00+07:00", **body)  # fmt: skip
+        assert r.status_code == 201, r.text
+        out = r.json()
+        assert out["days_of_week"] == [0, 4] and out["max_uses_total"] == 100 and out["stackable"] is True
+        assert out["include_rx"] is True
+        assert datetime.fromisoformat(out["starts_at"]) == datetime(2026, 12, 1, 2, 30, tzinfo=UTC)
+
+
+async def test_a_limit_or_date_can_be_cleared_on_edit(client) -> None:
+    para = await create_medicine(client, "PARA500")
+    p = (await promo(client, code="CLR", type="percent_off", value="5", medicine_ids=[para["id"]], max_uses_total=5,
+                     starts_at="2026-12-01T09:30:00+07:00")).json()  # fmt: skip
+    r = await client.patch(f"{PREFIX}/promotions/{p['id']}", headers=PROMOS, json={"max_uses_total": None, "starts_at": None})
+    assert r.status_code == 200 and r.json()["max_uses_total"] is None and r.json()["starts_at"] is None
+
+
+async def test_managers_stay_inside_their_own_branches(client) -> None:
+    para = await create_medicine(client, "PARA500")
+    base = dict(type="percent_off", value="5", medicine_ids=[para["id"]])
+    everywhere = await promo(client, code="M1", branch_ids=[], **base)
+    assert everywhere.status_code == 422 and everywhere.json()["details"]["reason"] == "all_branches_owner_only"
+    other = await promo(client, code="M2", branch_ids=[str(uuid4())], **base)
+    assert other.status_code == 422 and other.json()["details"] == {"field": "branch_ids", "reason": "other_branch"}
+    mine = await promo(client, code="M3", **base)
+    assert mine.status_code == 201
+    widen = await client.patch(f"{PREFIX}/promotions/{mine.json()['id']}", headers=PROMOS, json={"branch_ids": []})
+    assert widen.status_code == 422
+    # the owner may use every branch; a manager then cannot change or switch that promotion
+    owners = await promo(client, headers=OWNER, code="O1", branch_ids=[], **base)
+    assert owners.status_code == 201, owners.text
+    url = f"{PREFIX}/promotions/{owners.json()['id']}"
+    edit = await client.patch(url, headers=PROMOS, json={"name": "Mine now"})
+    assert edit.status_code == 403 and edit.json()["code"] == "BRANCH_FORBIDDEN"
+    assert (await client.post(f"{url}/deactivate", headers=PROMOS)).status_code == 403
+    assert (await client.post(f"{url}/deactivate", headers=OWNER)).status_code == 200

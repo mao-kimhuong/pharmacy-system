@@ -188,6 +188,8 @@ export function WitnessDialog({
     queryFn: () => call(api.auth.GET('/api/auth/v1/pin/witnesses', { params: { query: { branch_id: branchId } } })),
   });
   const list = (witnesses.data ?? []).filter((w) => !managerOnly || MANAGER_ROLES.includes(w.role));
+  // the witness types next: choosing them moves the keyboard to the PIN pad
+  const focusPad = (from: HTMLElement) => from.closest('[role=dialog]')?.querySelector<HTMLElement>('[data-pinpad]')?.focus();
   const submit = async (value: string) => {
     if (value.length < 4 || busy) return;
     if (step === 2 && !witnessId) {
@@ -212,7 +214,7 @@ export function WitnessDialog({
     }
   };
   return (
-    <Dialog open={open} onClose={onClose} title={title ?? t('pin.witnessTitle')} width={440}
+    <Dialog open={open} onClose={onClose} title={title ?? t('pin.witnessTitle')} width={440} initialFocus="[data-pinpad]"
       footer={<><Button onClick={onClose}>{t('action.back')}</Button><Button variant="primary" loading={busy} disabled={pin.length < 4} onClick={() => submit(pin)}>{step === 1 ? t('action.continue') : t('pin.sign')}</Button></>}>
       <div className="flex flex-col gap-4 text-[13px]">
         {context && <div className="rounded-lg bg-neutral-50 px-3 py-2.5 leading-5">{context}</div>}
@@ -232,7 +234,7 @@ export function WitnessDialog({
               <b>{managerOnly ? t('pin.witnessManager') : t('pin.witnessAny')}</b>
               <Field label={t('pin.chooseWitness')}>
                 {(id) => (
-                  <Select id={id} value={witnessId} onChange={(e) => setWitnessId(e.target.value)}>
+                  <Select id={id} value={witnessId} onChange={(e) => { setWitnessId(e.target.value); focusPad(e.currentTarget); }}>
                     <option value="">—</option>
                     {list.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
                   </Select>

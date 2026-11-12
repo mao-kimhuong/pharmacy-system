@@ -2,10 +2,22 @@
 import path from 'node:path';
 import { apiLogin, idem, waitFor } from './lib/api';
 import { expect, expectAccessible, test } from './fixtures';
+import { loadSeed } from './seed';
 
 const SAMPLES = path.resolve(import.meta.dirname, '../../docs/samples');
 
 test.describe('F3 warehouse + stock', () => {
+  // the stock take and the recall use up the shared medicine: later specs sell it again
+  test.afterAll(async () => {
+    const seed = loadSeed();
+    const d = seed.extra.sales!;
+    const { http } = await apiLogin(seed.accounts.owner.phone, seed.accounts.owner.password, seed.accounts.owner.totp);
+    const expiry = new Date(Date.now() + 400 * 86_400_000).toISOString().slice(0, 10);
+    const r = await http.post('/api/inventory/v1/stock-in', { branch_id: seed.branchId, reason: 'e2e top-up after F3', lines: [
+      { medicine_id: d.meds.para.id, pack_unit_id: d.meds.para.packs.tab.id, lot_no: `TOP-${Date.now()}`, expiry_date: expiry, qty: 2000, unit_cost: '0.02' }] }, idem());
+    expect(r.status).toBeLessThan(300);
+  });
+
   test('import: the broken file shows its errors, the sample validates and commits', async ({ as }) => {
     const page = await as('owner');
     await page.goto('/imports');
@@ -68,19 +80,38 @@ test.describe('F3 warehouse + stock', () => {
     const lines = ph.getByRole('button', { name: new RegExp(`Paracetamol ${d.suffix}`) });
     await expect(lines.first()).toBeVisible();
     const n = await lines.count();
-    for (let i = 0; i < n; i++) {
-      await lines.nth(i).click();
+    const todo = lines.filter({ hasText: 'To count' });
+    for (let i = await todo.count(); i > 0; i--) {
+      await todo.first().click();
       await ph.getByLabel(/^Counted/).fill('1');
       await ph.getByRole('button', { name: 'Save count' }).click();
       await expect(ph.getByRole('dialog')).toHaveCount(0);
+      await expect(todo).toHaveCount(i - 1); // the saved line leaves "To count" before the next click
     }
+    // a line worth more than double_count_above_usd (50) needs a second person: the manager counts it too
+    await mgr.reload();
+    const mgrLines = mgr.getByRole('button', { name: new RegExp(`Paracetamol ${d.suffix}`) });
+    await expect(mgrLines).toHaveCount(n); // count() does not wait: let the reloaded list arrive first
+    const second = mgrLines.filter({ hasText: 'Second count' });
+    for (let i = await second.count(); i > 0; i--) {
+      await second.first().click();
+      await mgr.getByLabel(/^Counted/).fill('1');
+      await mgr.getByRole('button', { name: 'Save count' }).click();
+      await expect(mgr.getByRole('dialog')).toHaveCount(0);
+      await expect(second).toHaveCount(i - 1); // the saved line leaves the list before the next click
+    }
+    await ph.reload();
     await ph.getByRole('button', { name: 'Submit for review' }).click();
     await ph.getByRole('dialog').getByRole('button', { name: 'Submit for review' }).click();
     await mgr.reload();
     await expect(mgr.getByRole('columnheader', { name: 'Variance' })).toBeVisible();
-    await mgr.getByRole('button', { name: 'Approve and post' }).click();
-    await mgr.getByRole('dialog').getByRole('button', { name: 'Approve and post' }).click();
-    await expect(mgr.getByText('Approved and posted')).toBeVisible();
+    // counting 1 of each batch: on a stack with earlier runs' stock the variance passes owner_approval_above_usd (200)
+    const own = await as('owner');
+    await own.goto(url);
+    await expect(own.getByRole('columnheader', { name: 'Variance', exact: true })).toBeVisible();
+    await own.getByRole('button', { name: 'Approve and post' }).click();
+    await own.getByRole('dialog').getByRole('button', { name: 'Approve and post' }).click();
+    await expect(own.getByText('Approved and posted')).toBeVisible();
   });
 
   test('recall a lot: the POS refuses it, destroy the stock, close', async ({ as, seed }) => {
@@ -128,6 +159,7 @@ test.describe('F3 warehouse + stock', () => {
     await dlg.getByLabel('Min').fill('100000');
     await dlg.getByLabel('Max').fill('200000');
     await dlg.getByRole('button', { name: 'Save' }).click();
+    await expect(dlg).toBeHidden(); // leaving the page earlier can cancel the save
     await page.goto('/stock/reorder');
     await page.getByRole('button', { name: 'Run now' }).click();
     const row = page.getByRole('row', { name: new RegExp(d.meds.amox.sku) });

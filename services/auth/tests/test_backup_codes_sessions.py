@@ -43,9 +43,9 @@ async def test_backup_codes_shown_once_used_once_and_regenerated(client) -> None
     async with db.sessionmaker() as s:
         assert await backup_codes.left(s, UUID(user_id)) == 9
     assert (await second_step(client, {"code": "123456", "backup_code": codes[1]})).status_code == 422  # one of them
-    wrong = await client.post(f"{PREFIX}/2fa/backup-codes", json={"password": "nope"}, headers=bearer(token))
+    wrong = await client.post(f"{PREFIX}/2fa/backup-codes", json={"password": "nope", "backup_code": codes[2]}, headers=bearer(token))
     assert wrong.status_code == 401
-    fresh = (await client.post(f"{PREFIX}/2fa/backup-codes", json={"password": PASSWORD}, headers=bearer(token))).json()
+    fresh = (await client.post(f"{PREFIX}/2fa/backup-codes", json={"password": PASSWORD, "backup_code": codes[2]}, headers=bearer(token))).json()
     assert len(fresh["codes"]) == 10
     assert (await second_step(client, {"backup_code": codes[1]})).status_code == 401  # the old set is retired
     assert (await second_step(client, {"backup_code": fresh["codes"][0]})).status_code == 200

@@ -7,8 +7,9 @@ import { useAuth, useUser } from '@/app/auth';
 import { branchName, useBranch } from '@/app/branch';
 import { ApiErrorAlert, BranchTag, Button, Card, ConfirmDialog, DataTable, DefinitionList, Dialog, Field, Input, PageHeader, StatusPill, useToast } from '@/design';
 import { dateTime } from '@/lib/format';
-import { BackupCodes, TwoFactorSetup } from '../auth/TwoFactorSetup';
+import { TwoFactorSetup } from '../auth/TwoFactorSetup';
 import { SetPinDialog } from './SetPin';
+import { NewCodesDialog, ResetKeyDialog, TurnOffDialog } from './TwoFactorDialogs';
 
 function PasswordCard() {
   const { t } = useTranslation(['profile', 'states']);
@@ -39,11 +40,8 @@ function TwoFactorCard() {
   const { t } = useTranslation(['profile', 'auth', 'common']);
   const user = useUser();
   const { reloadMe } = useAuth();
-  const [setup, setSetup] = useState(false);
-  const [regen, setRegen] = useState(false);
-  const [password, setPassword] = useState('');
-  const codes = useMutation({ mutationFn: () => call(api.auth.POST('/api/auth/v1/2fa/backup-codes', { body: { password } })), onSuccess: () => void reloadMe() });
-  const closeRegen = () => { setRegen(false); setPassword(''); codes.reset(); };
+  const [open, setOpen] = useState<'setup' | 'off' | 'codes' | 'reset' | null>(null);
+  const close = () => setOpen(null);
   return (
     <Card title={<span id="twofa">{t('twofa.title')}</span>}>
       <div className="flex flex-wrap items-center gap-3">
@@ -51,27 +49,23 @@ function TwoFactorCard() {
         {user.totp_enabled && user.backup_codes_left !== null && user.backup_codes_left !== undefined && (
           <span className="text-[13px] text-neutral-700">{t('auth:backup.left', { count: user.backup_codes_left })}</span>
         )}
-        {(user.role === 'owner' || user.role === 'branch_manager') && <span className="text-[12px] text-neutral-500">{t('twofa.required')}</span>}
+        {user.mfa_required_for_role && <span className="text-[12px] text-neutral-500">{t('twofa.required')}</span>}
         <span className="ml-auto" />
-        {user.totp_enabled ? (
-          <Button onClick={() => setRegen(true)}>{t('auth:backup.regenerate')}</Button>
-        ) : (
-          <Button variant="primary" onClick={() => setSetup(true)}>{t('twofa.turnOn')}</Button>
+        {user.totp_enabled ? <>
+          <Button onClick={() => setOpen('codes')}>{t('auth:backup.regenerate')}</Button>
+          {user.mfa_required_for_role
+            ? <Button onClick={() => setOpen('reset')}>{t('twofa.reset')}</Button>
+            : <Button variant="danger-outline" onClick={() => setOpen('off')}>{t('twofa.turnOff')}</Button>}
+        </> : (
+          <Button variant="primary" onClick={() => setOpen('setup')}>{t('twofa.turnOn')}</Button>
         )}
       </div>
-      <Dialog open={setup} onClose={() => setSetup(false)} title={t('auth:setup.title')} width={520}>
-        {setup && <TwoFactorSetup onEnabled={() => { setSetup(false); void reloadMe(); }} />}
+      <Dialog open={open === 'setup'} onClose={close} title={t('auth:setup.title')} width={520}>
+        {open === 'setup' && <TwoFactorSetup onEnabled={() => { close(); void reloadMe(); }} />}
       </Dialog>
-      <Dialog open={regen} onClose={closeRegen} title={t('auth:backup.regenerate')} width={520}
-        footer={codes.data ? <Button variant="primary" onClick={closeRegen}>{t('common:action.done')}</Button> : <><Button onClick={closeRegen}>{t('common:action.cancel')}</Button><Button variant="primary" disabled={!password} loading={codes.isPending} onClick={() => codes.mutate()}>{t('common:action.continue')}</Button></>}>
-        {codes.data ? <BackupCodes codes={codes.data.codes} /> : (
-          <div className="flex flex-col gap-3">
-            <span className="text-[13px] text-neutral-700">{t('auth:backup.regenerateBody')}</span>
-            <Field label={t('auth:password')}>{(id) => <Input id={id} type="password" autoComplete="current-password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} />}</Field>
-            <ApiErrorAlert error={codes.error} />
-          </div>
-        )}
-      </Dialog>
+      {open === 'off' && <TurnOffDialog onClose={close} />}
+      {open === 'codes' && <NewCodesDialog onClose={close} />}
+      {open === 'reset' && <ResetKeyDialog onClose={close} />}
     </Card>
   );
 }
@@ -132,8 +126,9 @@ export default function ProfilePage() {
           </div>
         </Card>
         <PasswordCard />
-        <TwoFactorCard />
       </div>
+      <h2 className="m-0 mt-2 text-[20px] leading-[28px] font-semibold">{t('security')}</h2>
+      <TwoFactorCard />
       <SessionsCard />
       <SetPinDialog open={pin} onClose={() => setPin(false)} onSaved={() => { toast.success(t('auth:pin.saved')); void reloadMe(); }} />
     </div>

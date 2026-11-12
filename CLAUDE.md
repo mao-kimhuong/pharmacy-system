@@ -64,6 +64,8 @@ Traefik v3.6. Python 3.12. Lint with ruff.
 - `make revision s=<service> m="message"` then `make migrate s=<service>`
 - `docker compose exec controlled python -m controlled_service.cli open-balances` – once after installing S5:
   controlled stock from before the register gets "opening" entries (`check` runs the 00:20 register check now)
+- `docker compose exec auth python -m auth_service.cli reset-2fa --phone 012…` – last resort when an owner lost phone and
+  backup codes (User Log + Telegram alert)
 - `python -m sales_service.cli recover` – finish sales/returns left half-way (also runs every minute)
 - `make resync` – re-send staff, branches, branch settings, products, customers, open POs and commission lines as events (needed
   once when a service starts listening after the data exists: RabbitMQ drops events for queues that did not exist yet)
@@ -71,6 +73,11 @@ Traefik v3.6. Python 3.12. Lint with ruff.
 - `make openapi` – every service's OpenAPI document to `openapi/*.json`
 - `make api-types` (openapi → `web/src/api/gen`), `make web-dev` (Vite :5173, /api → http://localhost), `make web-test`
   (typecheck, lint, Vitest, build, bundle budget), `make web-e2e` (Playwright, `BASE_URL`), `make web-test-docker`
+- Long runs on a Mac: `make test`, `test-docker`, `web-e2e` and `web-test-docker` run under `caffeinate -dims` (empty
+  where caffeinate does not exist); run anything else long the same way (`caffeinate -dims …`). A sleeping Mac lets the
+  Docker VM clock drift and every 2FA login then fails with INVALID_MFA_CODE. The e2e setup checks the stack's clock first
+  (`web/e2e/lib/clock.ts`, > 15 s off → a clear error); resync with `docker run --rm --privileged alpine hwclock -s` or by
+  restarting Docker Desktop, then run again.
 - `make seed-demo` / `make bench-reports` – a year of demo data in the reports (APP_ENV=development, DEMO branches only) and
   the timing of every report (target < 2 s)
 
@@ -81,6 +88,15 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   refresh token only as cookie `pharmacy_refresh` (httpOnly, Secure, SameSite=Strict, path `/api/auth/v1/refresh`, 7 days),
   never in the body; `/refresh` with no body reads the cookie; `/logout` clears it and ends the session by the token's `sid`.
   Other clients (smoke, scripts) keep the token in the body (`tests/test_refresh_cookie.py`).
+- **2FA management (auth):** `services/two_factor.py`. Any user turns it on from the profile. `POST /me/2fa/disable` and
+  `POST /2fa/backup-codes` need the password + a code or backup code, under login's lockout (wrong ones count, a locked
+  account is refused; Traefik router `auth-mfa` has the login limit). Roles in `roles_requiring_2fa` get
+  MFA_REQUIRED_FOR_ROLE (`/me` `mfa_required_for_role`) and take a new key in two steps: `POST /me/2fa/reset` (key waits in
+  `totp_pending_secret_enc`, the old one keeps working) → `/me/2fa/reset/confirm` (10 new backup codes). `POST
+  /users/{id}/2fa/reset`: owner only, `pin_token` (action `auth.mfa_reset`; PIN actions have no digits). Last resort on the
+  server: `python -m auth_service.cli reset-2fa --phone …`. Off or reset: other sessions end (all of them for the owner's
+  and the server's reset), User Log `user.2fa_disabled` / `user.2fa_reset`, same-named event → owner's Telegram (name and
+  action only).
 - **Permissions (from S1a):** guard a route with `user: CurrentUser = Depends(requires("pos.sell"))`,
   or check inside with `user.require("sales.cancel")` / `user.has(...)`. Keys live in
   `services/auth/auth_service/permissions.py` (CATALOG + default role grants + MENU); add new
@@ -343,6 +359,9 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   `discount_approval_token` = `/pin/witness` (action `sales.discount`) of another user: manager or owner, and
   only the owner above a manager's own cap (DISCOUNT_APPROVAL_REQUIRED). After the reservation, net < batch
   cost → BELOW_COST unless `sales.below_cost` (owner by default).
+- **Promotion rules (S7 + fixes):** empty `branch_ids` = every branch, owner only; others list their own branches and get
+  BRANCH_FORBIDDEN on a promotion reaching other branches. `_bad` errors carry `details.field` + `details.reason` (the web
+  app translates the reason; `web/src/api/fieldErrors.ts` puts any API error next to its field).
 - **Hampers (from S7):** a catalog medicine with `kind="hamper"` + `hamper_components` (`catalog.hampers`,
   `/hampers`); Rx-only if a component is; no pack units added, components cannot be deactivated while used.
   No stock of its own: inventory expands a hamper line into its components (FEFO, all or nothing); POs,

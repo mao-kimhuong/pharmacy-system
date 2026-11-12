@@ -1,11 +1,12 @@
-// The service worker found a new version of the app: offer to reload (registerType "prompt").
+// A new version of the app is waiting and was not applied by itself (see pwa.ts): offer to reload.
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/design';
+import { pendingUpdate } from '../pwa';
 
 export function UpdateBanner() {
   const { t } = useTranslation('states');
-  const [apply, setApply] = useState<(() => void) | null>(null);
+  const [apply, setApply] = useState<(() => void) | null>(pendingUpdate);
   useEffect(() => {
     const on = (e: Event) => setApply(() => (e as CustomEvent<() => void>).detail);
     window.addEventListener('pwa:update', on);

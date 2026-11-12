@@ -9,6 +9,8 @@ promotion.* events and applies them at the till. Rules:
   groups (group_price needs at least one), max uses in total / per customer.
 - stackable (may combine with other stackable ones) or exclusive; Rx-only and
   controlled medicines are left out unless include_rx.
+- Branches: an empty list means every branch and only the owner may use it; anyone else lists
+  branches of their own, and cannot change a promotion that reaches other branches.
 - Never deleted: deactivate / activate. Every change: promotion.* event with the
   whole rule and its version, and a User Log entry.
 """
@@ -34,8 +36,23 @@ FIELDS = ("name", "name_km", "type", "value", "buy_qty", "get_qty", "tiers", "bu
           "max_uses_total", "max_uses_per_customer", "stackable", "include_rx")  # fmt: skip
 
 
-def _bad(message: str, field: str) -> AppError:
-    return AppError(ErrorCode.VALIDATION_ERROR, message, status_code=422, details={"field": field})
+def _bad(message: str, field: str, reason: str) -> AppError:
+    """`field` puts the message next to the right input, `reason` is the key the web app translates."""
+    return AppError(ErrorCode.VALIDATION_ERROR, message, status_code=422, details={"field": field, "reason": reason})
+
+
+def _check_branches(actor: CurrentUser, branch_ids: list[str] | None) -> None:
+    if actor.is_owner:
+        return
+    if not branch_ids:
+        raise _bad("Only the owner can make a promotion for all branches", "branch_ids", "all_branches_owner_only")
+    if not {UUID(str(b)) for b in branch_ids} <= actor.branch_ids:
+        raise _bad("You can choose only your own branches", "branch_ids", "other_branch")
+
+
+def _may_change(actor: CurrentUser, p: Promotion) -> None:
+    if not actor.is_owner and (not p.branch_ids or not {UUID(b) for b in p.branch_ids} <= actor.branch_ids):
+        raise AppError(ErrorCode.BRANCH_FORBIDDEN, "This promotion reaches other branches", status_code=403)
 
 
 def payload(p: Promotion) -> dict[str, Any]:
@@ -63,37 +80,37 @@ async def _exist(session: AsyncSession, model: type, ids: list[str], field: str)
         found = (await session.execute(select(func.count()).select_from(model).where(
             model.id.in_([UUID(i) for i in ids])))).scalar_one()  # fmt: skip
         if found != len(ids):
-            raise _bad(f"Unknown id in {field}", field)
+            raise _bad(f"Unknown id in {field}", field, "unknown_id")
     return ids
 
 
 async def _check(session: AsyncSession, p: Promotion) -> None:
     t = p.type
     if t in ("percent_off",) and not (p.value and Decimal("0") < p.value <= Decimal("100")):
-        raise _bad("A percentage between 0 and 100", "value")
+        raise _bad("A percentage between 0 and 100", "value", "percent_range")
     if t in ("amount_off", "bundle_price", "group_price") and not (p.value is not None and p.value >= 0):
-        raise _bad("An amount in USD", "value")
+        raise _bad("An amount in USD", "value", "amount_required")
     if t == "buy_x_get_y" and not (p.buy_qty and p.get_qty and p.buy_qty > 0 and p.get_qty > 0):
-        raise _bad("buy_qty and get_qty (base units)", "buy_qty")
+        raise _bad("buy_qty and get_qty (base units)", "buy_qty", "buy_get_required")
     if t == "qty_tiers":
         tiers = sorted(p.tiers or [], key=lambda x: x["min_qty"])
         if not tiers or any(not (0 < Decimal(str(x["percent"])) <= 100) or x["min_qty"] < 1 for x in tiers):
-            raise _bad("Tiers: min_qty ≥ 1 and percent between 0 and 100", "tiers")
+            raise _bad("Tiers: min_qty ≥ 1 and percent between 0 and 100", "tiers", "tiers_invalid")
         p.tiers = [{"min_qty": int(x["min_qty"]), "percent": str(x["percent"])} for x in tiers]
     if t == "bundle_price":
         items = p.bundle_items or []
         if len(items) < 1 or sum(int(x["qty_base"]) for x in items) < 2:
-            raise _bad("A bundle has at least two units", "bundle_items")
+            raise _bad("A bundle has at least two units", "bundle_items", "bundle_min")
         await _exist(session, Medicine, [x["medicine_id"] for x in items], "bundle_items")
         p.bundle_items = [
             {"medicine_id": str(x["medicine_id"]), "qty_base": int(x["qty_base"])} for x in items
         ]
     elif not (p.medicine_ids or p.category_ids or p.brand_ids):
-        raise _bad("Choose the medicines, categories or brands it applies to", "medicine_ids")
+        raise _bad("Choose the medicines, categories or brands it applies to", "medicine_ids", "targets_required")
     if t == "group_price" and not p.customer_group_ids:
-        raise _bad("A group price needs the customer groups", "customer_group_ids")
+        raise _bad("A group price needs the customer groups", "customer_group_ids", "groups_required")
     if p.starts_at and p.ends_at and p.ends_at <= p.starts_at:
-        raise _bad("ends_at is before starts_at", "ends_at")
+        raise _bad("ends_at is before starts_at", "ends_at", "end_before_start")
     p.medicine_ids = await _exist(session, Medicine, p.medicine_ids or [], "medicine_ids")
     p.category_ids = await _exist(session, Category, p.category_ids or [], "category_ids")
     p.brand_ids = await _exist(session, Brand, p.brand_ids or [], "brand_ids")
@@ -133,6 +150,7 @@ async def create(session: AsyncSession, actor: CurrentUser, data: dict[str, Any]
     p = Promotion(code=code, version=1, is_active=True, created_by=actor.id,
                   **{f: data.get(f) for f in FIELDS if f in data})  # fmt: skip
     p.name, p.name_km = clean(p.name), clean(p.name_km)
+    _check_branches(actor, p.branch_ids)
     await _check(session, p)
     session.add(p)
     await session.flush()
@@ -145,10 +163,12 @@ async def update(
     session: AsyncSession, actor: CurrentUser, promotion_id: UUID, data: dict[str, Any]
 ) -> Promotion:
     p = await get(session, promotion_id, lock=True)
+    _may_change(actor, p)
     before = _summary(p)
     for f in FIELDS:
         if f in data and f != "type":
             setattr(p, f, data[f])
+    _check_branches(actor, p.branch_ids)
     await _check(session, p)
     if _summary(p) != before:
         p.version += 1
@@ -161,6 +181,7 @@ async def set_active(
     session: AsyncSession, actor: CurrentUser, promotion_id: UUID, active: bool
 ) -> Promotion:
     p = await get(session, promotion_id, lock=True)
+    _may_change(actor, p)
     if p.is_active != active:
         before = _summary(p)
         p.is_active, p.version = active, p.version + 1
@@ -186,6 +207,7 @@ async def preview(session: AsyncSession, actor: CurrentUser, sales: InternalClie
     p = Promotion(id=uuid4(), code=clean(data["code"]).upper(), version=0, is_active=True,
                   **{f: data.get(f) for f in FIELDS if f in data})  # fmt: skip
     p.name, p.name_km = clean(p.name), clean(p.name_km)
+    _check_branches(actor, p.branch_ids)
     await _check(session, p)
     draft = payload(p)
     await session.rollback()  # nothing is kept

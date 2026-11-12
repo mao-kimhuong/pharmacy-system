@@ -137,6 +137,12 @@ services:
       - traefik.http.routers.auth-refresh.entrypoints=web
       - traefik.http.routers.auth-refresh.service=auth
       - traefik.http.routers.auth-refresh.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-per-ip@file
+      # protected, with the login limit: password + 2FA code checks on the profile
+      - traefik.http.routers.auth-mfa.rule=PathPrefix(`/api/auth/v1/me/2fa`) || Path(`/api/auth/v1/2fa/backup-codes`)
+      - traefik.http.routers.auth-mfa.priority=100
+      - traefik.http.routers.auth-mfa.entrypoints=web
+      - traefik.http.routers.auth-mfa.service=auth
+      - traefik.http.routers.auth-mfa.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-login@file,auth-forward@file
       # protected: everything else needs a valid access token
       - traefik.http.routers.auth.rule=PathPrefix(`/api/auth`)
       - traefik.http.routers.auth.priority=10
@@ -578,7 +584,7 @@ services:
       - traefik.http.routers.web.priority=1
       - traefik.http.routers.web.entrypoints=web
       - traefik.http.routers.web.service=web
-      - traefik.http.routers.web.middlewares=strip-identity-headers@file,ratelimit-flood@file
+      - traefik.http.routers.web.middlewares=strip-identity-headers@file,ratelimit-static@file
     networks: [internal]
     restart: unless-stopped
 

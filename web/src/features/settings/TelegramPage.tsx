@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { api, call } from '@/api/client';
 import { useUser } from '@/app/auth';
 import { branchName, useBranch } from '@/app/branch';
-import { Alert, ApiErrorAlert, Button, Card, DataTable, Field, Input, PageHeader, Select, StatusPill, Switch, Toolbar, useToast, type PillTone } from '@/design';
+import { Alert, ApiErrorAlert, Button, Card, DataTable, Field, Input, PageHeader, Select, SkeletonRows, StatusPill, Switch, Toolbar, useToast, type PillTone } from '@/design';
 import { dateTime } from '@/lib/format';
 
 const STATUS: Record<string, PillTone> = { sent: 'success', queued: 'info', failed: 'danger', skipped: 'neutral' };
@@ -63,8 +63,11 @@ export default function TelegramPage() {
         actions={user.isOwner && <Button loading={run.isPending} onClick={() => run.mutate()}>{t('telegram.runSummary')}</Button>} />
       <ApiErrorAlert error={run.error ?? chats.error} />
       <Card title={t('telegram.chats')}>
-        {user.isOwner && <ChatRow target="owner" label={t('telegram.owner')} chat={chat('owner')} />}
-        {branches.map((b) => <ChatRow key={b.id} target={b.id} label={`${b.code} · ${branchName(b, i18n.language)}`} chat={chat(b.id)} />)}
+        {/* rows only once the saved chats are here: arriving later they would reset what was typed */}
+        {chats.isPending ? <SkeletonRows rows={branches.length + (user.isOwner ? 1 : 0)} /> : <>
+          {user.isOwner && <ChatRow target="owner" label={t('telegram.owner')} chat={chat('owner')} />}
+          {branches.map((b) => <ChatRow key={b.id} target={b.id} label={`${b.code} · ${branchName(b, i18n.language)}`} chat={chat(b.id)} />)}
+        </>}
       </Card>
       <h2 className="text-[15px] font-semibold">{t('telegram.messages')}</h2>
       <Toolbar>

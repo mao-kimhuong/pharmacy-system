@@ -12,7 +12,7 @@ export interface paths {
         put?: never;
         /**
          * New Backup Codes
-         * @description A new set of 10 backup codes (your password; the old set stops working). Shown only now.
+         * @description A new set of 10 backup codes (password + code; the old set stops working). Shown only now.
          */
         post: operations["new_backup_codes_api_auth_v1_2fa_backup_codes_post"];
         delete?: never;
@@ -171,6 +171,66 @@ export interface paths {
         get: operations["me_api_auth_v1_me_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/v1/me/2fa/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disable 2Fa
+         * @description Turn 2FA off (password + code or backup code). Refused for roles that must use it. Your other sessions end.
+         */
+        post: operations["disable_2fa_api_auth_v1_me_2fa_disable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/v1/me/2fa/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reset My 2Fa
+         * @description A new key, step 1 (password + code or backup code). The old key works until /me/2fa/reset/confirm.
+         */
+        post: operations["reset_my_2fa_api_auth_v1_me_2fa_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/v1/me/2fa/reset/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm My 2Fa Reset
+         * @description Step 2: a code from the new key makes it live. 10 new backup codes, shown only now; other sessions end.
+         */
+        post: operations["confirm_my_2fa_reset_api_auth_v1_me_2fa_reset_confirm_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -347,7 +407,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Refresh */
+        /**
+         * Refresh
+         * @description The refresh token comes in the body, or (web app) in the httpOnly cookie set at login.
+         */
         post: operations["refresh_api_auth_v1_refresh_post"];
         delete?: never;
         options?: never;
@@ -480,7 +543,8 @@ export interface paths {
         put?: never;
         /**
          * Reset 2Fa
-         * @description Lost phone: turns 2FA off; the user sets it up again at the next login.
+         * @description Lost phone (owner only, `pin_token` from /pin/verify, action auth.mfa_reset): turns 2FA off and ends the
+         *     user's sessions; they set it up again at the next login if their role needs it.
          */
         post: operations["reset_2fa_api_auth_v1_users__user_id__2fa_reset_post"];
         delete?: never;
@@ -646,11 +710,6 @@ export interface components {
              */
             codes: string[];
         };
-        /** BackupCodesRequest */
-        BackupCodesRequest: {
-            /** Password */
-            password: string;
-        };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
             /** Current Password */
@@ -745,6 +804,12 @@ export interface components {
              */
             menu?: components["schemas"]["MenuItemOut"][];
             /**
+             * Mfa Required For Role
+             * @description This role cannot turn 2FA off
+             * @default false
+             */
+            mfa_required_for_role?: boolean;
+            /**
              * Mfa Setup Required
              * @default false
              */
@@ -831,6 +896,14 @@ export interface components {
         ResetPasswordRequest: {
             /** New Password */
             new_password: string;
+        };
+        /** ResetTwoFactorRequest */
+        ResetTwoFactorRequest: {
+            /**
+             * Pin Token
+             * @description /pin/verify, action auth.mfa_reset
+             */
+            pin_token?: string | null;
         };
         /** RoleCreate */
         RoleCreate: {
@@ -962,6 +1035,26 @@ export interface components {
         /** TwoFactorEnableRequest */
         TwoFactorEnableRequest: {
             /** Code */
+            code: string;
+        };
+        /**
+         * TwoFactorProof
+         * @description Your password and a 6-digit code or one backup code.
+         */
+        TwoFactorProof: {
+            /** Backup Code */
+            backup_code?: string | null;
+            /** Code */
+            code?: string | null;
+            /** Password */
+            password: string;
+        };
+        /** TwoFactorResetConfirm */
+        TwoFactorResetConfirm: {
+            /**
+             * Code
+             * @description From the new key
+             */
             code: string;
         };
         /** TwoFactorSetupResponse */
@@ -1105,7 +1198,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["BackupCodesRequest"];
+                "application/json": components["schemas"]["TwoFactorProof"];
             };
         };
         responses: {
@@ -1118,7 +1211,7 @@ export interface operations {
                     "application/json": components["schemas"]["BackupCodesOut"];
                 };
             };
-            /** @description INVALID_CREDENTIALS, NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED, SESSION_REVOKED */
+            /** @description INVALID_CREDENTIALS, INVALID_MFA_CODE, NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED, SESSION_REVOKED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -1126,7 +1219,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "INVALID_CREDENTIALS" | "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED" | "SESSION_REVOKED";
+                        code?: "INVALID_CREDENTIALS" | "INVALID_MFA_CODE" | "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED" | "SESSION_REVOKED";
                     };
                 };
             };
@@ -1178,7 +1271,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description PIN_LOCKED */
+            /** @description ACCOUNT_LOCKED, PIN_LOCKED */
             423: {
                 headers: {
                     [name: string]: unknown;
@@ -1186,7 +1279,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "PIN_LOCKED";
+                        code?: "ACCOUNT_LOCKED" | "PIN_LOCKED";
                     };
                 };
             };
@@ -1949,6 +2042,364 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    disable_2fa_api_auth_v1_me_2fa_disable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwoFactorProof"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description INVALID_CREDENTIALS, INVALID_MFA_CODE, NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED, SESSION_REVOKED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "INVALID_CREDENTIALS" | "INVALID_MFA_CODE" | "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED" | "SESSION_REVOKED";
+                    };
+                };
+            };
+            /** @description FORBIDDEN, MFA_REQUIRED_FOR_ROLE, MFA_SETUP_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "FORBIDDEN" | "MFA_REQUIRED_FOR_ROLE" | "MFA_SETUP_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description ACCOUNT_LOCKED, PIN_LOCKED */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "ACCOUNT_LOCKED" | "PIN_LOCKED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    reset_my_2fa_api_auth_v1_me_2fa_reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwoFactorProof"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoFactorSetupResponse"];
+                };
+            };
+            /** @description INVALID_CREDENTIALS, INVALID_MFA_CODE, NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED, SESSION_REVOKED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "INVALID_CREDENTIALS" | "INVALID_MFA_CODE" | "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED" | "SESSION_REVOKED";
+                    };
+                };
+            };
+            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description ACCOUNT_LOCKED, PIN_LOCKED */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "ACCOUNT_LOCKED" | "PIN_LOCKED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    confirm_my_2fa_reset_api_auth_v1_me_2fa_reset_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwoFactorResetConfirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupCodesOut"];
+                };
+            };
+            /** @description INVALID_CREDENTIALS, INVALID_MFA_CODE, NOT_AUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "INVALID_CREDENTIALS" | "INVALID_MFA_CODE" | "NOT_AUTHENTICATED";
+                    };
+                };
+            };
+            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description ACCOUNT_LOCKED */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "ACCOUNT_LOCKED";
                     };
                 };
             };
@@ -2783,9 +3234,9 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
-                "application/json": components["schemas"]["RefreshRequest"];
+                "application/json": components["schemas"]["RefreshRequest"] | null;
             };
         };
         responses: {
@@ -3815,7 +4266,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetTwoFactorRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             204: {
@@ -3824,7 +4279,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED, SESSION_REVOKED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3832,7 +4287,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED" | "SESSION_REVOKED";
                     };
                 };
             };
@@ -3869,6 +4324,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description PIN_LOCKED */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PIN_LOCKED";
                     };
                 };
             };

@@ -269,6 +269,8 @@ Pick is FEFO unless a line names batches with a reason. Receive takes `{"lines":
 
 **S8b:** **POST /api/sales/v1/carts/preview** (findings: hard_stop / requirement / warning / info, `can_post`; nothing saved) · catalog **POST /promotions/preview** (draft promotion + sample cart → preview + conflicts) · **POST /api/sales/v1/payments/khqr**, **GET /payments/khqr/{id}**, invoices pay with `{method: "KHQR", khqr_id}` · **GET /api/sales/v1/invoices/by-batches?batch_ids=** · purchasing **/supplier-returns** (+ **/{id}/submit** `{settle: credit|refund}`, **/{id}/cancel**) · inventory **/recalls** (+ **/{id}**, **/{id}/lines/{line}/return|destroy**, **/{id}/close**, **/{id}/lift**) · controlled **GET /entries/{id}** · catalog **GET /medicines/{id}/price-history** · documents `supplier_return`, `customer_statement`, receipts `lang` · auth **POST /2fa/backup-codes**, `/login/2fa` with `backup_code`, **GET /me/sessions**, **POST /me/sessions/{id}/revoke**. Every error response is `{code, message, details}` with its codes listed per status in the OpenAPI documents (`make openapi`).
 
+**2FA management:** auth **POST /me/2fa/disable**, **POST /me/2fa/reset**, **POST /me/2fa/reset/confirm**, **POST /2fa/backup-codes** (password + `code` or `backup_code`), **POST /users/{id}/2fa/reset** (owner, `pin_token`, action `auth.mfa_reset`). New error code MFA_REQUIRED_FOR_ROLE (403).
+
 **GET /api/inventory/v1/batches?branch\_id=&expiring\_within=90&status=active** — near-expiry list, sorted by expiry.
 
 **POST /api/prescription/v1/prescriptions** — patient, doctor, `rx_no`, `issued_on`, `valid_until`, and `items[]` (`medicine_id`, `qty_base` = one fill, `dosage`, `frequency`, `duration_days`, `repeats_allowed`). The photo is uploaded after: **POST /prescriptions/{id}/attachments** (JPEG/PNG/PDF ≤ 10 MB) and read back only through **GET /prescriptions/{id}/attachments/{att_id}** (checked and logged on every request).
@@ -384,7 +386,7 @@ Two layers: Traefik's RateLimit middleware per IP (coarse protection against flo
 **Logins and sessions**
 
 - Each staff member has their own account; shared POS devices switch user with a 4–6 digit PIN, so the audit log always names the real person.
-- 2FA (authenticator app) required for owner and branch managers.
+- 2FA (authenticator app) required for owner and branch managers; any other user may turn it on and off (password + code or backup code). Required roles cannot turn it off (MFA_REQUIRED_FOR_ROLE): they take a new key, and the old key works until the new one is confirmed. The owner resets another user's 2FA with their PIN. Off or reset: other sessions end, User Log entry, immediate alert to the owner's Telegram.
 - Access token 15 min, refresh token 7 days, rotated on use; a revocation list in Redis lets the owner log a user out everywhere.
 - POS screens lock after 5 minutes idle; deactivating a user revokes all their sessions at once.
 

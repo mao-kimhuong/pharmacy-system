@@ -36,6 +36,9 @@ export class RouteErrorBoundary extends Component<{ children: ReactNode }, { err
   static getDerivedStateFromError(error: unknown) {
     return { error };
   }
+  componentDidCatch(error: unknown) {
+    console.error('Page failed to render', error); // the screen says "try again"; the reason must stay findable
+  }
   render() {
     if (this.state.error) return <QueryState error={this.state.error} onRetry={() => this.setState({ error: null })} />;
     return this.props.children;

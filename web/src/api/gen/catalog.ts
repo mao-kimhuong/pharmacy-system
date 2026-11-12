@@ -1937,7 +1937,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1945,7 +1945,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
                     };
                 };
             };
@@ -2035,7 +2035,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2043,7 +2043,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
                     };
                 };
             };
@@ -2535,7 +2535,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2543,7 +2543,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
                     };
                 };
             };
@@ -2633,7 +2633,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2641,7 +2641,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
                     };
                 };
             };
@@ -5193,7 +5193,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5201,7 +5201,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
                     };
                 };
             };
@@ -5287,7 +5287,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5295,7 +5295,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
                     };
                 };
             };
@@ -5381,7 +5381,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5389,7 +5389,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
                     };
                 };
             };

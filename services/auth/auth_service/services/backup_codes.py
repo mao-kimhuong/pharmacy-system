@@ -28,12 +28,15 @@ def _normal(code: str) -> str:
     return "".join(ch for ch in code.upper() if ch.isalnum())
 
 
+async def retire(session: AsyncSession, user_id: UUID) -> None:
+    """The unused codes stop working (2FA off, reset, or a new set)."""
+    await session.execute(update(MfaBackupCode).where(MfaBackupCode.user_id == user_id, MfaBackupCode.used_at.is_(None),
+                                                      MfaBackupCode.retired_at.is_(None)).values(retired_at=clock.now()))  # fmt: skip
+
+
 async def regenerate(session: AsyncSession, user: User) -> list[str]:
     """A new set (the old one is retired). The caller commits and shows the codes once."""
-
-
-    await session.execute(update(MfaBackupCode).where(MfaBackupCode.user_id == user.id, MfaBackupCode.used_at.is_(None),
-                                                      MfaBackupCode.retired_at.is_(None)).values(retired_at=clock.now()))  # fmt: skip
+    await retire(session, user.id)
     codes = ["".join(secrets.choice(ALPHABET) for _ in range(LENGTH)) for _ in range(COUNT)]
     session.add_all(MfaBackupCode(user_id=user.id, hash=hash_password(c)) for c in codes)
     return [f"{c[:5]}-{c[5:]}" for c in codes]

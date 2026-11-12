@@ -60,6 +60,10 @@ async def handle_event(session: AsyncSession, event_type: str, p: dict[str, Any]
         text = texts.locked(who.name if who else "A user", "PIN" if event_type == "user.pin_locked" else "account")
         branch = p.get("branch_id") or ((who.branch_ids or [None])[0] if who else None)
         await _both(session, f"{event_type}:{message_id}", "lockout", branch, text, text)
+    elif event_type in ("user.2fa_disabled", "user.2fa_reset"):
+        who = await _staff(session, p.get("user_id"))
+        text = texts.two_factor(who.name if who else "A user", event_type == "user.2fa_disabled", str(p.get("by")))
+        await queue(session, get_settings(), key=f"{event_type}:{message_id}", target=OWNER, kind="security", text=text)
     elif event_type in ("stock.low", "batch.expiring"):
         ref = p.get("batch_id") if event_type == "batch.expiring" else p.get("medicine_id")
         await session.execute(insert(StockAlert).values(

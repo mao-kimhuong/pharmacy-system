@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import './i18n';
 import { App } from './app/App';
+import { watchChunkErrors } from './app/chunkReload';
 import { registerServiceWorker } from './app/pwa';
 
 createRoot(document.getElementById('root')!).render(
@@ -11,3 +12,4 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 );
 registerServiceWorker();
+watchChunkErrors();

@@ -18,6 +18,7 @@ from ..schemas.admin import (
     PermissionOut,
     ReasonRequest,
     ResetPasswordRequest,
+    ResetTwoFactorRequest,
     RoleCreate,
     RoleOut,
     RoleUpdate,
@@ -146,13 +147,15 @@ async def clear_pin(
 @router.post("/users/{user_id}/2fa/reset", status_code=204, tags=["users"])
 async def reset_2fa(
     user_id: UUID,
+    body: ResetTwoFactorRequest,
     request: Request,
     actor: CurrentUser = Depends(manage_users),
     session: AsyncSession = Depends(db.session),
     redis: Redis = Depends(get_redis),
 ) -> Response:
-    """Lost phone: turns 2FA off; the user sets it up again at the next login."""
-    await users_service.reset_2fa(session, redis, actor, user_id, client_info(request).ip)
+    """Lost phone (owner only, `pin_token` from /pin/verify, action auth.mfa_reset): turns 2FA off and ends the
+    user's sessions; they set it up again at the next login if their role needs it."""
+    await users_service.reset_2fa(session, redis, actor, user_id, body.pin_token, client_info(request).ip)
     return Response(status_code=204)
 
 

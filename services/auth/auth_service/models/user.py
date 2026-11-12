@@ -43,6 +43,7 @@ class User(IdMixin, TimestampMixin, Base):
     pin_locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # Two-factor login (authenticator app). The secret is stored encrypted.
     totp_secret_enc: Mapped[str | None] = mapped_column(String(255))
+    totp_pending_secret_enc: Mapped[str | None] = mapped_column(String(255))  # own reset: not live until confirmed
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     totp_last_step: Mapped[int | None] = mapped_column(BigInteger)  # blocks re-use of a code
     created_by: Mapped[UUID | None] = mapped_column(Uuid)

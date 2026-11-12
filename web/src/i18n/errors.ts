@@ -20,6 +20,7 @@ const OTHER: Record<string, ErrorText> = {
   PRESCRIPTION_STATE: E('error', 'This prescription cannot be used in its current status.', 'វេជ្ជបញ្ជានេះមិនអាចប្រើក្នុងស្ថានភាពបច្ចុប្បន្នទេ។'),
   DUPLICATE_THERAPY_WARNING: E('warning', 'The patient already has a medicine of the same kind. Check before you continue.', 'អ្នកជំងឺមានឱសថប្រភេទដូចគ្នារួចហើយ។ សូមពិនិត្យមុនបន្ត។'),
   ALLERGY_WARNING: E('warning', 'The patient is allergic to an ingredient of this medicine.', 'អ្នកជំងឺមានប្រតិកម្មអាឡែស៊ីនឹងសារធាតុក្នុងឱសថនេះ។'),
+  MFA_REQUIRED_FOR_ROLE: E('error', 'Your role must use two-factor login. You can only reset it.', 'តួនាទីរបស់អ្នកត្រូវប្រើការផ្ទៀងផ្ទាត់ពីរជំហាន។ អ្នកអាចកំណត់ឡើងវិញបានតែប៉ុណ្ណោះ។'),
   PIN_REQUIRED: E('warning', 'Enter your PIN to continue.', 'សូមបញ្ចូល PIN របស់អ្នកដើម្បីបន្ត។'),
   PIN_INVALID: E('error', 'The PIN is wrong or the approval has expired. Try again.', 'PIN មិនត្រឹមត្រូវ ឬការអនុម័តផុតកំណត់។ សូមព្យាយាមម្តងទៀត។'),
   WITNESS_REQUIRED: E('warning', 'A witness must confirm with their PIN.', 'សាក្សីត្រូវបញ្ជាក់ដោយ PIN របស់គេ។'),

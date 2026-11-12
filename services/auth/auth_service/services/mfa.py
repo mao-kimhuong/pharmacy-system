@@ -54,11 +54,15 @@ def qr_svg_data_uri(uri: str) -> str:
     return "data:image/svg+xml;base64," + base64.b64encode(out.getvalue()).decode()
 
 
-def check_code(user: User, code: str, settings: Settings, now: float | None = None) -> bool:
-    """True if the code is valid and not used before. Records the used step on the user."""
-    if not user.totp_secret_enc or not code or not code.isdigit() or len(code) != 6:
+def check_code(
+    user: User, code: str, settings: Settings, now: float | None = None, secret_enc: str | None = None
+) -> bool:
+    """True if the code is valid and not used before. Records the used step on the user.
+    `secret_enc`: check against this secret (a pending new key) instead of the live one."""
+    secret_enc = secret_enc or user.totp_secret_enc
+    if not secret_enc or not code or not code.isdigit() or len(code) != 6:
         return False
-    secret = decrypt_secret(user.totp_secret_enc, settings)
+    secret = decrypt_secret(secret_enc, settings)
     if secret is None:
         return False
     totp = pyotp.TOTP(secret)
