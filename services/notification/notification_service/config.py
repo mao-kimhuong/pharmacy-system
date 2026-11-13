@@ -47,6 +47,14 @@ class Settings(BaseServiceSettings):
     customers_url: str = "http://customers:8000"
     # Bot commands per chat and minute
     commands_per_minute: int = 10
+    # Phase 2 approvals: a tap is checked against auth (who, right now) and decided by the owning service
+    auth_url: str = "http://auth:8000"
+    inventory_url: str = "http://inventory:8000"
+    stockcount_url: str = "http://stockcount:8000"
+    purchasing_url: str = "http://purchasing:8000"
+    sales_url: str = "http://sales:8000"
+    # "Open in the app" buttons (Telegram only takes https links; otherwise the message says where to go)
+    web_url: str = "http://localhost"
 
     def check_telegram(self) -> None:
         """Production with a bot: the webhook secret must be a real one. Names the setting, never a value."""

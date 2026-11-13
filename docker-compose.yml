@@ -511,6 +511,7 @@ services:
       TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
       TELEGRAM_MODE: ${TELEGRAM_MODE:-webhook}
       TELEGRAM_LINK_SECRET: ${TELEGRAM_LINK_SECRET:-}
+      WEB_URL: ${WEB_URL:-http://localhost}
     depends_on: *service-deps
     labels:
       - traefik.enable=true

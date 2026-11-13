@@ -9,9 +9,24 @@ and the copies the customer messages need.
 """
 
 from datetime import date, datetime
+from decimal import Decimal
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import JSON, BigInteger, Boolean, Date, DateTime, Index, Integer, String, Uuid, func, text
+from sqlalchemy import (
+    JSON,
+    BigInteger,
+    Boolean,
+    Date,
+    DateTime,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Uuid,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from pharmacy_shared.db import IdMixin
@@ -137,6 +152,33 @@ class RefillReminder(Base):
     runs_out_on: Mapped[date] = mapped_column(Date)
     remind_on: Mapped[date] = mapped_column(Date, index=True)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Approval(IdMixin, Base):
+    """T2 phase 2: something waiting for a manager / the owner, with Telegram buttons when allowed there.
+    pending → approved | rejected | closed (decided in the app, cancelled, expired). Only the first decision counts
+    (row lock + the owning service's state)."""
+
+    __tablename__ = "approvals"
+    __table_args__ = (Index("uq_approvals_ref", "kind", "ref_id", unique=True),)
+
+    kind: Mapped[str] = mapped_column(String(20))  # shrinkage | count | transfer_request | purchase_request | discount
+    ref_id: Mapped[UUID] = mapped_column(Uuid)
+    number: Mapped[str] = mapped_column(String(40), default="")
+    branch_id: Mapped[UUID] = mapped_column(Uuid, index=True)
+    value_usd: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    controlled: Mapped[bool] = mapped_column(Boolean, default=False)
+    needs_pin: Mapped[bool] = mapped_column(Boolean, default=False)
+    needs_owner: Mapped[bool] = mapped_column(Boolean, default=False)
+    telegram_ok: Mapped[bool] = mapped_column(Boolean, default=False)  # buttons sent (else "open in the app")
+    requested_by: Mapped[UUID | None] = mapped_column(Uuid)
+    details: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(10), default="pending")
+    decided_by: Mapped[UUID | None] = mapped_column(Uuid)
+    decided_name: Mapped[str] = mapped_column(String(160), default="")
+    decided_via: Mapped[str] = mapped_column(String(10), default="")
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class Campaign(IdMixin, Base):

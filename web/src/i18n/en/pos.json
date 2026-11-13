@@ -139,6 +139,14 @@
     "lots": "Lots",
     "exp": "Exp {{date}}"
   },
+  "tg": {
+    "hint": "No manager at the till? Ask on Telegram: they tap Approve in their chat (this cart only, 10 minutes).",
+    "ask": "Ask on Telegram",
+    "waiting": "Waiting for a manager on Telegram… {{left}}",
+    "approved": "Approved on Telegram",
+    "rejected": "Rejected on Telegram",
+    "expired": "No answer in time: ask again"
+  },
   "find": {
     "pin": "Enter PIN",
     "approval": "Ask for approval",

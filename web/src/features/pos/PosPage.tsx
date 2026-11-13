@@ -23,6 +23,7 @@ import { PosLite } from './PosLite';
 import { SaleComplete } from './SaleComplete';
 import { ScanBox, type ScanBoxHandle } from './ScanBox';
 import { SuspendDialog } from './Suspend';
+import { AskTelegram } from './TelegramApproval';
 import { useFindingActions } from './useFindingActions';
 import { usePos } from './usePos';
 import { remainingAfterOthers } from './cart';
@@ -41,7 +42,8 @@ export function PosDialogs({ pos, dlg, setDlg }: { pos: ReturnType<typeof usePos
       {dlg.kind === 'rx' && <LinkRxDrawer line={line} onClose={() => setDlg({ kind: '' })} onLink={(rx) => line && pos.dispatch({ type: 'update', key: line.key, patch: { rx } })} onRemove={() => line && pos.dispatch({ type: 'remove', key: line.key })} />}
       <PinDialog open={dlg.kind === 'pin'} action="controlled.dispense" title={t('find.pin')} onClose={() => setDlg({ kind: '' })} onToken={(tk) => { pos.setPin(tk); setDlg({ kind: '' }); }} />
       <WitnessDialog open={dlg.kind === 'approval'} action="sales.discount" branchId={pos.branchId} ownPin={false} managerOnly={!roles.includes('pharmacist')}
-        title={t('find.approval')} onClose={() => setDlg({ kind: '' })} onTokens={({ witness }) => { pos.setApproval(witness); setDlg({ kind: '' }); toast.success(t('find.approved', { name: witness.name })); }} />
+        title={t('find.approval')} onClose={() => setDlg({ kind: '' })} onTokens={({ witness }) => { pos.setApproval(witness); setDlg({ kind: '' }); toast.success(t('find.approved', { name: witness.name })); }}
+        context={dlg.kind === 'approval' ? <AskTelegram body={pos.preview.body} onApproved={(tk) => { pos.setApproval(tk); setDlg({ kind: '' }); toast.success(t('tg.approved')); }} /> : null} />
       <SuspendDialog open={dlg.kind === 'suspend'} cart={pos.cart} branchId={pos.branchId} onClose={() => setDlg({ kind: '' })}
         onDone={(n) => { setDlg({ kind: '' }); pos.reset(); toast.success(t('suspend.done', { number: n })); }} />
       <KhqrDialog open={dlg.kind === 'khqr'} branchId={pos.branchId} amountUsd={Math.max(total, 0)} rate={pos.rate} onClose={() => setDlg({ kind: '' })}

@@ -12,6 +12,7 @@ from pharmacy_shared.copies import BranchCopyMixin, PackUnitCopyMixin, ProductCo
 from pharmacy_shared.numbering import DocSequenceMixin
 from pharmacy_shared.outbox import OutboxMixin
 
+from .approvals import DiscountApproval
 from .base import Base
 from .extras import (
     ORDER_STATUSES,
@@ -109,6 +110,7 @@ class ProductPackUnit(PackUnitCopyMixin, Base):
 
 
 __all__ = [
+    "DiscountApproval",
     "KhqrPayment",
     "KhqrReconcileIssue",
     "KhqrRefund",

@@ -154,30 +154,40 @@ async def create(
     return s
 
 
-async def approve(session: AsyncSession, actor: CurrentUser, shrinkage_id: UUID) -> Shrinkage:
+def _remote(s: Shrinkage, via: str | None) -> dict[str, Any]:
+    """T2: a decision from Telegram is never for a controlled medicine (PIN + witness: in the app)."""
+    if via and s.is_controlled:
+        raise AppError(ErrorCode.FORBIDDEN, "Controlled medicines: decide in the app", status_code=403)
+    return {"via": via} if via else {}
+
+
+async def approve(session: AsyncSession, actor: CurrentUser, shrinkage_id: UUID, via: str | None = None) -> Shrinkage:
     s = await get(session, actor, shrinkage_id, lock=True)
     if s.status != "pending_approval":
         raise _state(f"This shrinkage is {s.status.replace('_', ' ')}", s.status)
     if s.created_by == actor.id and not actor.is_owner:
         raise AppError(ErrorCode.FORBIDDEN, "Someone else must approve your own shrinkage", status_code=403)
+    extra = _remote(s, via)
     await lock_stock(session, s.branch_id, s.batch_id)
     s.decided_by, s.decided_at = actor.id, clock.now()
     await _post(session, actor, s)
     _event(session, s, "shrinkage.approved")
     audit(session, actor, "shrinkage.approved", "shrinkage", s.id, branch_id=s.branch_id,
-          after={"number": s.number, "value": str(s.value)})  # fmt: skip
+          after={"number": s.number, "value": str(s.value), **extra})  # fmt: skip
     await session.commit()
     return s
 
 
-async def reject(session: AsyncSession, actor: CurrentUser, shrinkage_id: UUID, reason: str) -> Shrinkage:
+async def reject(session: AsyncSession, actor: CurrentUser, shrinkage_id: UUID, reason: str,
+                 via: str | None = None) -> Shrinkage:  # fmt: skip
     s = await get(session, actor, shrinkage_id, lock=True)
     if s.status != "pending_approval":
         raise _state(f"This shrinkage is {s.status.replace('_', ' ')}", s.status)
+    extra = _remote(s, via)
     s.status, s.reject_reason, s.decided_by, s.decided_at = "rejected", clean(reason), actor.id, clock.now()
     _event(session, s, "shrinkage.rejected")
     audit(session, actor, "shrinkage.rejected", "shrinkage", s.id, branch_id=s.branch_id,
-          after={"number": s.number, "reason": s.reject_reason})  # fmt: skip
+          after={"number": s.number, "reason": s.reject_reason, **extra})  # fmt: skip
     await session.commit()
     return s
 

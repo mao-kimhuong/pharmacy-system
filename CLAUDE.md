@@ -485,6 +485,15 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   `customer_group.*` (`preferred_lang`, `is_clinic`), refill timing from prescription `rx.supply` (`units_per_dose` ×
   `doses_per_day`, else duration), `sale_order.ready` (sales `POST /sale-orders/{id}/ready`, `remaining_usd`), overdue from
   customers' `credit_terms_days` (`/internal/v1/customers/{id}/credit` → `overdue`, `oldest_due_on`).
+- **Telegram approvals (T2 phase 2):** `notification_service/services/approvals.py` (`approvals` table, one per kind + ref).
+  A tap (`ap:<id>:a|r`, `staff_bot.Hooks`) → linked staff user → auth `/internal/v1/users/{id}/access` (now, not a copy) →
+  the owning service's `/internal/v1/<thing>/{id}/decide` with `pharmacy_shared.approvals.DecideIn` (`acting_user()`,
+  the service's own approve / reject with `via="telegram"` → User Log `via`). New decide endpoints: inventory shrinkages
+  + transfer-requests, stockcount counts (new internal router), purchasing purchase-requests, sales discount-approvals
+  (`services/discount_approvals.py`; the till's token "tg:<id>" goes through `cart.approve_discount`). Events now carry
+  what the buttons need: `transfer_request.created` value / has_controlled / requested_by, `purchase_request.created`
+  value (last receipt cost, null if never received) / has_controlled, `count.submitted` needs_owner / needs_pin,
+  decided events `decided_by` + `via`.
 - **Supplier returns (purchasing, from S8b):** `PP1-SRN-…` draft → credited | refunded, or cancelled (only a draft,
   reason); `purchasing.return`. Submit (Idempotency-Key): inventory `/internal/v1/movements/supplier-return` (movement
   type `supplier_return`, once per line, the batch must be the supplier's; controlled: PIN + witness, action
@@ -536,7 +545,7 @@ API matches the spec, migration included, tests pass (`make test` and `make test
   upgrade" test DB errors (seen in catalog and sales tests): set `ssl=disable` explicitly for local and test DB
   connections (SSL stays configurable for production) and make the test DB fixture retry its first connect.
 - [ ] S10 AI – DeepSeek phase A
-- [ ] T2 Telegram – [x] 1 customers (link, consent, receipts, reminders, balance, promotions) · [ ] 2 approval buttons ·
+- [ ] T2 Telegram – [x] 1 customers (link, consent, receipts, reminders, balance, promotions) · [x] 2 approval buttons ·
   [ ] 3 bot commands · [ ] 4 operations alerts (heartbeat, opening, fridge sensors) · [ ] 5 partners (suppliers, clinics)
 
 Front end (`web/`, plan: `docs/plans/frontend-plan.md`, design handoff: `docs/design/`, how it works: `web/README.md`).

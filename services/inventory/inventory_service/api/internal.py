@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pharmacy_shared.approvals import VIA_TELEGRAM, DecideIn, acting_user
 from pharmacy_shared.internal import InternalCaller, internal_caller
 
 from ..db import db
@@ -28,7 +29,7 @@ from ..schemas.inventory import (
     SupplierReturnMove,
     SupplierReturnMoved,
 )
-from ..services import counting, recalls, transfers
+from ..services import counting, recalls, shrinkage, transfers
 from ..services import reservations as svc
 
 router = APIRouter()
@@ -185,3 +186,31 @@ async def supplier_return(
 ) -> dict:  # fmt: skip
     """Purchasing submits a supplier return: one supplier_return movement per line, once."""
     return await recalls.supplier_return_movement(session, caller, body.model_dump())
+
+
+# ---------------------------------------------------------------- T2: decided on Telegram (pharmacy_shared.approvals)
+
+
+@router.post("/shrinkages/{shrinkage_id}/decide")
+async def decide_shrinkage(shrinkage_id: UUID, body: DecideIn, caller: InternalCaller = Depends(internal_caller),
+                           session: AsyncSession = Depends(db.session)) -> dict:  # fmt: skip
+    """Approve / reject a pending shrinkage as the user who tapped (inventory.shrinkage_approve; the app's rules)."""
+    user = acting_user(body.actor)
+    user.require("inventory.shrinkage_approve")
+    if body.decision == "approve":
+        s = await shrinkage.approve(session, user, shrinkage_id, via=VIA_TELEGRAM)
+    else:
+        s = await shrinkage.reject(session, user, shrinkage_id, body.reason, via=VIA_TELEGRAM)
+    return {"status": s.status, "number": s.number}
+
+
+@router.post("/transfer-requests/{request_id}/decide")
+async def decide_transfer_request(request_id: UUID, body: DecideIn, caller: InternalCaller = Depends(internal_caller),
+                                  session: AsyncSession = Depends(db.session)) -> dict:  # fmt: skip
+    """Approve (→ the transfer) / reject a transfer request as the user who tapped (transfers.approve, source)."""
+    user = acting_user(body.actor)
+    if body.decision == "approve":
+        t = await transfers.approve_request(session, user, request_id, via=VIA_TELEGRAM)
+        return {"status": "approved", "number": t.number}
+    r = await transfers.decide_request(session, user, request_id, body.reason, "reject", via=VIA_TELEGRAM)
+    return {"status": r.status, "number": r.number}

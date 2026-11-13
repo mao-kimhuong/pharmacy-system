@@ -71,6 +71,9 @@ class AlertSettings(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     large_discount_pct: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("20"))
     large_discount_usd: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("10"))
+    # T2: Telegram approval buttons only up to this value (USD); above it "open in the app"
+    telegram_approval_max_usd: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("100"),
+                                                               server_default="100")  # fmt: skip
     updated_by: Mapped[UUID | None] = mapped_column(Uuid)
 
 

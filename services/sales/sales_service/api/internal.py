@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pharmacy_shared.approvals import VIA_TELEGRAM, DecideIn, acting_user
 from pharmacy_shared.auth import CurrentUser
 from pharmacy_shared.errors import AppError, ErrorCode
 from pharmacy_shared.internal import InternalCaller, internal_caller
@@ -13,6 +14,7 @@ from ..config import get_settings
 from ..db import db
 from ..models import KhqrPayment
 from ..schemas.preview import CartPreviewOut, InternalPreviewIn
+from ..services import discount_approvals
 from ..services.clients import Clients, get_clients
 from ..services.preview import preview
 
@@ -45,3 +47,11 @@ async def fake_pay(
     if p is None:
         raise AppError(ErrorCode.NOT_FOUND, "KHQR payment not found", status_code=404)
     FakeProvider.mark_paid(p.md5, p.amount)
+
+
+@router.post("/discount-approvals/{approval_id}/decide")
+async def decide_discount(approval_id: UUID, body: DecideIn, caller: InternalCaller = Depends(internal_caller),
+                          session: AsyncSession = Depends(db.session)) -> dict:  # fmt: skip
+    """T2: a manager / the owner approved or rejected on Telegram (the same rules as their PIN at the till)."""
+    a = await discount_approvals.decide(session, acting_user(body.actor), approval_id, body.decision, VIA_TELEGRAM)
+    return {"status": a.status}

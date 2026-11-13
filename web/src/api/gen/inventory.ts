@@ -6706,7 +6706,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description HAMPER_NOT_STOCKED, UNKNOWN_MEDICINE, VALIDATION_ERROR */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -6714,7 +6714,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "HAMPER_NOT_STOCKED" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR";
                     };
                 };
             };
@@ -6816,7 +6816,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description HAMPER_NOT_STOCKED, UNKNOWN_MEDICINE, VALIDATION_ERROR */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -6824,7 +6824,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "HAMPER_NOT_STOCKED" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR";
                     };
                 };
             };

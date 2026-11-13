@@ -70,6 +70,37 @@ function TwoFactorCard() {
   );
 }
 
+/** T2: link your own Telegram (approval buttons in the branch / owner chat, bot commands). */
+function TelegramCard() {
+  const { t } = useTranslation(['profile', 'common']);
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ['notifications', 'me'], queryFn: () => call(api.notifications.GET('/api/notifications/v1/me/telegram')) });
+  const token = useMutation({ mutationFn: () => call(api.notifications.POST('/api/notifications/v1/me/telegram/link-token')) });
+  const unlink = useMutation({ mutationFn: () => call(api.notifications.POST('/api/notifications/v1/me/telegram/unlink')), onSuccess: (d) => qc.setQueryData(['notifications', 'me'], d) });
+  const s = q.data;
+  return (
+    <Card title={<span id="telegram">Telegram</span>}>
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          {s && <StatusPill tone={s.linked ? 'success' : 'neutral'}>{s.linked ? t('tg.linked', { when: dateTime(s.linked_at) }) : t('tg.notLinked')}</StatusPill>}
+          <span className="ml-auto" />
+          {s && !s.linked && s.bot_configured && <Button variant="primary" loading={token.isPending} onClick={() => token.mutate()}>{t('tg.link')}</Button>}
+          {s?.linked && <Button variant="danger-outline" loading={unlink.isPending} onClick={() => unlink.mutate()}>{t('tg.unlink')}</Button>}
+        </div>
+        <span className="text-[13px] text-neutral-700">{s?.can_approve ? t('tg.approveHint') : t('tg.hint')}</span>
+        {s && !s.bot_configured && <span className="text-[12px] text-neutral-500">{t('tg.notConfigured')}</span>}
+        {token.data?.url && (
+          <p className="m-0 rounded-md bg-neutral-50 px-3 py-2 text-[13px]">
+            {t('tg.open', { when: dateTime(token.data.expires_at) })}{' '}
+            <a className="font-medium text-primary-700 underline" href={token.data.url} target="_blank" rel="noreferrer" onClick={() => setTimeout(() => void q.refetch(), 15_000)}>{token.data.url}</a>
+          </p>
+        )}
+        <ApiErrorAlert error={q.error ?? token.error ?? unlink.error} />
+      </div>
+    </Card>
+  );
+}
+
 function SessionsCard() {
   const { t } = useTranslation(['profile', 'common']);
   const qc = useQueryClient();
@@ -129,6 +160,7 @@ export default function ProfilePage() {
       </div>
       <h2 className="m-0 mt-2 text-[20px] leading-[28px] font-semibold">{t('security')}</h2>
       <TwoFactorCard />
+      <TelegramCard />
       <SessionsCard />
       <SetPinDialog open={pin} onClose={() => setPin(false)} onSaved={() => { toast.success(t('auth:pin.saved')); void reloadMe(); }} />
     </div>

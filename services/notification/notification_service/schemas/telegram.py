@@ -88,6 +88,13 @@ class ConsentsIn(BaseModel):
     consents: dict[Topic, bool] = Field(min_length=1)
 
 
+class MyTelegramOut(BaseModel):
+    linked: bool
+    linked_at: datetime | None
+    bot_configured: bool
+    can_approve: bool = Field(description="Has notifications.approve_via_telegram")
+
+
 class LinkTokenOut(BaseModel):
     url: str | None = Field(description="t.me deep link; null when no bot username is set")
     expires_at: datetime
@@ -140,6 +147,8 @@ class SettingsIn(BaseModel):
 
     large_discount_pct: Decimal = Field(gt=0, le=100, decimal_places=2)
     large_discount_usd: Decimal = Field(ge=0, max_digits=14, decimal_places=2)
+    telegram_approval_max_usd: Decimal = Field(default=Decimal("100"), ge=0, max_digits=14, decimal_places=2,
+                                               description="Telegram approval buttons only up to this value")  # fmt: skip
 
 
 class SettingsOut(SettingsIn):

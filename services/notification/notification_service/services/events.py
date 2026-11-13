@@ -21,12 +21,12 @@ from pharmacy_shared.copies import BRANCH_EVENTS
 
 from ..config import get_settings
 from ..models import AlertSettings, KnownBranch, Staff, StockAlert
-from . import customers, texts
+from . import approvals, customers, texts
 from .telegram import queue
 
 ROUTING_KEYS = ("branch.*", "user.*", "stock.low", "batch.expiring", "register.discrepancy", "register.chain_broken",
                 "invoice.created", "khqr.needs_refund", "khqr.review", "khqr.refunded", "khqr.reconciled",
-                "batch.recalled", *customers.ROUTING_KEYS)  # fmt: skip
+                "batch.recalled", *customers.ROUTING_KEYS, *approvals.ROUTING_KEYS)  # fmt: skip
 OWNER = "owner"
 
 
@@ -96,7 +96,7 @@ async def handle_event(session: AsyncSession, event_type: str, p: dict[str, Any]
     elif event_type == "invoice.created":
         await money_alerts(session, p)
         await customers.handle(session, get_settings(), event_type, p)
-    else:
+    elif not await approvals.handle(session, get_settings(), event_type, p):
         await customers.handle(session, get_settings(), event_type, p)
 
 

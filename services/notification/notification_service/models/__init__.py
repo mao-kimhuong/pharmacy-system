@@ -9,6 +9,7 @@ from .links import (
     DEFAULT_ON,
     ROLES,
     TOPICS,
+    Approval,
     BranchPrefs,
     Campaign,
     CustomerConsent,
@@ -31,7 +32,7 @@ class ProcessedMessage(ProcessedMessageMixin, Base):
     __tablename__ = "processed_messages"
 
 
-__all__ = ["DEFAULT_ON", "ROLES", "TOPICS", "AlertSettings", "Base", "BranchPrefs", "Campaign", "CustomerConsent",
+__all__ = ["DEFAULT_ON", "ROLES", "TOPICS", "AlertSettings", "Approval", "Base", "BranchPrefs", "Campaign", "CustomerConsent",
            "KnownBranch", "KnownCustomer", "KnownCustomerGroup", "LinkToken", "Message", "OutboxEvent",
            "PendingLink", "ProcessedMessage", "RefillReminder", "Staff", "StockAlert", "TelegramChat",
            "TelegramLink", "TelegramUpdate"]  # fmt: skip

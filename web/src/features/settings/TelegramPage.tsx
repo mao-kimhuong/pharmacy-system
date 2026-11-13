@@ -124,10 +124,10 @@ export function NotificationSettingsPage() {
   const { t } = useTranslation(['settings', 'common', 'nav']);
   const toast = useToast();
   const q = useQuery({ queryKey: ['notifications', 'settings'], queryFn: () => call(api.notifications.GET('/api/notifications/v1/settings')) });
-  const [v, setV] = useState({ pct: '', usd: '' });
-  useEffect(() => { if (q.data) setV({ pct: q.data.large_discount_pct, usd: q.data.large_discount_usd }); }, [q.data]);
+  const [v, setV] = useState({ pct: '', usd: '', tg: '' });
+  useEffect(() => { if (q.data) setV({ pct: q.data.large_discount_pct, usd: q.data.large_discount_usd, tg: String(q.data.telegram_approval_max_usd ?? '100') }); }, [q.data]);
   const save = useMutation({
-    mutationFn: () => call(api.notifications.PUT('/api/notifications/v1/settings', { body: { large_discount_pct: v.pct, large_discount_usd: v.usd } })),
+    mutationFn: () => call(api.notifications.PUT('/api/notifications/v1/settings', { body: { large_discount_pct: v.pct, large_discount_usd: v.usd, telegram_approval_max_usd: v.tg || '0' } })),
     onSuccess: () => toast.success(t('branches.saved')),
   });
   return (
@@ -135,9 +135,10 @@ export function NotificationSettingsPage() {
       <PageHeader crumb={t('nav:group.settings')} title={t('notify.title')} />
       <Alert tone="info">{t('notify.fixed')}</Alert>
       <Card>
-        <form className="grid grid-cols-1 items-end gap-3 tablet:grid-cols-[1fr_1fr_auto]" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
+        <form className="grid grid-cols-1 items-end gap-3 tablet:grid-cols-[1fr_1fr_1fr_auto]" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
           <Field label={t('notify.largePct')}>{(id) => <Input id={id} inputMode="decimal" suffix="%" disabled={!q.data} value={v.pct} onChange={(e) => setV({ ...v, pct: e.target.value.replace(/[^\d.]/g, '') })} />}</Field>
           <Field label={t('notify.largeUsd')}>{(id) => <Input id={id} inputMode="decimal" prefix="$" disabled={!q.data} value={v.usd} onChange={(e) => setV({ ...v, usd: e.target.value.replace(/[^\d.]/g, '') })} />}</Field>
+          <Field label={t('notify.tgLimit')} hint={t('notify.tgLimitHint')}>{(id, d) => <Input id={id} aria-describedby={d} inputMode="decimal" prefix="$" disabled={!q.data} value={v.tg} onChange={(e) => setV({ ...v, tg: e.target.value.replace(/[^\d.]/g, '') })} />}</Field>
           <Button type="submit" variant="primary" disabled={!q.data || !v.pct || !v.usd} loading={save.isPending}>{t('common:action.save')}</Button>
         </form>
         <ApiErrorAlert error={q.error ?? save.error} className="mt-3" />

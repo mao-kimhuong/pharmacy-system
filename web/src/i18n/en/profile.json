@@ -37,6 +37,16 @@
     "wrongPassword": "Wrong password.",
     "wrongCode": "The code is wrong or has expired."
   },
+  "tg": {
+    "linked": "Linked since {{when}}",
+    "notLinked": "Not linked",
+    "link": "Link my Telegram",
+    "unlink": "Unlink",
+    "open": "Open this on your phone and press Start (once, until {{when}}):",
+    "hint": "Link your Telegram to use the bot's commands.",
+    "approveHint": "Link your Telegram to approve requests with the buttons in your branch's chat, and to use the bot's commands.",
+    "notConfigured": "The Telegram bot is not set up on this server."
+  },
   "sessions": {
     "title": "Signed-in devices",
     "current": "This device",

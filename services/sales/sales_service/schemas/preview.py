@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Literal
 from uuid import UUID
@@ -106,3 +106,20 @@ class InternalPreviewIn(BaseModel):
 
     cart: CartPreviewIn
     draft_promotion: dict[str, Any]
+
+
+class DiscountApprovalOut(BaseModel):
+    """T2: a discount above the seller's cap asked on Telegram. approved → send discount_approval_token
+    "tg:<id>" with exactly this cart (within 10 minutes)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    status: Literal["pending", "approved", "rejected", "used"]
+    worst_pct: Decimal
+    cap_pct: Decimal
+    discount_usd: Decimal
+    needs_owner: bool
+    expires_at: datetime
+    decided_at: datetime | None
+    token: str | None = Field(default=None, description="When approved: the discount_approval_token for the sale")

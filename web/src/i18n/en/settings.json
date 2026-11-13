@@ -147,6 +147,8 @@
     "title": "Notification settings",
     "largePct": "Alert on manual discount above (%)",
     "largeUsd": "…or above (USD)",
+    "tgLimit": "Telegram approvals up to (USD)",
+    "tgLimitHint": "Above this, approve in the app. Never on Telegram: controlled medicines and anything needing a PIN.",
     "fixed": "The daily summary goes at 20:00, the stock digest at 07:30 (fixed in this version). Other alert settings and a preview are not in the API yet."
   },
   "features": {

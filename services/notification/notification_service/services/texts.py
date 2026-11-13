@@ -118,6 +118,61 @@ def khqr_reconciled(branch: str, p: dict[str, Any]) -> str:
     return f"🔎 {branch}: KHQR check of {p.get('date')}: {p.get('issues')} to look at ({body}). Sales → KHQR Refunds."
 
 
+# ------------------------------------------------------------------ T2 approvals (staff chats: Khmer, then English)
+
+APPROVAL_KIND = {
+    "shrinkage": ("ការកាត់ចេញពីស្តុក", "Shrinkage"),
+    "count": ("ការរាប់ស្តុក", "Stock take"),
+    "transfer_request": ("សំណើផ្ទេរ", "Transfer request"),
+    "purchase_request": ("សំណើទិញ", "Purchase request"),
+    "discount": ("ការបញ្ចុះតម្លៃលើសកំណត់", "Discount above the cap"),
+}
+WHY_APP = {
+    "controlled": ("ថ្នាំគ្រប់គ្រង", "controlled medicine"),
+    "pin": ("ត្រូវការ PIN", "needs a PIN"),
+    "limit": ("លើសដែនកំណត់ Telegram", "above the Telegram limit"),
+    "unknown": ("មិនដឹងតម្លៃ", "value not known"),
+}
+
+
+def approval(kind: str, branch: str, number: str, who: str, d: dict[str, Any], value: str | None,
+             why_app: str | None, link: str | None) -> str:  # fmt: skip
+    """value: only in the owner's chat when it is a cost (stock values); a discount amount shows everywhere."""
+    km, en = APPROVAL_KIND[kind]
+    if kind == "shrinkage":
+        what = (f"{d.get('qty_base')} · lot {d.get('lot_no')} · {d.get('reason')}",) * 2
+    elif kind == "count":
+        n = d.get("lines", 0)
+        what = (f"{n} ជួរមានភាពខុសគ្នា", f"{n} line(s) with a variance")
+    elif kind == "transfer_request":
+        n = d.get("lines", 0)
+        what = (f"{n} មុខ ពី {d.get('from')} ទៅ {d.get('to')}", f"{n} item(s) from {d.get('from')} to {d.get('to')}")
+    elif kind == "purchase_request":
+        n = d.get("lines", 0)
+        what = (f"{n} មុខ", f"{n} item(s)")
+    else:
+        what = (f"{d.get('pct')}% (កំណត់ {d.get('cap')}%) · {d.get('discount')} USD លើការលក់ {d.get('total')} USD",
+                f"{d.get('pct')}% (cap {d.get('cap')}%) · {d.get('discount')} USD on a {d.get('total')} USD sale")  # fmt: skip
+    lines = [f"🟡 ត្រូវការការអនុម័ត · {branch}", f"{km} {number} · {who}", what[0], "",
+             f"🟡 Approval needed · {branch}", f"{en} {number} by {who}", what[1]]  # fmt: skip
+    if value is not None:
+        lines.append(f"{'Discount' if kind == 'discount' else 'Value'}: {value} USD")
+    if why_app:
+        wk, we = WHY_APP[why_app]
+        lines.append(f"📱 {wk} – បើកក្នុងកម្មវិធី / {we} – open in the app" + (f": {link}" if link else ""))
+    return "\n".join(lines)
+
+
+def approval_done(status: str, name: str, at: str, via: str) -> str:
+    where = " (Telegram)" if via == "telegram" else (" (ក្នុងកម្មវិធី / in the app)" if via == "app" else "")
+    return {
+        "approved": f"✅ អនុម័តដោយ {name} · {at}{where} / Approved by {name} · {at}{where}",
+        "rejected": f"❌ បដិសេធដោយ {name} · {at}{where} / Rejected by {name} · {at}{where}",
+        "closed": f"✔️ បានបិទ · {at} / Closed · {at}",
+        "expired": f"⌛ ផុតពេល · {at} / Expired · {at}",
+    }[status]
+
+
 def recall(branch: str, p: dict[str, Any]) -> str:
     lots = ", ".join(p.get("lots") or [])
     return (f"⛔ {branch}: recall {p.get('number')} – {p.get('sku')} lot(s) {lots} blocked, "
