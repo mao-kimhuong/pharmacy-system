@@ -5,6 +5,7 @@
     "new": "New group",
     "discount": "Default discount %",
     "members": "Members",
+    "clinic": "Clinic (order status on Telegram)",
     "hidden": "Price level, default credit limit and promotion stacking are not group fields in the API."
   },
   "customers": {
@@ -19,7 +20,37 @@
     "limitPerm": "Only users allowed to set credit limits can change it.",
     "saved": "Customer saved",
     "empty": "No customers yet",
+    "lang": "Message language",
+    "terms": "Credit terms (days)",
+    "termsHint": "A credit invoice is due this many days after the sale.",
     "listHidden": "Oldest unpaid and deposits per customer are on the customer's page (no list fields in the API)."
+  },
+  "telegram": {
+    "title": "Telegram",
+    "linked": "Linked",
+    "notLinked": "Not linked",
+    "since": "since {{when}} · via {{via}}",
+    "via": { "receipt": "receipt QR", "statement": "statement QR", "counter": "counter QR" },
+    "consent": "Messages the customer allows",
+    "never": "never set",
+    "source": { "bot_start": "at Start", "bot_settings": "in the bot", "bot_stop": "/stop", "staff": "by staff" },
+    "topic": {
+      "receipts": "Receipts and refunds",
+      "reminders": "Refill reminders",
+      "balance": "Balance reminders",
+      "orders": "Orders",
+      "show_medicine_names": "Medicine names in reminders",
+      "marketing": "Promotions"
+    },
+    "marketingNote": "Only the customer can turn promotions on (in the bot).",
+    "showQr": "Show link QR",
+    "qrTitle": "Link Telegram",
+    "qrBody": "The customer scans this with their phone and presses Start. Valid once, until {{when}}.",
+    "unlink": "Unlink",
+    "unlinkTitle": "Unlink Telegram?",
+    "unlinkBody": "The customer gets no more messages and every consent is turned off.",
+    "notConfigured": "The Telegram bot is not set up (TELEGRAM_BOT_TOKEN / TELEGRAM_BOT_USERNAME).",
+    "saved": "Consent saved"
   },
   "detail": {
     "unpaid": "Unpaid invoices",
@@ -38,7 +69,7 @@
     "pdf": "Statement PDF",
     "used": "Used",
     "remaining": "Remaining",
-    "agingNote": "Debts have no due date in the API: age is counted from the invoice date."
+    "agingNote": "Age is counted from the invoice date; an invoice is overdue after the customer's credit terms."
   },
   "cpay": {
     "title": "Customer payments",

@@ -23,6 +23,7 @@ class GroupOut(BaseModel):
     name_en: str
     name_km: str
     default_discount_pct: Decimal
+    is_clinic: bool = False
     is_active: bool
 
 
@@ -32,6 +33,7 @@ class GroupCreate(BaseModel):
     name_en: str = Field(min_length=1, max_length=120, examples=["Clinic"])
     name_km: str = Field(default="", max_length=120)
     default_discount_pct: Pct = Decimal("0")
+    is_clinic: bool = Field(default=False, description="Clinics get order status and invoices on Telegram")
 
 
 class GroupUpdate(BaseModel):
@@ -40,6 +42,7 @@ class GroupUpdate(BaseModel):
     name_en: str | None = Field(default=None, min_length=1, max_length=120)
     name_km: str | None = Field(default=None, max_length=120)
     default_discount_pct: Pct | None = None
+    is_clinic: bool | None = None
 
 
 class CustomerOut(BaseModel):
@@ -52,6 +55,8 @@ class CustomerOut(BaseModel):
     group: GroupOut | None
     credit_limit: Decimal
     note: str
+    preferred_lang: str = "km"
+    credit_terms_days: int = 30
     is_active: bool
     created_at: datetime
     balance: Decimal | None = None
@@ -74,6 +79,8 @@ class CustomerCreate(BaseModel):
     group_id: UUID | None = None
     credit_limit: Limit = Field(default=Decimal("0"), description="Above 0 needs customers.credit_limit")
     note: str = Field(default="", max_length=1000)
+    preferred_lang: Literal["km", "en"] = Field(default="km", description="Language of Telegram messages")
+    credit_terms_days: int = Field(default=30, ge=0, le=365, description="A credit invoice is due this many days later")
 
 
 class CustomerUpdate(BaseModel):
@@ -85,6 +92,8 @@ class CustomerUpdate(BaseModel):
     group_id: UUID | None = None
     credit_limit: Limit | None = Field(default=None, description="Changing it needs customers.credit_limit")
     note: str | None = Field(default=None, max_length=1000)
+    preferred_lang: Literal["km", "en"] | None = None
+    credit_terms_days: int | None = Field(default=None, ge=0, le=365)
 
 
 class DebtOut(BaseModel):
@@ -254,3 +263,5 @@ class CreditStatus(BaseModel):
     balance: Decimal
     credit_limit: Decimal
     available: Decimal
+    overdue: Decimal = Field(default=Decimal("0"), description="Open debts past their due date (credit_terms_days)")
+    oldest_due_on: date | None = Field(default=None, description="Due date of the oldest open debt")

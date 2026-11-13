@@ -21,7 +21,8 @@ manage = requires("notifications.manage")
 
 
 def get_sender(request: Request) -> Sender:
-    return Sender(request.app.state.settings, getattr(request.app.state, "telegram_transport", None))
+    return Sender(request.app.state.settings, getattr(request.app.state, "telegram_transport", None),
+                  getattr(request.app.state, "documents_client", None))  # fmt: skip
 
 
 def get_reports(request: Request) -> InternalClient:

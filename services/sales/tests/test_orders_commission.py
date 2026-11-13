@@ -88,6 +88,30 @@ async def test_order_reserves_and_is_invoiced_in_parts_with_its_deposit(client, 
     assert deposit[0]["remaining"] == "5.00"
 
 
+async def test_ready_for_pickup_says_what_is_left_to_pay(client, customers_client) -> None:
+    """T2: sale_order.ready (the customer's Telegram): open lines at the order's prices minus the unused deposit."""
+    para = await add_product("PARA500")
+    await receive(para, [("A", "2028-01-31", 300)])
+    customer = await make_customer(customers_client)
+    q = await quote(client, customer, [(para, "box", 2)])  # 16.00
+    r = await client.post(f"{PREFIX}/sale-orders/{q['id']}/ready", headers=SELLER)
+    assert r.status_code == 409 and r.json()["code"] == "ORDER_STATE"  # a quote is not ready
+    o = await confirm(client, q, deposit={"method": "cash", "amount": "5.00"})
+    r = await client.post(f"{PREFIX}/sale-orders/{o['id']}/ready", headers=SELLER)
+    assert r.status_code == 200 and r.json()["ready_at"]
+    ready = [p for t, p in await outbox() if t == "sale_order.ready"]
+    assert ready[-1]["remaining_usd"] == "11.00" and ready[-1]["number"] == o["number"]
+    r = await client.post(f"{PREFIX}/sale-orders/{o['id']}/invoice", headers={**SELLER, "Idempotency-Key": "so-rdy-01"},
+                          json={"lines": [{"order_line_id": o["lines"][0]["id"], "qty": 1}],
+                                "payments": [{"method": "deposit", "amount": "5.00", "deposit_id": o["deposit_id"]},
+                                             {"method": "cash", "amount": "3.00"}]})  # fmt: skip
+    assert r.status_code == 201, r.text
+    await client.post(f"{PREFIX}/sale-orders/{o['id']}/ready", headers=SELLER)
+    assert [p for t, p in await outbox() if t == "sale_order.ready"][-1]["remaining_usd"] == "8.00"  # deposit used
+    no_orders = user("cashier", "pos.sell")
+    assert (await client.post(f"{PREFIX}/sale-orders/{o['id']}/ready", headers=no_orders)).status_code == 403
+
+
 async def test_reservation_expires_and_releases_the_stock(client, customers_client, monkeypatch) -> None:
     para = await add_product("PARA500")
     await receive(para, [("A", "2028-01-31", 100)])

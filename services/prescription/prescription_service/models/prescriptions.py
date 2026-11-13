@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import (
@@ -7,6 +8,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -88,6 +90,9 @@ class RxItem(IdMixin, Base):
     dosage: Mapped[str] = mapped_column(String(160), default="", server_default="")
     frequency: Mapped[str] = mapped_column(String(160), default="", server_default="")
     duration_days: Mapped[int | None] = mapped_column(Integer)
+    # T2: structured dose for refill reminders (days of supply = qty ÷ (units per dose × doses per day))
+    units_per_dose: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
+    doses_per_day: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
     repeats_allowed: Mapped[int] = mapped_column(Integer, default=0)
     dispensed_base: Mapped[int] = mapped_column(Integer, default=0)
     held_base: Mapped[int] = mapped_column(Integer, default=0)

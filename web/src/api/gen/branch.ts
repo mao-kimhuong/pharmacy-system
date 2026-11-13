@@ -252,6 +252,10 @@ export interface components {
             };
             /** Near Expiry Transfer Days */
             near_expiry_transfer_days: number;
+            /** Opening Hours */
+            opening_hours?: {
+                [key: string]: string[];
+            } | null;
             /** Order Deposit On Cancel */
             order_deposit_on_cancel: string;
             /** Owner Approval Above Usd */
@@ -264,6 +268,11 @@ export interface components {
             receipt_header: string;
             /** Receipt Lang */
             receipt_lang: string;
+            /**
+             * Refill Reminder Days
+             * @default 3
+             */
+            refill_reminder_days?: number;
             /** Reorder Lead Days */
             reorder_lead_days: number;
             /** Reorder Safety Days */
@@ -309,6 +318,23 @@ export interface components {
             /** Near Expiry Transfer Days */
             near_expiry_transfer_days?: number | null;
             /**
+             * Opening Hours
+             * @description Per weekday [open, close] (HH:MM, Phnom Penh); a day left out is closed
+             * @example {
+             *       "mon": [
+             *         "07:00",
+             *         "21:00"
+             *       ],
+             *       "sun": [
+             *         "08:00",
+             *         "12:00"
+             *       ]
+             *     }
+             */
+            opening_hours?: {
+                [key: string]: string[];
+            } | null;
+            /**
              * Order Deposit On Cancel
              * @description A cancelled sale order's deposit: stays as credit, refunded, or kept by the shop
              */
@@ -329,6 +355,11 @@ export interface components {
              * @description Receipts and A4 invoices
              */
             receipt_lang?: ("km" | "en") | null;
+            /**
+             * Refill Reminder Days
+             * @description Telegram refill reminder this many days before
+             */
+            refill_reminder_days?: number | null;
             /**
              * Reorder Lead Days
              * @description Default supplier lead time

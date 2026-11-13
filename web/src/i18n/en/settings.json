@@ -74,6 +74,12 @@
     "ctlRxDays": "Controlled Rx valid (days, max 7)",
     "labelSize": "Dispensing label size",
     "expiryAlert": "Expiry alerts (days, comma separated)",
+    "refillDays": "Telegram refill reminder (days before)",
+    "hours": "Opening hours",
+    "hoursHint": "Phnom Penh time. Used for the till-offline and late-opening alerts; none set = no such alerts.",
+    "opens": "opens",
+    "closes": "closes",
+    "day": { "mon": "Monday", "tue": "Tuesday", "wed": "Wednesday", "thu": "Thursday", "fri": "Friday", "sat": "Saturday", "sun": "Sunday" },
     "openedPacks": "Take back opened packs",
     "priceOverride": "Allow price override",
     "doubleCount": "Double count above (USD)",
@@ -126,7 +132,16 @@
       "queued": "Queued",
       "failed": "Failed",
       "skipped": "Skipped"
-    }
+    },
+    "role": { "customer": "Customer", "supplier": "Supplier", "staff": "Staff", "chat": "Bot reply" },
+    "privateNote": "Customer and supplier messages show only a summary here, never their text.",
+    "campaign": "Promotion on Telegram",
+    "campaignHint": "Goes to linked customers who allow promotions, at most 2 a month each, between 07:00 and 21:00.",
+    "campaignTitle": "Title (for the log)",
+    "textKm": "Text in Khmer",
+    "textEn": "Text in English",
+    "campaignSend": "Send to customers",
+    "campaignDone": "Queued for {{queued}} customers; {{over}} skipped (already 2 this month)."
   },
   "notify": {
     "title": "Notification settings",

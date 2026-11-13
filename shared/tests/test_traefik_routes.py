@@ -89,3 +89,13 @@ def test_payway_callback_is_public_but_limited_and_nothing_else_in_sales_is() ->
     assert "auth-forward" not in router["middlewares"] and "ratelimit-per-ip" in router["middlewares"]
     for path in ("/api/sales/v1/payments/payway/callbackX", "/api/sales/v1/payments/khqr/refunds"):
         assert "auth-forward" in _router_for(path)[1]["middlewares"]
+
+
+def test_telegram_webhook_is_public_but_limited_and_nothing_else_in_notification_is() -> None:
+    # Telegram cannot log in: the service checks X-Telegram-Bot-Api-Secret-Token itself
+    name, router = _router_for("/api/notifications/v1/telegram/webhook")
+    assert name == "notification-telegram"
+    assert "auth-forward" not in router["middlewares"] and "ratelimit-per-ip" in router["middlewares"]
+    for path in ("/api/notifications/v1/telegram/webhookX", "/api/notifications/v1/campaigns",
+                 "/api/notifications/v1/customers/x/telegram"):  # fmt: skip
+        assert "auth-forward" in _router_for(path)[1]["middlewares"]

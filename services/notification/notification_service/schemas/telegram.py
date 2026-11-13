@@ -1,8 +1,9 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class ChatIn(BaseModel):
@@ -28,6 +29,8 @@ class TestIn(BaseModel):
 
 
 class MessageOut(BaseModel):
+    """Customer and supplier messages: `text` is always empty here, `summary` says what was sent."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
@@ -39,6 +42,97 @@ class MessageOut(BaseModel):
     sent_at: datetime | None
     created_at: datetime
     text: str
+    chat_role: str = "branch"
+    summary: str = ""
+    next_attempt_at: datetime | None = None
+
+    @model_validator(mode="after")
+    def _private(self) -> "MessageOut":
+        if self.chat_role in ("customer", "supplier"):
+            self.text = ""
+            self.target = self.target.split(":")[0]  # no record id in the log either
+        return self
+
+
+Topic = Literal["receipts", "reminders", "balance", "orders", "show_medicine_names", "marketing"]
+
+
+class ConsentOut(BaseModel):
+    topic: Topic
+    granted: bool
+    source: str | None = Field(description="bot_start | bot_settings | bot_stop | staff; null: never set")
+    changed_at: datetime | None
+
+
+class TelegramLinkOut(BaseModel):
+    id: UUID
+    via: str
+    label: str
+    linked_at: datetime
+
+
+class CustomerTelegramOut(BaseModel):
+    customer_id: UUID
+    linked: bool
+    links: list[TelegramLinkOut]
+    consents: list[ConsentOut]
+    bot_configured: bool = Field(description="A bot token and username are set")
+
+
+class ConsentsIn(BaseModel):
+    """Staff record what the customer asked for at the counter. Marketing can only be turned ON by the
+    customer (in the bot); staff may turn it off."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    consents: dict[Topic, bool] = Field(min_length=1)
+
+
+class LinkTokenOut(BaseModel):
+    url: str | None = Field(description="t.me deep link; null when no bot username is set")
+    expires_at: datetime
+
+
+class ReasonIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str = Field(min_length=1, max_length=255)
+
+
+class CampaignIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(min_length=1, max_length=120)
+    text_km: str = Field(min_length=1, max_length=900)
+    text_en: str = Field(min_length=1, max_length=900)
+    promotion_id: UUID | None = None
+
+
+class CampaignOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    title: str
+    promotion_id: UUID | None
+    queued: int = Field(description="Customers it was queued for (marketing consent, under the monthly cap)")
+    over_cap: int = Field(description="Customers skipped: already 2 promotions this month")
+    created_at: datetime
+
+
+class InternalLinkIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    customer_id: UUID
+    ref: str = Field(min_length=1, max_length=80, description="invoice:<id> or statement:<customer>:<day>")
+    via: Literal["receipt", "statement"]
+
+
+class InternalLinkOut(BaseModel):
+    url: str | None = Field(description="null: bot not set up, customer unknown / inactive, or already linked")
+
+
+class WebhookOk(BaseModel):
+    ok: bool = True
 
 
 class SettingsIn(BaseModel):

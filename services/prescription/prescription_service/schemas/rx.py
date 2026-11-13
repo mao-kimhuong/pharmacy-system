@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -167,6 +168,10 @@ class RxItemIn(BaseModel):
     dosage: str = Field(default="", max_length=160, examples=["1 tablet"])
     frequency: str = Field(default="", max_length=160, examples=["3 times a day after meals"])
     duration_days: int | None = Field(default=None, ge=1, le=3650)
+    units_per_dose: Decimal | None = Field(default=None, gt=0, le=1000, max_digits=8, decimal_places=2,
+                                           description="Base units per dose (refill reminders)")  # fmt: skip
+    doses_per_day: Decimal | None = Field(default=None, gt=0, le=48, max_digits=5, decimal_places=2,
+                                          description="Doses a day, e.g. 3; 0.5 = every other day")  # fmt: skip
     repeats_allowed: int = Field(default=0, ge=0, le=12, description="Refills after the first fill")
 
 
@@ -206,6 +211,8 @@ class RxItemOut(BaseModel):
     dosage: str
     frequency: str
     duration_days: int | None
+    units_per_dose: Decimal | None = None
+    doses_per_day: Decimal | None = None
     repeats_allowed: int
     repeats_used: int
     allowed_base: int

@@ -25,7 +25,7 @@ from pharmacy_shared.internal import InternalClient
 
 from ..config import Settings
 from ..models import KnownBranch, StockAlert
-from . import texts
+from . import customers, texts
 from .telegram import Sender, chat_for, queue
 
 log = logging.getLogger(__name__)
@@ -128,4 +128,45 @@ def schedulers(db: Database, settings: Settings) -> list:
             except TimeoutError:
                 pass
 
-    return [summary, digest, send]
+    customers_client = InternalClient(settings.customers_url, settings.service_name, settings.service_token)
+
+    async def refills(stop: asyncio.Event) -> None:
+        await _daily(db, stop, settings.refill_hour, 0, lambda s, d: customers.refill_job(s, settings, d),
+                     "refill reminders")  # fmt: skip
+
+    async def balances(stop: asyncio.Event) -> None:
+        await _daily(db, stop, settings.refill_hour, 5,
+                     lambda s, d: customers.balance_job(s, settings, customers_client, d), "balance reminders")  # fmt: skip
+
+    tasks = [summary, digest, send, refills, balances]
+    if settings.telegram_mode == "polling" and settings.telegram_bot_token:
+        tasks.append(lambda stop: poll_updates(db, settings, sender, stop))
+    return tasks
+
+
+async def poll_updates(db: Database, settings: Settings, sender: Sender, stop: asyncio.Event) -> None:
+    """Development without a public URL: getUpdates (long poll) instead of the webhook. Same handler."""
+    from . import bot
+
+    await sender.call("deleteWebhook", {"drop_pending_updates": False})
+    offset = 0
+    while not stop.is_set():
+        try:
+            status, body = await sender.call("getUpdates", {"offset": offset, "timeout": 25,
+                                                            "allowed_updates": ["message", "callback_query"]})  # fmt: skip
+            for update in body.get("result") or [] if status == 200 else []:
+                offset = max(offset, int(update["update_id"]) + 1)
+                async with db.sessionmaker() as session:
+                    made = await bot.handle_update(session, settings, sender, update, bot.HOOKS)
+                    await session.commit()
+                    await bot.send_now(session, sender, made)
+            if status != 200:
+                await asyncio.wait_for(stop.wait(), timeout=10)
+        except TimeoutError:
+            pass
+        except Exception:  # noqa: BLE001 – keep polling
+            log.exception("telegram polling failed")
+            try:
+                await asyncio.wait_for(stop.wait(), timeout=10)
+            except TimeoutError:
+                pass

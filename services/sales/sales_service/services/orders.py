@@ -28,7 +28,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pharmacy_shared import clock
@@ -42,6 +42,7 @@ from ..models import (
     BranchSettingsCopy,
     DocSequence,
     Invoice,
+    InvoicePayment,
     KnownBranch,
     KnownCustomer,
     OutboxEvent,
@@ -63,6 +64,18 @@ def _state(order: SaleOrder) -> AppError:
                     status_code=409, details={"status": order.status})  # fmt: skip
 
 
+async def remaining_usd(session: AsyncSession, o: SaleOrder) -> Decimal:
+    """What the customer still pays at pickup: the open lines (at the order's net prices) minus the part of the
+    deposit not used by the order's invoices yet."""
+    open_value = sum(((x.line_total - x.promo_discount) * x.qty_open / x.qty for x in o.lines if x.qty),
+                     Decimal("0"))  # fmt: skip
+    used = (await session.execute(select(func.coalesce(func.sum(InvoicePayment.amount_usd), 0)).join(
+        Invoice, Invoice.id == InvoicePayment.invoice_id).where(
+        Invoice.sale_order_id == o.id, Invoice.status == "completed", InvoicePayment.method == "deposit"))).scalar_one()  # fmt: skip
+    left = max(o.deposit_usd - Decimal(used), Decimal("0"))
+    return max(money.usd(open_value) - left, Decimal("0.00"))
+
+
 async def payload(session: AsyncSession, o: SaleOrder) -> dict[str, Any]:
     branch = await session.get(KnownBranch, o.branch_id)
     customer = await session.get(KnownCustomer, o.customer_id)
@@ -76,7 +89,8 @@ async def payload(session: AsyncSession, o: SaleOrder) -> dict[str, Any]:
         "reserve_until": o.reserve_until.isoformat() if o.reserve_until else None,
         "deposit_usd": str(o.deposit_usd), "subtotal": str(o.subtotal), "discount": str(o.discount),
         "total": str(o.total), "created_at": o.created_at.isoformat() if o.created_at else None,
-        "cancel_reason": o.cancel_reason,
+        "cancel_reason": o.cancel_reason, "ready_at": o.ready_at.isoformat() if o.ready_at else None,
+        "remaining_usd": str(await remaining_usd(session, o)),
         "lines": [{"line_no": x.line_no, "medicine_id": str(x.medicine_id), "sku": x.sku, "name": x.name,
                    "name_km": x.name_km, "pack_unit": x.pack_unit, "qty": x.qty, "qty_invoiced": x.qty_invoiced,
                    "unit_price": str(x.unit_price), "line_total": str(x.line_total),
@@ -172,6 +186,20 @@ async def confirm(session: AsyncSession, actor: CurrentUser, clients: Clients, o
     audit(session, actor, "sale_order.ordered", "sale_order", o.id, branch_id=o.branch_id, after={
         "number": o.number, "reserve_until": o.reserve_until.isoformat() if o.reserve_until else None,
         "deposit": str(o.deposit_usd) if o.deposit_id else None})  # fmt: skip
+    await session.commit()
+    return o
+
+
+async def mark_ready(session: AsyncSession, actor: CurrentUser, order_id: UUID) -> SaleOrder:
+    """The goods are packed: sale_order.ready (the customer's Telegram, with what is left to pay). Again
+    later (more arrived): a new ready time and a new message."""
+    o = await get(session, actor, order_id, lock=True)
+    if o.status not in OPEN:
+        raise _state(o)
+    o.ready_at = clock.now()
+    await _publish(session, o, "sale_order.ready")
+    audit(session, actor, "sale_order.ready", "sale_order", o.id, branch_id=o.branch_id,
+          after={"number": o.number, "remaining": str(await remaining_usd(session, o))})  # fmt: skip
     await session.commit()
     return o
 

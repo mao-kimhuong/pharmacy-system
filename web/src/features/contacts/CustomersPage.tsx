@@ -13,21 +13,24 @@ import { QueryState } from '@/app/RouteError';
 import { Alert, ApiErrorAlert, BranchTag, Button, Card, Checkbox, DataTable, DefinitionList, Dialog, Field, Input, PageHeader, ReasonDialog, Select, SkeletonRows, StatusPill, Tabs, TextArea, Usd, hasField, useDebounced, usePdf } from '@/design';
 import { addDays, date, dateTime, daysUntil, todayIso } from '@/lib/format';
 import { usePaging } from '../shared/hooks';
+import { CustomerTelegram } from './CustomerTelegram';
 
 type Customer = CustomersS['CustomerOut'];
-interface Form { phone: string; name: string; name_km: string; group_id: string; credit_limit: string; note: string }
+interface Form { phone: string; name: string; name_km: string; group_id: string; credit_limit: string; note: string; preferred_lang: 'km' | 'en'; credit_terms_days: string }
 
 function CustomerForm({ initial, onClose }: { initial: Customer | null; onClose: () => void }) {
   const { t, i18n } = useTranslation(['contacts', 'common']);
   const user = useUser();
   const qc = useQueryClient();
   const nav = useNavigate();
-  const [v, setV] = useState<Form>({ phone: initial?.phone ?? '', name: initial?.name ?? '', name_km: initial?.name_km ?? '', group_id: initial?.group?.id ?? '', credit_limit: initial?.credit_limit ?? '0', note: initial?.note ?? '' });
+  const [v, setV] = useState<Form>({ phone: initial?.phone ?? '', name: initial?.name ?? '', name_km: initial?.name_km ?? '', group_id: initial?.group?.id ?? '', credit_limit: initial?.credit_limit ?? '0', note: initial?.note ?? '',
+    preferred_lang: initial?.preferred_lang === 'en' ? 'en' : 'km', credit_terms_days: String(initial?.credit_terms_days ?? 30) });
   const groups = useQuery({ queryKey: ['contacts', 'customer', 'groups'], queryFn: () => call(api.customers.GET('/api/customers/v1/customer-groups')) });
   const canLimit = user.has('customers.credit_limit');
   const m = useMutation({
     mutationFn: () => {
-      const body = { phone: v.phone, name: v.name, name_km: v.name_km, group_id: v.group_id || null, note: v.note, ...(canLimit ? { credit_limit: v.credit_limit || '0' } : {}) };
+      const body = { phone: v.phone, name: v.name, name_km: v.name_km, group_id: v.group_id || null, note: v.note, preferred_lang: v.preferred_lang,
+        credit_terms_days: Number(v.credit_terms_days || 0), ...(canLimit ? { credit_limit: v.credit_limit || '0' } : {}) };
       return initial ? call(api.customers.PATCH('/api/customers/v1/customers/{customer_id}', { params: { path: { customer_id: initial.id } }, body })) : call(api.customers.POST('/api/customers/v1/customers', { body }));
     },
     onSuccess: (c) => { void qc.invalidateQueries({ queryKey: ['customers'] }); onClose(); if (!initial) nav(`/contacts/customers/${c.id}`); },
@@ -41,6 +44,8 @@ function CustomerForm({ initial, onClose }: { initial: Customer | null; onClose:
         <Field label={t('common:label.phone')} required>{(id) => <Input id={id} type="tel" prefix="+855" value={v.phone} onChange={(e) => setV({ ...v, phone: e.target.value })} />}</Field>
         <Field label={t('customers.group')}>{(id) => <Select id={id} value={v.group_id} onChange={(e) => setV({ ...v, group_id: e.target.value })}><option value="">—</option>{groups.data?.filter((g) => g.is_active).map((g) => <option key={g.id} value={g.id}>{i18n.language === 'km' && g.name_km ? g.name_km : g.name_en}</option>)}</Select>}</Field>
         <Field label={t('customers.limit')} hint={canLimit ? undefined : t('customers.limitPerm')}>{(id, d) => <Input id={id} aria-describedby={d} prefix="$" inputMode="decimal" disabled={!canLimit} value={v.credit_limit} onChange={(e) => setV({ ...v, credit_limit: e.target.value.replace(/[^\d.]/g, '') })} />}</Field>
+        <Field label={t('customers.terms')} hint={t('customers.termsHint')}>{(id, d) => <Input id={id} aria-describedby={d} inputMode="numeric" value={v.credit_terms_days} onChange={(e) => setV({ ...v, credit_terms_days: e.target.value.replace(/\D/g, '').slice(0, 3) })} />}</Field>
+        <Field label={t('customers.lang')}>{(id) => <Select id={id} value={v.preferred_lang} onChange={(e) => setV({ ...v, preferred_lang: e.target.value === 'en' ? 'en' : 'km' })}><option value="km">ខ្មែរ</option><option value="en">English</option></Select>}</Field>
         <Field label={t('customers.note')} className="col-span-2">{(id) => <TextArea id={id} rows={2} value={v.note} onChange={(e) => setV({ ...v, note: e.target.value })} />}</Field>
         <ApiErrorAlert error={m.error} className="col-span-2" />
       </div>
@@ -131,9 +136,12 @@ export function CustomerDetailPage() {
           { label: t('customers.group'), value: c.group ? (km && c.group.name_km ? c.group.name_km : c.group.name_en) : '—' },
           { label: t('customers.limit'), value: <Usd value={c.credit_limit} /> },
           ...(hasField(c, 'balance') ? [{ label: t('customers.balance'), value: <Usd value={c.balance} strong /> }, { label: t('customers.available'), value: <Usd value={c.available_credit} /> }] : []),
+          { label: t('customers.terms'), value: c.credit_terms_days ?? 30 },
+          { label: t('customers.lang'), value: c.preferred_lang === 'en' ? 'English' : 'ខ្មែរ' },
           { label: t('customers.note'), value: c.note || '—' },
         ]} />
       </Card>
+      <CustomerTelegram customerId={c.id} />
       <Tabs value={tab} onChange={setTab} tabs={[{ value: 'unpaid', label: t('detail.unpaid') }, { value: 'statement', label: t('detail.statement') }, { value: 'deposits', label: t('detail.deposits') }, { value: 'payments', label: t('detail.payments') }]} />
       {tab === 'unpaid' && (<>
         <span className="text-[12px] text-neutral-500">{t('detail.agingNote')}</span>

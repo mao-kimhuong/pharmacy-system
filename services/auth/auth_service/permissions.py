@@ -103,6 +103,8 @@ CATALOG: tuple[PermissionDef, ...] = (
     P("settings.roles", "Settings", "Manage roles and permissions"),
     P("settings.audit_log", "Settings", "See the User Log"),
     P("notifications.manage", "Settings", "Telegram chats and alerts"),
+    P("notifications.customers", "Settings", "Customer Telegram: links, consent, promotions"),
+    P("notifications.approve_via_telegram", "Settings", "Approve requests with Telegram buttons"),
     P("settings.branches", "Settings", "Create and edit branches"),
     P("settings.branch_settings", "Settings", "Edit settings of own branches"),
     P("settings.features", "Settings", "Turn features on or off"),

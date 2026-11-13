@@ -20,6 +20,10 @@ class Settings(BaseServiceSettings):
     controlled_url: str = "http://controlled:8000"
     # The customer statement PDF reads the statement from the customers service (/internal/v1)
     customers_url: str = "http://customers:8000"
+    # T2: the Telegram link (QR) on receipts, A4 invoices and statements of customers not linked yet. Asked of
+    # the notification service with a short timeout; no answer = printed without the QR.
+    notification_url: str = "http://notification:8000"
+    telegram_link_timeout: float = 1.5
 
 
 @lru_cache

@@ -5,6 +5,21 @@ from pharmacy_shared.consumer import ProcessedMessageMixin
 from pharmacy_shared.outbox import OutboxMixin
 
 from .base import Base
+from .links import (
+    DEFAULT_ON,
+    ROLES,
+    TOPICS,
+    BranchPrefs,
+    Campaign,
+    CustomerConsent,
+    KnownCustomer,
+    KnownCustomerGroup,
+    LinkToken,
+    PendingLink,
+    RefillReminder,
+    TelegramLink,
+    TelegramUpdate,
+)
 from .telegram import AlertSettings, KnownBranch, Message, Staff, StockAlert, TelegramChat
 
 
@@ -16,5 +31,7 @@ class ProcessedMessage(ProcessedMessageMixin, Base):
     __tablename__ = "processed_messages"
 
 
-__all__ = ["AlertSettings", "Base", "KnownBranch", "Message", "OutboxEvent", "ProcessedMessage", "Staff",
-           "StockAlert", "TelegramChat"]  # fmt: skip
+__all__ = ["DEFAULT_ON", "ROLES", "TOPICS", "AlertSettings", "Base", "BranchPrefs", "Campaign", "CustomerConsent",
+           "KnownBranch", "KnownCustomer", "KnownCustomerGroup", "LinkToken", "Message", "OutboxEvent",
+           "PendingLink", "ProcessedMessage", "RefillReminder", "Staff", "StockAlert", "TelegramChat",
+           "TelegramLink", "TelegramUpdate"]  # fmt: skip

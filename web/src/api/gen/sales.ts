@@ -707,6 +707,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sales/v1/sale-orders/{order_id}/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ready
+         * @description Ready for pickup (ordered / partly fulfilled): the customer gets a Telegram message with what is
+         *     left to pay (if linked and they allow order messages). Again later: a new message.
+         */
+        post: operations["ready_api_sales_v1_sale_orders__order_id__ready_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sales/v1/sale-templates": {
         parameters: {
             query?: never;
@@ -1806,6 +1827,8 @@ export interface components {
             note: string;
             /** Number */
             number: string;
+            /** Ready At */
+            ready_at?: string | null;
             /** Reservation Released At */
             reservation_released_at: string | null;
             /** Reserve Until */
@@ -6596,6 +6619,112 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "PAYWAY_REJECTED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    ready_api_sales_v1_sale_orders__order_id__ready_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderOut"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED";
+                    };
+                };
+            };
+            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
                     };
                 };
             };

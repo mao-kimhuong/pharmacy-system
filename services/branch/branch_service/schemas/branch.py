@@ -6,6 +6,9 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 Usd = Annotated[Decimal, Field(ge=0, le=1_000_000, max_digits=14, decimal_places=2)]
+Weekday = Literal["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+HHMM = Annotated[str, Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")]
+OpenClose = Annotated[list[HHMM], Field(min_length=2, max_length=2)]
 
 
 class BranchSettingsOut(BaseModel):
@@ -30,6 +33,8 @@ class BranchSettingsOut(BaseModel):
     max_discount_pct: dict[str, int]
     receipt_lang: str
     khqr: dict[str, Any] | None
+    refill_reminder_days: int = 3
+    opening_hours: dict[str, list[str]] | None = None
 
 
 class BranchOut(BaseModel):
@@ -119,6 +124,12 @@ class BranchSettingsUpdate(BaseModel):
     )
     receipt_lang: Literal["km", "en"] | None = Field(default=None, description="Receipts and A4 invoices")
     khqr: KhqrAccount | None = Field(default=None, description="This branch's Bakong account; null: the shared one")
+    refill_reminder_days: int | None = Field(default=None, ge=1, le=14,
+                                             description="Telegram refill reminder this many days before")  # fmt: skip
+    opening_hours: dict[Weekday, OpenClose] | None = Field(
+        default=None, examples=[{"mon": ["07:00", "21:00"], "sun": ["08:00", "12:00"]}],
+        description="Per weekday [open, close] (HH:MM, Phnom Penh); a day left out is closed",
+    )
 
 
 class ReasonRequest(BaseModel):

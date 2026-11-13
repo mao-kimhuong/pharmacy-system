@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { api, call } from '@/api/client';
 import { useUser } from '@/app/auth';
 import { branchName, useBranch } from '@/app/branch';
-import { Alert, ApiErrorAlert, Button, Card, DataTable, Field, Input, PageHeader, Select, SkeletonRows, StatusPill, Switch, Toolbar, useToast, type PillTone } from '@/design';
+import { Alert, ApiErrorAlert, Button, Card, DataTable, Field, Input, PageHeader, Select, SkeletonRows, StatusPill, Switch, TextArea, Toolbar, useToast, type PillTone } from '@/design';
 import { dateTime } from '@/lib/format';
 
 const STATUS: Record<string, PillTone> = { sent: 'success', queued: 'info', failed: 'danger', skipped: 'neutral' };
@@ -56,7 +56,9 @@ export default function TelegramPage() {
     onSuccess: (r) => { toast.success(`${t('telegram.queued')}: ${r.queued}`); void qc.invalidateQueries({ queryKey: ['notifications', 'messages'] }); },
   });
   const chat = (target: string) => chats.data?.find((c) => c.target === target);
-  const targetLabel = (target: string) => (target === 'owner' ? t('telegram.owner') : branchName(byId(target), i18n.language));
+  const targetLabel = (target: string) => (target === 'owner' ? t('telegram.owner')
+    : ['customer', 'supplier', 'staff', 'chat'].includes(target.split(':')[0]) ? t(`telegram.role.${target.split(':')[0]}`)
+      : branchName(byId(target), i18n.language));
   return (
     <div className="flex flex-col gap-4 p-5 tablet:px-7">
       <PageHeader crumb={t('nav:group.settings')} title={t('telegram.title')}
@@ -69,7 +71,9 @@ export default function TelegramPage() {
           {branches.map((b) => <ChatRow key={b.id} target={b.id} label={`${b.code} · ${branchName(b, i18n.language)}`} chat={chat(b.id)} />)}
         </>}
       </Card>
+      {user.has('notifications.customers') && <Campaign />}
       <h2 className="text-[15px] font-semibold">{t('telegram.messages')}</h2>
+      <span className="text-[12px] text-neutral-500">{t('telegram.privateNote')}</span>
       <Toolbar>
         <Select aria-label={t('common:label.status')} className="w-40" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="">{t('common:label.status')}: —</option>
@@ -81,12 +85,38 @@ export default function TelegramPage() {
           { key: 'w', header: t('log.when'), cell: (r) => <span className="whitespace-nowrap tabular-nums">{dateTime(r.sent_at ?? r.created_at)}</span> },
           { key: 't', header: t('telegram.target'), cell: (r) => targetLabel(r.target) },
           { key: 'k', header: t('common:label.type'), cell: (r) => <span className="font-mono text-[12px]">{r.kind}</span> },
-          { key: 'x', header: t('telegram.messages'), cell: (r) => <span className="line-clamp-2 whitespace-pre-line text-[12px]">{r.text}</span> },
+          { key: 'x', header: t('telegram.messages'), cell: (r) => <span className="line-clamp-2 whitespace-pre-line text-[12px]">{r.text || <i className="text-neutral-500">{r.summary}</i>}</span> },
           { key: 's', header: t('common:label.status'), cell: (r) => <StatusPill tone={STATUS[r.status] ?? 'neutral'}>{t(`telegram.status.${r.status}`, { defaultValue: r.status })}</StatusPill> },
           { key: 'a', header: t('telegram.attempts'), align: 'right', cell: (r) => r.attempts },
           { key: 'e', header: t('telegram.error'), cell: (r) => <span className="text-[12px] text-danger">{r.last_error ?? ''}</span> },
         ]} />
     </div>
+  );
+}
+
+/** A promotion to linked customers who allow promotions (at most 2 a month each; sent 07:00–21:00). */
+function Campaign() {
+  const { t } = useTranslation(['settings', 'common']);
+  const qc = useQueryClient();
+  const [v, setV] = useState({ title: '', text_km: '', text_en: '' });
+  const send = useMutation({
+    mutationFn: () => call(api.notifications.POST('/api/notifications/v1/campaigns', { body: v })),
+    onSuccess: () => { setV({ title: '', text_km: '', text_en: '' }); void qc.invalidateQueries({ queryKey: ['notifications', 'messages'] }); },
+  });
+  return (
+    <Card title={t('telegram.campaign')}>
+      <form className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); send.mutate(); }}>
+        <span className="text-[12px] text-neutral-500">{t('telegram.campaignHint')}</span>
+        <Field label={t('telegram.campaignTitle')} required>{(id) => <Input id={id} maxLength={120} value={v.title} onChange={(e) => setV({ ...v, title: e.target.value })} />}</Field>
+        <div className="grid grid-cols-1 gap-3 tablet:grid-cols-2">
+          <Field label={t('telegram.textKm')} required>{(id) => <TextArea id={id} rows={3} maxLength={900} className="km" value={v.text_km} onChange={(e) => setV({ ...v, text_km: e.target.value })} />}</Field>
+          <Field label={t('telegram.textEn')} required>{(id) => <TextArea id={id} rows={3} maxLength={900} value={v.text_en} onChange={(e) => setV({ ...v, text_en: e.target.value })} />}</Field>
+        </div>
+        {send.data && <Alert tone="success">{t('telegram.campaignDone', { queued: send.data.queued, over: send.data.over_cap })}</Alert>}
+        <ApiErrorAlert error={send.error} />
+        <div><Button type="submit" variant="primary" disabled={!v.title.trim() || !v.text_km.trim() || !v.text_en.trim()} loading={send.isPending}>{t('telegram.campaignSend')}</Button></div>
+      </form>
+    </Card>
   );
 }
 

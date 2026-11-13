@@ -11,6 +11,7 @@
 - Ledger entries are never edited: every change is a new entry.
 """
 
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
@@ -160,6 +161,25 @@ async def credit_status(session: AsyncSession, customer_id: UUID) -> dict[str, A
 
     customer = await get_customer(session, customer_id)
     balance = await balance_of(session, customer.id)
+    overdue, oldest = await overdue_of(session, customer.id, customer.credit_terms_days)
     return {"customer_id": customer.id, "is_active": customer.is_active, "balance": balance,
             "credit_limit": customer.credit_limit,
-            "available": max(customer.credit_limit - balance, Decimal("0.00"))}  # fmt: skip
+            "available": max(customer.credit_limit - balance, Decimal("0.00")),
+            "overdue": overdue, "oldest_due_on": oldest}  # fmt: skip
+
+
+async def overdue_of(session: AsyncSession, customer_id: UUID, terms_days: int) -> tuple[Decimal, date | None]:
+    """A credit invoice is due credit_terms_days after the sale (Phnom Penh day). Returns what is past due
+    today and the due date of the oldest open debt."""
+    debts = (await session.execute(select(CustomerDebt).where(
+        CustomerDebt.customer_id == customer_id, CustomerDebt.status == "open")
+        .order_by(CustomerDebt.created_at))).scalars().all()  # fmt: skip
+    today, overdue, oldest = clock.today(), Decimal("0.00"), None
+    for d in debts:
+        if d.due <= 0:
+            continue
+        due_on = d.created_at.astimezone(clock.TIMEZONE).date() + timedelta(days=terms_days)
+        oldest = oldest or due_on
+        if due_on < today:
+            overdue += d.due
+    return overdue, oldest

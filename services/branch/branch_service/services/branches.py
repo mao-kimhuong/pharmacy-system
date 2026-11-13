@@ -154,6 +154,17 @@ def _clean_alert_days(days: list[int]) -> list[int]:
     return cleaned
 
 
+def _clean_hours(hours: dict[str, list[str]] | None) -> dict[str, list[str]] | None:
+    """Open before close, same day (no shifts past midnight)."""
+    if not hours:
+        return None
+    for day, (opens, closes) in hours.items():
+        if opens >= closes:
+            raise AppError(ErrorCode.VALIDATION_ERROR, f"{day}: opening time must be before closing time",
+                           status_code=422, details={"field": "opening_hours", "reason": "open_after_close"})  # fmt: skip
+    return {day: list(v) for day, v in hours.items()}
+
+
 async def update_settings(
     session: AsyncSession, actor: CurrentUser, branch_id: UUID, data: dict[str, Any]
 ) -> BranchSettings:
@@ -182,9 +193,12 @@ async def update_settings(
         "max_discount_pct",
         "receipt_lang",
         "khqr",
+        "refill_reminder_days",
     ):
         if field in data:
             setattr(settings, field, data[field])
+    if "opening_hours" in data:
+        settings.opening_hours = _clean_hours(data["opening_hours"])
     after = settings.safe_fields()
     if after != before:
         add_event(session, OutboxEvent, "branch.settings_updated", {"branch_id": str(branch.id), **after})

@@ -19,7 +19,16 @@ from ..schemas.render import (
     SupplierReturnRender,
     TransferNoteRender,
 )
-from ..services import dispensing, labels, purchase_orders, receipts, sale_orders, statements, transfer_note
+from ..services import (
+    dispensing,
+    labels,
+    purchase_orders,
+    receipts,
+    sale_orders,
+    statements,
+    telegram_link,
+    transfer_note,
+)
 from ..services import register as register_pdf
 
 router = APIRouter(tags=["render"])
@@ -35,6 +44,15 @@ def get_controlled() -> InternalClient:
     return InternalClient(s.controlled_url, s.service_name, s.service_token)
 
 
+def get_link_for(request: Request) -> telegram_link.LinkFor | None:
+    """The Telegram QR for receipts and statements (tests replace it on app.state)."""
+    if hasattr(request.app.state, "link_for"):
+        return request.app.state.link_for
+    s = get_settings()
+    return telegram_link.link_getter(InternalClient(s.notification_url, s.service_name, s.service_token,
+                                                    read_timeout=s.telegram_link_timeout))  # fmt: skip
+
+
 @router.post(
     "/render",
     response_class=Response,
@@ -47,6 +65,7 @@ async def render(
     session: AsyncSession = Depends(db.session),
     controlled: InternalClient = Depends(get_controlled),
     customers: InternalClient = Depends(get_customers),
+    link_for: telegram_link.LinkFor | None = Depends(get_link_for),
 ) -> Response:
     """Returns a PDF.
 
@@ -114,7 +133,7 @@ async def render(
     elif isinstance(body, CustomerStatementRender):
         user.require("contacts.customers")
         name, pdf = await statements.render_statement(customers, user, body.customer_id, body.date_from,
-                                                      body.date_to, body.lang)  # fmt: skip
+                                                      body.date_to, body.lang, link_for)  # fmt: skip
         filename = f"{name}.pdf"
     elif isinstance(body, SaleOrderRender):
         if not user.has_any("sales.orders", "sales.view"):
@@ -139,7 +158,7 @@ async def render(
         if not user.has_any("pos.sell", "sales.view"):
             user.require("sales.view")
         number, pdf = await receipts.render(
-            session, user, body.invoice_id, body.type, settings.document_wait_seconds, body.lang
+            session, user, body.invoice_id, body.type, settings.document_wait_seconds, body.lang, link_for
         )
         filename = f"{number}{'-receipt' if body.type == 'receipt_80mm' else ''}.pdf"
     return Response(

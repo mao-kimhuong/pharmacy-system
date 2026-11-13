@@ -507,6 +507,10 @@ services:
       DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       TELEGRAM_API_BASE: ${TELEGRAM_API_BASE:-https://api.telegram.org}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
+      TELEGRAM_MODE: ${TELEGRAM_MODE:-webhook}
+      TELEGRAM_LINK_SECRET: ${TELEGRAM_LINK_SECRET:-}
     depends_on: *service-deps
     labels:
       - traefik.enable=true
@@ -517,6 +521,12 @@ services:
       - traefik.http.routers.notification-public.entrypoints=web
       - traefik.http.routers.notification-public.service=notification
       - traefik.http.routers.notification-public.middlewares=strip-identity-headers@file,security-headers-docs@file,ratelimit-per-ip@file
+      # public: Telegram's webhook (Telegram cannot log in; the service checks the secret token header)
+      - traefik.http.routers.notification-telegram.rule=Path(`/api/notifications/v1/telegram/webhook`)
+      - traefik.http.routers.notification-telegram.priority=100
+      - traefik.http.routers.notification-telegram.entrypoints=web
+      - traefik.http.routers.notification-telegram.service=notification
+      - traefik.http.routers.notification-telegram.middlewares=strip-identity-headers@file,security-headers@file,request-size-limit@file,ratelimit-per-ip@file
       # protected: everything else needs a valid access token
       - traefik.http.routers.notification.rule=PathPrefix(`/api/notifications`)
       - traefik.http.routers.notification.priority=10

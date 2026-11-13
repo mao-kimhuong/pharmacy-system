@@ -472,6 +472,19 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   refunds and the daily check are the KHQR ones. Sale method `PAYWAY` + `khqr_id` (a QR and a checkout are not
   interchangeable: KHQR_MISMATCH). Opt-in sandbox test: `PAYWAY_SANDBOX_TEST=1` (signed form → 302 to "PayWay -
   Checkout"; a changed hash → 403 code 1).
+- **Telegram T2 (notification):** one bot; chat roles owner / branch (`telegram_chats`) and customer / staff / supplier
+  (`telegram_links`, `services/links.py`); `telegram.ROLE_KINDS` says which message kinds each role may get (NotAllowed
+  otherwise). `queue(..., target="customer:<id>" | "staff:<id>" | "supplier:<id>" | "chat:<id>", summary=, document=,
+  reply_markup=, method="edit")`; customer / supplier rows show only `summary` in the log (text blanked once final);
+  customer messages wait 21:00–07:00 (`quiet_until`). PDFs: `document={type, id, lang}` rendered at send time by
+  document `/internal/v1/render`. Updates: `services/bot.py` (`handle_update`, once per update_id; webhook with
+  `X-Telegram-Bot-Api-Secret-Token`, or `TELEGRAM_MODE=polling`); later phases plug in via `bot.HOOKS`. Link tokens:
+  HMAC (`TELEGRAM_LINK_SECRET`, else from SERVICE_TOKEN), SHA-256 stored, once, 7 days (staff 15 min); printed customer
+  tokens need the customer's own Telegram phone to match. Consent per topic (`customer_consents`, User Log); customer
+  texts only from allow-listed values (`customer_texts.py`, privacy scan test). Customer copies from `customer.*` /
+  `customer_group.*` (`preferred_lang`, `is_clinic`), refill timing from prescription `rx.supply` (`units_per_dose` ×
+  `doses_per_day`, else duration), `sale_order.ready` (sales `POST /sale-orders/{id}/ready`, `remaining_usd`), overdue from
+  customers' `credit_terms_days` (`/internal/v1/customers/{id}/credit` → `overdue`, `oldest_due_on`).
 - **Supplier returns (purchasing, from S8b):** `PP1-SRN-…` draft → credited | refunded, or cancelled (only a draft,
   reason); `purchasing.return`. Submit (Idempotency-Key): inventory `/internal/v1/movements/supplier-return` (movement
   type `supplier_return`, once per line, the batch must be the supplier's; controlled: PIN + witness, action
@@ -523,6 +536,8 @@ API matches the spec, migration included, tests pass (`make test` and `make test
   upgrade" test DB errors (seen in catalog and sales tests): set `ssl=disable` explicitly for local and test DB
   connections (SSL stays configurable for production) and make the test DB fixture retry its first connect.
 - [ ] S10 AI – DeepSeek phase A
+- [ ] T2 Telegram – [x] 1 customers (link, consent, receipts, reminders, balance, promotions) · [ ] 2 approval buttons ·
+  [ ] 3 bot commands · [ ] 4 operations alerts (heartbeat, opening, fridge sensors) · [ ] 5 partners (suppliers, clinics)
 
 Front end (`web/`, plan: `docs/plans/frontend-plan.md`, design handoff: `docs/design/`, how it works: `web/README.md`).
 Decided: F-sprints hide designed details the API lacks (choice A alternative); refresh token in the httpOnly cookie

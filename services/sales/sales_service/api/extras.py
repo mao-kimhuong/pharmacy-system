@@ -201,6 +201,15 @@ async def close(
     return await orders.close(session, user, clients, order_id)
 
 
+@router.post("/sale-orders/{order_id}/ready", response_model=OrderOut, tags=["sale orders"])
+async def ready(
+    order_id: UUID, user: CurrentUser = Depends(order_perm), session: AsyncSession = Depends(db.session),
+) -> SaleOrder:  # fmt: skip
+    """Ready for pickup (ordered / partly fulfilled): the customer gets a Telegram message with what is
+    left to pay (if linked and they allow order messages). Again later: a new message."""
+    return await orders.mark_ready(session, user, order_id)
+
+
 @router.post("/commission/rules", response_model=RuleOut, status_code=201, tags=["commission"])
 async def create_rule(
     body: RuleIn, user: CurrentUser = Depends(requires("commission.manage")),

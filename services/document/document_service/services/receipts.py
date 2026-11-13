@@ -11,6 +11,8 @@ events. Rules:
 - The 80 mm receipt is as long as its content: laid out once on a long page,
   measured, then printed on a page cut to that length.
 - Rx lines show the prescription number and the lot(s) with expiry.
+- T2: a customer not linked to Telegram yet gets a QR (t.me link, once, 7 days) under
+  the footer; the customer must then share the phone number on the record.
 """
 
 from datetime import datetime
@@ -25,6 +27,7 @@ from pharmacy_shared import clock
 from pharmacy_shared.auth import CurrentUser
 
 from ..models import InvoiceCopy
+from . import telegram_link
 from .pdf import FONTS, e, html_to_pdf
 from .stored import upsert_versioned, wait_for
 
@@ -109,7 +112,7 @@ def lang_of(inv: dict[str, Any], lang: str | None) -> str:
     return chosen if chosen in T else "km"
 
 
-def receipt_html(inv: dict[str, Any], page_height_mm: float = 2000, lang: str = "km") -> str:
+def receipt_html(inv: dict[str, Any], page_height_mm: float = 2000, lang: str = "km", tg_url: str | None = None) -> str:
     t = T[lang]
     b = inv["branch"]
     lines = "".join(_receipt_item(x) for x in inv["lines"])
@@ -147,26 +150,26 @@ def receipt_html(inv: dict[str, Any], page_height_mm: float = 2000, lang: str = 
       <div class="row"><span>{t["total_khr"]}</span><span>{_riel(inv.get("total_khr"))} ៛</span></div>{rate}
       <hr>{pays}{credit}
       <div class="row"><span>{t["change"]}</span><b>{e(_change(inv))}</b></div>{returns}
-      <hr><div class="c small">{_multiline(b.get("receipt_footer"))}</div>
+      <hr><div class="c small">{_multiline(b.get("receipt_footer"))}</div>{telegram_link.block(tg_url, lang)}
       </div></body></html>"""
 
 
-def _render_receipt(inv: dict[str, Any], lang: str = "km") -> bytes:
+def _render_receipt(inv: dict[str, Any], lang: str = "km", tg_url: str | None = None) -> bytes:
     from weasyprint import HTML
     from weasyprint.urls import URLFetcher
 
     fetcher = URLFetcher(allowed_protocols={"data"})
-    page = HTML(string=receipt_html(inv, lang=lang), url_fetcher=fetcher).render().pages[0]
+    page = HTML(string=receipt_html(inv, lang=lang, tg_url=tg_url), url_fetcher=fetcher).render().pages[0]
     bottom = max(
         (b.position_y + b.margin_height() for b in page._page_box.descendants()
          if getattr(b, "element_tag", None) == "div" and hasattr(b, "margin_height")),
         default=200,
     )  # fmt: skip
     height = bottom * PX_TO_MM + 3 + 6  # bottom page margin + a little to tear off
-    return HTML(string=receipt_html(inv, height, lang), url_fetcher=fetcher).write_pdf()
+    return HTML(string=receipt_html(inv, height, lang, tg_url), url_fetcher=fetcher).write_pdf()
 
 
-def invoice_a4_html(inv: dict[str, Any], lang: str = "km") -> str:
+def invoice_a4_html(inv: dict[str, Any], lang: str = "km", tg_url: str | None = None) -> str:
     t = T[lang]
     b, customer = inv["branch"], inv.get("customer")
     rows = "".join(
@@ -214,16 +217,23 @@ def invoice_a4_html(inv: dict[str, Any], lang: str = "km") -> str:
       </div>
       <div style="margin-top:4mm">{pays}</div>
       <p class="sub" style="margin-top:8mm">{_multiline(b.get("receipt_footer"))}</p>
+      {telegram_link.block(tg_url, lang, 26)}
     </body></html>"""
 
 
 async def render(
     session: AsyncSession, actor: CurrentUser, invoice_id: UUID, kind: str, wait_seconds: float,
-    lang: str | None = None,
+    lang: str | None = None, link_for: telegram_link.LinkFor | None = None,
 ) -> tuple[str, bytes]:
+    """link_for: the Telegram QR for a customer not linked yet (T2); None = no QR (e.g. the copy sent on
+    Telegram itself)."""
     inv = await wait_for(session, InvoiceCopy, invoice_id, actor, wait_seconds, "invoice")
     name = inv.get("number") or str(invoice_id)
     chosen = lang_of(inv, lang)
+    customer = inv.get("customer") or {}
+    tg_url = None
+    if link_for and customer.get("id") and inv.get("status") == "completed":
+        tg_url = await link_for(customer["id"], f"invoice:{invoice_id}", "receipt")
     if kind == "receipt_80mm":
-        return name, await run_in_threadpool(_render_receipt, inv, chosen)
-    return name, await html_to_pdf(invoice_a4_html(inv, chosen))
+        return name, await run_in_threadpool(_render_receipt, inv, chosen, tg_url)
+    return name, await html_to_pdf(invoice_a4_html(inv, chosen, tg_url))

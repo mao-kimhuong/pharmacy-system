@@ -26,6 +26,38 @@ class Settings(BaseServiceSettings):
     # The daily figures come from the reports service (/internal/v1/daily-summary)
     reports_url: str = "http://reports:8000"
 
+    # T2 – one bot for owner, branch, staff, customer and supplier chats.
+    # t.me/<username>?start=<token> links; no username: no link on receipts.
+    telegram_bot_username: str = ""
+    # Webhook POST /telegram/webhook checks X-Telegram-Bot-Api-Secret-Token against this; polling = getUpdates (dev)
+    telegram_webhook_secret: str = ""
+    telegram_mode: str = "webhook"  # webhook | polling | off
+    # Key of the link tokens (HMAC; a reprinted receipt shows the same token). Empty: derived from SERVICE_TOKEN.
+    telegram_link_secret: str = ""
+    # Link tokens: printed (receipt, statement) and supplier ones 7 days; staff (My profile) 15 minutes
+    link_token_days: int = 7
+    staff_link_minutes: int = 15
+    # Customer messages wait outside 07:00–21:00 (Asia/Phnom_Penh)
+    quiet_from_hour: int = 21
+    quiet_until_hour: int = 7
+    marketing_per_month: int = 2
+    refill_hour: int = 9  # refill reminders and the monthly / overdue balance reminders
+    # PDFs (receipts, statements, POs) are rendered when sent; balances from customers
+    document_url: str = "http://document:8000"
+    customers_url: str = "http://customers:8000"
+    # Bot commands per chat and minute
+    commands_per_minute: int = 10
+
+    def check_telegram(self) -> None:
+        """Production with a bot: the webhook secret must be a real one. Names the setting, never a value."""
+        if not (self.is_production and self.telegram_bot_token and self.telegram_mode == "webhook"):
+            return
+        if len(self.telegram_webhook_secret) < 32 or not self.telegram_webhook_secret.replace("_", "").replace(
+                "-", "").isalnum():  # fmt: skip
+            raise RuntimeError("TELEGRAM_WEBHOOK_SECRET must be 32+ characters of A-Z, a-z, 0-9, _ or - in production")
+        if not self.telegram_bot_username:
+            raise RuntimeError("TELEGRAM_BOT_USERNAME is not set (needed for the t.me links)")
+
 
 @lru_cache
 def get_settings() -> Settings:
