@@ -142,6 +142,61 @@ class WebhookOk(BaseModel):
     ok: bool = True
 
 
+class HeartbeatIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    branch_id: UUID
+    device_id: str = Field(min_length=4, max_length=40, pattern=r"^[A-Za-z0-9_-]+$",
+                           description="A random id the browser keeps (one per till)")  # fmt: skip
+
+
+class SensorIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    branch_id: UUID
+    name: str = Field(min_length=1, max_length=60, examples=["Fridge A"])
+    min_c: Decimal = Field(default=Decimal("2"), ge=-40, le=40, decimal_places=2)
+    max_c: Decimal = Field(default=Decimal("8"), ge=-40, le=40, decimal_places=2)
+
+
+class SensorUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = Field(default=None, min_length=1, max_length=60)
+    min_c: Decimal | None = Field(default=None, ge=-40, le=40, decimal_places=2)
+    max_c: Decimal | None = Field(default=None, ge=-40, le=40, decimal_places=2)
+    is_active: bool | None = None
+
+
+class SensorOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    branch_id: UUID
+    name: str
+    min_c: Decimal
+    max_c: Decimal
+    is_active: bool
+    state: str = Field(description="ok | out (out of range) | silent")
+    last_reading_at: datetime | None
+    last_temp_c: Decimal | None
+    token: str | None = Field(default=None, description="Only when made or renewed: shown once, put it in the device")
+
+
+class ReadingIn(BaseModel):
+    """What a sensor posts (Authorization: Bearer <its token>). The server's time is used."""
+
+    model_config = ConfigDict(extra="ignore")  # devices send extra fields (battery, humidity…): ignored
+
+    temperature_c: Decimal = Field(ge=-60, le=80, max_digits=6, decimal_places=2, examples=["5.4"])
+
+
+class ReadingOut(BaseModel):
+    ok: bool = True
+    in_range: bool
+    state: str
+
+
 class SettingsIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

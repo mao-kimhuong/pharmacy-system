@@ -25,5 +25,6 @@ FEATURES: tuple[FeatureDef, ...] = (
     F("purchase_requests", "Purchase requests", False, ("purchase_request",)),
     F("multi_branch", "Several branches (transfers)", False, ("stock_transfer_request", "stock_transfer")),
     F("ai", "AI help (DeepSeek)", False, ()),
+    F("fridge_sensors", "Fridge temperature sensors (Telegram alerts)", False, ()),
 )
 KEYS = {f.key: f for f in FEATURES}

@@ -25,7 +25,7 @@ from pharmacy_shared.internal import InternalClient
 
 from ..config import Settings
 from ..models import KnownBranch, StockAlert
-from . import customers, texts
+from . import customers, ops, texts
 from .telegram import Sender, chat_for, queue
 
 log = logging.getLogger(__name__)
@@ -65,13 +65,17 @@ async def stock_digest(session: AsyncSession, settings: Settings, day: date) -> 
     found: dict[Any, dict[str, list]] = defaultdict(lambda: {"low": [], "expiring": []})
     for a in (await session.execute(select(StockAlert).where(StockAlert.day == day))).scalars():
         found[a.branch_id][a.kind].append(a.data)
+    yesterday = day - timedelta(days=1)
+    for branch_id in await ops.fridge_branches(session, yesterday):  # T2: fridges also make a digest
+        found[branch_id]  # noqa: B018 – creates the branch's entry
     made = 0
     for branch_id, kinds in found.items():
         b = await session.get(KnownBranch, branch_id)
         target = str(branch_id) if await chat_for(session, str(branch_id)) else "owner"
+        fridges = await ops.fridge_day(session, branch_id, yesterday)
         made += bool(await queue(session, settings, key=f"digest:{branch_id}:{day}", target=target, kind="stock_digest",
                                  text=texts.stock_digest(f"{b.code} {b.name_en}" if b else "Branch", kinds["low"],
-                                                         kinds["expiring"]), branch_id=branch_id))  # fmt: skip
+                                                         kinds["expiring"], fridges), branch_id=branch_id))  # fmt: skip
     await session.commit()
     return made
 
@@ -138,7 +142,20 @@ def schedulers(db: Database, settings: Settings) -> list:
         await _daily(db, stop, settings.refill_hour, 5,
                      lambda s, d: customers.balance_job(s, settings, customers_client, d), "balance reminders")  # fmt: skip
 
-    tasks = [summary, digest, send, refills, balances]
+    async def every_minute(stop: asyncio.Event) -> None:
+        """T2 operations: offline tills, late opening, fridges."""
+        while not stop.is_set():
+            try:
+                async with db.sessionmaker() as session:
+                    await ops.minute_job(session, settings)
+            except Exception:  # noqa: BLE001
+                log.exception("operations check failed")
+            try:
+                await asyncio.wait_for(stop.wait(), timeout=60)
+            except TimeoutError:
+                pass
+
+    tasks = [summary, digest, send, refills, balances, every_minute]
     if settings.telegram_mode == "polling" and settings.telegram_bot_token:
         tasks.append(lambda stop: poll_updates(db, settings, sender, stop))
     return tasks

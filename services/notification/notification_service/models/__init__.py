@@ -21,6 +21,7 @@ from .links import (
     TelegramLink,
     TelegramUpdate,
 )
+from .ops import BranchDay, BranchOps, FeatureCopy, Heartbeat, SensorDevice, SensorReading
 from .telegram import AlertSettings, KnownBranch, Message, Staff, StockAlert, TelegramChat
 
 
@@ -32,7 +33,8 @@ class ProcessedMessage(ProcessedMessageMixin, Base):
     __tablename__ = "processed_messages"
 
 
-__all__ = ["DEFAULT_ON", "ROLES", "TOPICS", "AlertSettings", "Approval", "Base", "BranchPrefs", "Campaign", "CustomerConsent",
+__all__ = ["DEFAULT_ON", "ROLES", "TOPICS", "AlertSettings", "Approval", "Base", "BranchDay", "BranchOps",
+           "FeatureCopy", "Heartbeat", "SensorDevice", "SensorReading", "BranchPrefs", "Campaign", "CustomerConsent",
            "KnownBranch", "KnownCustomer", "KnownCustomerGroup", "LinkToken", "Message", "OutboxEvent",
            "PendingLink", "ProcessedMessage", "RefillReminder", "Staff", "StockAlert", "TelegramChat",
            "TelegramLink", "TelegramUpdate"]  # fmt: skip

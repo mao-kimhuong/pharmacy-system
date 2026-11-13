@@ -2,6 +2,7 @@ from pharmacy_shared.app_factory import create_service_app
 from pharmacy_shared.consumer import EventConsumer
 
 from .api import customers as customers_api
+from .api import ops as ops_api
 from .api import staff as staff_api
 from .api.internal import router as internal_router
 from .api.router import router
@@ -33,9 +34,12 @@ if settings.jobs_enabled:
 router.include_router(customers_api.router)
 router.include_router(customers_api.public)
 router.include_router(staff_api.router)
+router.include_router(ops_api.router)
+router.include_router(ops_api.public)
 WEBHOOK = f"{settings.api_prefix}/telegram/webhook"
+READINGS = f"{settings.api_prefix}/sensors/readings"
 
 app = create_service_app(
     settings, db, router, title="Pharmacy notification service", outbox_model=OutboxEvent, background=background,
-    internal_router=internal_router, public_paths=(WEBHOOK,), rate_limit_exempt=(WEBHOOK,),
+    internal_router=internal_router, public_paths=(WEBHOOK, READINGS), rate_limit_exempt=(WEBHOOK, READINGS),
 )

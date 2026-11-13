@@ -37,11 +37,15 @@ def daily_summary(title: str, figures: dict[str, Any], profit: bool) -> str:
     out += [f"Low stock: {len(figures.get('low_stock') or [])} · near expiry: {figures['near_expiry']['count']}",
             f"Controlled discrepancies open: {figures.get('open_controlled_discrepancies', 0)}",
             f"Waiting for approval: {waiting}"]  # fmt: skip
+    if figures.get("last_sale"):  # T2: when the till started and stopped selling
+        out.append(f"First sale {figures.get('first_sale')} · last sale {figures['last_sale']}")
     return "\n".join(out)
 
 
-def stock_digest(branch: str, low: list[dict[str, Any]], expiring: list[dict[str, Any]]) -> str:
+def stock_digest(branch: str, low: list[dict[str, Any]], expiring: list[dict[str, Any]],
+                 fridges: list[dict[str, Any]] | None = None) -> str:  # fmt: skip
     out = [f"📦 {branch} – stock to look at"]
+    out += fridge_lines(fridges or [])
     if low:
         out.append(f"Low stock ({len(low)}):")
         out += [f"• {x.get('sku')} {x.get('name') or ''}: {x.get('available')} left, point {x.get('reorder_point')}"
@@ -171,6 +175,52 @@ def approval_done(status: str, name: str, at: str, via: str) -> str:
         "closed": f"✔️ បានបិទ · {at} / Closed · {at}",
         "expired": f"⌛ ផុតពេល · {at} / Expired · {at}",
     }[status]
+
+
+# ------------------------------------------------------------------ T2 operations (Khmer, then English)
+
+
+def till_offline(branch: str, last_seen: str | None) -> str:
+    last = f" (ចុងក្រោយ {last_seen})" if last_seen else ""
+    last_en = f" (last seen {last_seen})" if last_seen else ""
+    return (f"📴 {branch}: គ្មានបញ្ជរណាមួយតភ្ជាប់អស់ ១០ នាទី{last}។ ពិនិត្យអ៊ីនធឺណិត ឬកុំព្យូទ័រ POS។\n"
+            f"📴 {branch}: no till has been online for 10 minutes{last_en}. Check the internet or the POS computer.")  # fmt: skip
+
+
+def till_back(branch: str, since: str, back: str) -> str:
+    return (f"✅ {branch}: បញ្ជរតភ្ជាប់វិញហើយ (បាត់ពី {since} ដល់ {back})។\n"
+            f"✅ {branch}: the till is back online (offline {since}–{back}).")  # fmt: skip
+
+
+def late_opening(branch: str, opens: str, minutes: int) -> str:
+    return (f"⏰ {branch}: មិនទាន់មានការលក់ទេ {minutes} នាទីក្រោយម៉ោងបើក ({opens})។\n"
+            f"⏰ {branch}: no sale yet, {minutes} minutes after opening ({opens}).")  # fmt: skip
+
+
+def fridge_out(branch: str, fridge: str, temp: str, minutes: int, low: str, high: str) -> str:
+    return (f"🌡️ {branch} {fridge}: {temp} °C អស់ {minutes} នាទី (អនុញ្ញាត {low}–{high} °C)។ ពិនិត្យទូទឹកកក!\n"
+            f"🌡️ {branch} {fridge}: {temp} °C for {minutes} minutes (allowed {low}–{high} °C). Check the fridge!")  # fmt: skip
+
+
+def fridge_back(branch: str, fridge: str, temp: str, since: str, back: str) -> str:
+    return (f"✅ {branch} {fridge}: ត្រឡប់មកក្នុងកម្រិតវិញ {temp} °C (ក្រៅកម្រិតពី {since} ដល់ {back})។\n"
+            f"✅ {branch} {fridge}: back in range, {temp} °C (out {since}–{back}).")  # fmt: skip
+
+
+def fridge_silent(branch: str, fridge: str, last: str | None) -> str:
+    return (f"📡 {branch} {fridge}: គ្មានការអានសីតុណ្ហភាព ៣០ នាទី (ចុងក្រោយ {last or '-'})។ ពិនិត្យឧបករណ៍ចាប់សញ្ញា។\n"
+            f"📡 {branch} {fridge}: no reading for 30 minutes (last {last or '-'}). Check the sensor.")  # fmt: skip
+
+
+def fridge_lines(rows: list[dict[str, Any]]) -> list[str]:
+    """07:30 digest: yesterday's min / max per fridge."""
+    if not rows:
+        return []
+    out = ["🌡️ ទូទឹកកកម្សិលមិញ / Fridges yesterday:"]
+    for r in rows:
+        bad = f" · {r['out']} ក្រៅកម្រិត / out of range" if r["out"] else ""
+        out.append(f"• {r['name']}: {r['min']}–{r['max']} °C ({r['n']}){bad}")
+    return out
 
 
 def recall(branch: str, p: dict[str, Any]) -> str:

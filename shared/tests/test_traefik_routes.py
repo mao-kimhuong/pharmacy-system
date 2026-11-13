@@ -96,6 +96,10 @@ def test_telegram_webhook_is_public_but_limited_and_nothing_else_in_notification
     name, router = _router_for("/api/notifications/v1/telegram/webhook")
     assert name == "notification-telegram"
     assert "auth-forward" not in router["middlewares"] and "ratelimit-per-ip" in router["middlewares"]
+    name, router = _router_for("/api/notifications/v1/sensors/readings")  # fridge sensors: their own token
+    assert name == "notification-sensors" and "auth-forward" not in router["middlewares"]
+    assert "ratelimit-per-ip" in router["middlewares"]
     for path in ("/api/notifications/v1/telegram/webhookX", "/api/notifications/v1/campaigns",
-                 "/api/notifications/v1/customers/x/telegram"):  # fmt: skip
+                 "/api/notifications/v1/customers/x/telegram", "/api/notifications/v1/sensors",
+                 "/api/notifications/v1/heartbeat"):  # fmt: skip
         assert "auth-forward" in _router_for(path)[1]["middlewares"]
