@@ -191,6 +191,7 @@ class InvoiceOut(BaseModel):
     change_given_usd: Decimal
     change_given_khr: int
     change_rounding_khr: Decimal
+    payment_rounding_khr: Decimal = Field(description="Riel due (rounded to 100 riel) − exact riel when riel paid it exactly")
     returned_total: Decimal
     failure_code: str | None
     failure_reason: str | None

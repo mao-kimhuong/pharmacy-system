@@ -205,7 +205,8 @@ async def create_invoice(
         sale_order_id=order.id if order else None,
         change_usd=s.change_usd, khr_per_usd=rate.khr_per_usd if rate else None, total_khr=s.total_khr,
         change_in=data.get("change_in") or "USD_KHR", change_given_usd=s.change_given_usd,
-        change_given_khr=s.change_given_khr, change_rounding_khr=s.change_rounding_khr, version=1,
+        change_given_khr=s.change_given_khr, change_rounding_khr=s.change_rounding_khr,
+        payment_rounding_khr=s.payment_rounding_khr, version=1,
         lines=[InvoiceLine(
             line_no=x.line_no, medicine_id=x.pack.product_id, pack_unit_id=x.pack.id, sku=x.pack.product.sku,
             name=x.pack.product.display_name, name_km=x.pack.product.name_km, pack_unit=x.pack.name, qty=x.qty,

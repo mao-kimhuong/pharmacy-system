@@ -126,3 +126,19 @@ async def test_two_tills_same_amount_same_moment_get_different_qrs(client) -> No
     a = await new_qr(client, "0.90", key="qr-same-000001")
     b = await new_qr(client, "0.90", key="qr-same-000002")  # clock.now() is frozen in the tests: the same moment
     assert a["md5"] != b["md5"] and a["qr_string"] != b["qr_string"]
+
+
+@pytest.mark.parametrize(("strips", "riel", "rounding"), [(3, "11100", "30.00"), (6, "22100", "-40.00")])
+async def test_a_riel_khqr_pays_the_invoices_rounded_riel_total(client, strips, riel, rounding) -> None:  # noqa: ANN001
+    # 3 × 0.90 = 2.70 USD → 11 070 riel → 11 100 due (rounds up); 6 × 0.90 = 5.40 → 22 140 → 22 100 (rounds down).
+    # Either converts back a cent away from the USD total; it was refused (overpay / short).
+    para = await stocked()
+    await set_rate(client, 4100)
+    qr = await new_qr(client, riel, "KHR", key=f"qr-riel-{strips:06d}")
+    await pay_qr(client, qr)
+    r = await sell(client, [line(para, "strip", strips)], [khqr_payment(qr)])
+    assert r.status_code == 201, r.text
+    inv = r.json()
+    assert inv["total_khr"] == int(riel) and inv["paid"] == inv["total"] and inv["change_usd"] == "0.00"
+    assert inv["payment_rounding_khr"] == rounding
+    assert (await client.get(f"{PREFIX}/payments/khqr/{qr['id']}", headers=CASHIER)).json()["status"] == "used"

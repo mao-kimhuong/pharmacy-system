@@ -1096,6 +1096,11 @@ export interface components {
             paid: string;
             /** Patient Id */
             patient_id: string | null;
+            /**
+             * Payment Rounding Khr
+             * @description Riel due (rounded to 100 riel) − exact riel when riel paid it exactly
+             */
+            payment_rounding_khr: string;
             /** Payments */
             payments: components["schemas"]["InvoicePaymentOut"][];
             /** Returned Total */

@@ -244,7 +244,10 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   hundreds, converted at the invoice rate (half up, to the cent). Card/ABA/KHQR/credit may not
   overpay: change only from cash, given as USD, KHR or USD_KHR (default: dollars in USD, cents in
   riel), riel rounded to 100 half up; `change_rounding_khr` (exact − handed over) makes the drawer
-  reconcile. Rules and examples: `sales_service/services/money.py` + `tests/test_money.py`.
+  reconcile. Riel is compared in riel: the part USD payments leave is due as riel at the invoice's rate, rounded to
+  100 (an all-riel sale: total_khr); riel paid = due settles it exactly (2.70 USD → 11 100 riel even though 11 100 / 4100
+  = 2.71), `payment_rounding_khr` keeps riel due − exact riel; non-cash riel above the due is refused, more cash riel gives
+  change. Rules and examples: `sales_service/services/money.py` + `tests/test_money.py`.
 - **Receipts (document, from S3):** `POST /api/documents/v1/render {"type": "receipt_80mm" |
   "invoice_a4", "invoice_id"}` (pos.sell or sales.view, own branches) from the copy of `invoice.*`
   events (waits up to 5 s → DOCUMENT_NOT_READY). 80 mm page cut to the content's length (laid out,
@@ -455,8 +458,9 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   = owner + branch manager, own branch, PIN action `sales.khqr_refund`, never automatic; a lost answer stays `requested`
   and the next try asks PayWay first; Bakong: `by_hand`). Daily check 00:40 → `khqr_reconcile_issues` + Telegram.
   Web: Sales → KHQR Refunds (`/sales/khqr-refunds`), the invoice offers a due refund. `make payway-check [QR=1]` (QR=1:
-  sandbox only, a 100 KHR QR); `python -m sales_service.cli khqr-reconcile [--date]`. Known gap (S8b): a KHR KHQR whose
-  riel converts above the USD total is refused as overpaying (KHQR cannot overpay).
+  sandbox only, a 100 KHR QR); `python -m sales_service.cli khqr-reconcile [--date]`. Riel is compared in riel
+  (money.settle): what USD payments leave is due as riel at the invoice's rate, rounded to 100 (all-riel = total_khr);
+  riel = due settles exactly and `payment_rounding_khr` keeps the difference; a riel KHQR/ABA/card may not exceed it.
 - **Supplier returns (purchasing, from S8b):** `PP1-SRN-…` draft → credited | refunded, or cancelled (only a draft,
   reason); `purchasing.return`. Submit (Idempotency-Key): inventory `/internal/v1/movements/supplier-return` (movement
   type `supplier_return`, once per line, the batch must be the supplier's; controlled: PIN + witness, action

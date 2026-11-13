@@ -83,6 +83,8 @@ class Invoice(IdMixin, TimestampMixin, Base):
     change_given_khr: Mapped[int] = mapped_column(Integer, default=0)
     # exact change in riel minus what was handed over (+ = the drawer keeps it)
     change_rounding_khr: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"))
+    # riel due (rounded to 100) − the exact riel, when riel paid the sale exactly (+ = received more); money.py
+    payment_rounding_khr: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"), server_default="0")
     returned_total: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
     # saga
     sale_order_id: Mapped[UUID | None] = mapped_column(Uuid, index=True)  # S7: invoiced from an order

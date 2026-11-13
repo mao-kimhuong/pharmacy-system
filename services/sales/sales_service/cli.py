@@ -73,17 +73,23 @@ async def _payway_check(with_qr: bool) -> int:
         if "sandbox" not in host:
             print("skip --qr: only against the sandbox (it creates a real transaction)")
             return 0
-        tran = f"CHK{secrets.randbelow(10**12):012d}"
-        try:
-            qr = await api.generate_qr(tran, Decimal("100"), "KHR", 3)
-        except AppError as exc:
-            print(f"FAIL generate-qr: {exc.code} {exc.message}")
-            return 1
-        print(f"ok   generate-qr: a 100 KHR sandbox QR (tran_id {tran}, {len(qr.qr_string)} characters)")
-        c = await api.check(tran)
-        print(f"ok   check-transaction of it: status {c.code}, payment_status_code {c.payment_status_code}"
-              if c.code == "00" else f"FAIL check-transaction of it: status {c.code}")  # fmt: skip
-        return 0 if c.code == "00" else 1
+        from .services.money import round_riel
+
+        # 100 riel (the minimum), and a sale's riel total: 2.70 USD at 4100 = 11 070 → 11 100 (as total_khr)
+        for label, amount in (("100 KHR", Decimal("100")), ("2.70 USD as riel", Decimal(round_riel(Decimal("2.70") * 4100)))):
+            tran = f"CHK{secrets.randbelow(10**12):012d}"
+            try:
+                qr = await api.generate_qr(tran, amount, "KHR", 3)
+            except AppError as exc:
+                print(f"FAIL generate-qr {label}: {exc.code} {exc.message}")
+                return 1
+            c = await api.check(tran)
+            if c.code != "00":
+                print(f"FAIL check-transaction of the {label} QR: status {c.code}")
+                return 1
+            print(f"ok   KHR sandbox QR {int(amount)} riel ({label}): tran_id {tran}, {len(qr.qr_string)} characters, "
+                  f"payment_status_code {c.payment_status_code} (2 = pending)")
+        return 0
     return 0
 
 

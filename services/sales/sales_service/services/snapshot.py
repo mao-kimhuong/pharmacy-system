@@ -62,6 +62,7 @@ async def invoice_payload(
         "paid": str(inv.paid), "credit_amount": str(inv.credit_amount), "change_usd": str(inv.change_usd),
         "change_in": inv.change_in, "change_given_usd": str(inv.change_given_usd),
         "change_given_khr": inv.change_given_khr, "change_rounding_khr": str(inv.change_rounding_khr),
+        "payment_rounding_khr": str(inv.payment_rounding_khr or 0),
         "returned_total": str(inv.returned_total),
         "cancel_reason": inv.cancel_reason, "cancelled_at": inv.cancelled_at.isoformat() if inv.cancelled_at else None,
         "returns": [{"return_id": str(r.id), "number": r.number, "refund_method": r.refund_method,

@@ -373,11 +373,11 @@ async def test_payway_refusals_are_mapped_and_the_refund_stays_due(client, pw) -
 
 async def test_a_return_can_go_back_to_the_khqr(client, pw) -> None:
     para = await stocked()
-    await set_rate(client, 4000)  # a rate where the riel converts back to the cent (KHQR may not overpay)
-    qr = await new_qr(client, "10800", "KHR")  # 3 strips: 2.70 USD = 10 800 riel
+    await set_rate(client, 4100)
+    qr = await new_qr(client, "11100", "KHR")  # 3 strips: 2.70 USD = 11 070 → 11 100 riel (the invoice's total_khr)
     pw.pay(qr["tran_id"])
     sale = await sell(client, [line(para, "strip", 3)],
-                      [{"method": "KHQR", "currency": "KHR", "amount": "10800", "khqr_id": qr["id"]}])  # fmt: skip
+                      [{"method": "KHQR", "currency": "KHR", "amount": "11100", "khqr_id": qr["id"]}])  # fmt: skip
     assert sale.status_code == 201, sale.text
     inv = sale.json()
 
@@ -389,12 +389,12 @@ async def test_a_return_can_go_back_to_the_khqr(client, pw) -> None:
     r = await give_back(1)
     assert r.status_code == 201, r.text
     [due] = await refunds(client, "due")
-    assert due["source"] == "return" and due["currency"] == "KHR" and due["amount"] == "3600.00"  # 0.90 × 4000
+    assert due["source"] == "return" and due["currency"] == "KHR" and due["amount"] == "3700.00"  # 0.90 × 4100 = 3 690 → 3 700
     assert (await do_refund(client, due["id"])).status_code == 200
-    assert pw.txns[qr["tran_id"]]["refunded"] == Decimal("3600")
-    r = await give_back(2)  # 1.80 USD = 7 200 riel: exactly what is left on the QR
+    assert pw.txns[qr["tran_id"]]["refunded"] == Decimal("3700")
+    r = await give_back(2)  # 1.80 USD = 7 380 → 7 400 riel: exactly what is left on the QR
     assert r.status_code == 201, r.text
-    assert [x["amount"] for x in await refunds(client, "due")] == ["7200.00"]
+    assert [x["amount"] for x in await refunds(client, "due")] == ["7400.00"]
     assert (await qr_status(client, qr))["status"] == "used"  # a sale still keeps it until all is back
 
 

@@ -12,6 +12,11 @@ import type { SalesS } from '@/api/types';
 import { ApiErrorAlert, Button, Dialog, Segmented, StatusPill } from '@/design';
 import { khr, time, usd } from '@/lib/format';
 
+/** USD due → riel due: × rate, to the nearest 100 riel, half up (sales money.round_riel). */
+export function rielDue(usd: number, rate: number): number {
+  return Math.floor((Math.round(usd * 100) * rate + 5000) / 10000) * 100; // in cents: no float drift
+}
+
 export function KhqrDialog({ open, branchId, amountUsd, rate, onClose, onPaid }: {
   open: boolean; branchId: string; amountUsd: number; rate: number | null; onClose: () => void; onPaid: (k: SalesS['KhqrOut']) => void;
 }) {
@@ -19,7 +24,8 @@ export function KhqrDialog({ open, branchId, amountUsd, rate, onClose, onPaid }:
   const user = useUser();
   const [currency, setCurrency] = useState<'USD' | 'KHR'>('USD');
   const [img, setImg] = useState<string | null>(null);
-  const amount = currency === 'USD' ? amountUsd.toFixed(2) : String(Math.ceil((amountUsd * (rate ?? 0)) / 100) * 100);
+  // riel: what is due rounded to 100 riel half up, as the invoice's total_khr (the sale compares riel with riel)
+  const amount = currency === 'USD' ? amountUsd.toFixed(2) : String(rielDue(amountUsd, rate ?? 0));
   const create = useMutation({ mutationFn: () => call(api.sales.POST('/api/sales/v1/payments/khqr', { body: { branch_id: branchId, amount, currency } })) });
   const k = create.data;
   const status = useQuery({
