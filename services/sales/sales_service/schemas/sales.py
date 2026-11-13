@@ -67,7 +67,7 @@ class LineIn(BaseModel):
 class PaymentIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    method: Literal["cash", "card", "ABA", "KHQR", "credit", "deposit"]
+    method: Literal["cash", "card", "ABA", "KHQR", "PAYWAY", "credit", "deposit"]
     currency: Literal["USD", "KHR"] = "USD"
     amount: Amount = Field(description="In the currency; riel in whole hundreds")
     deposit_id: UUID | None = Field(

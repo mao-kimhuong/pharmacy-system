@@ -42,6 +42,7 @@ export const PAGES: PageDef[] = [
   P({ key: 'reports', path: '/reports', group: 'reports', gate: { perms: ['reports.sales', 'reports.stock', 'reports.purchases', 'reports.customers', 'controlled.view', 'commission.view_own', 'commission.manage'] } }, () => import('@/features/reports/ReportsPage')),
   P({ key: 'reports', path: '/reports/*', nav: false }, () => import('@/features/reports/ReportsPage').then((m) => ({ default: m.ReportView }))),
   P({ key: 'pos', path: '/pos', group: 'sales', gate: { menu: 'pos' }, bare: true }, () => import('@/features/pos/PosPage')),
+  P({ key: 'pos', path: '/pos/payway-return', nav: false, gate: { menu: 'pos' }, bare: true }, () => import('@/features/pos/PaywayReturn')),
   P({ key: 'sale_template', path: '/sales/templates', group: 'sales', gate: { menu: 'sale_template' } }, () => import('@/features/sales/TemplatesPage')),
   P({ key: 'sale_suspend', path: '/sales/suspended', group: 'sales', gate: { menu: 'sale_suspend' } }, () => import('@/features/sales/SuspendedPage')),
   P({ key: 'sale_order', path: '/sales/orders', group: 'sales', gate: { menu: 'sale_order' } }, () => import('@/features/sales/OrdersPage')),

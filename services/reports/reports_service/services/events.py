@@ -65,7 +65,7 @@ ROUTING_KEYS = (
 
 NOBODY = UUID(int=0)  # sales_daily key for a sale without a known staff member
 SOLD = ("completed",)
-MONEY_METHODS = ("cash", "card", "ABA", "KHQR")  # credit and deposit are not money taken at the till
+MONEY_METHODS = ("cash", "card", "ABA", "KHQR", "PAYWAY")  # credit and deposit are not money taken at the till
 MODIFIED = ("medicine", "pack_unit", "promotion", "hamper", "category", "brand")
 
 # The outbox created_at of the event being replayed (backfill), for payloads

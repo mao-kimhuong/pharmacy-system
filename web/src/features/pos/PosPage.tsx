@@ -12,6 +12,7 @@ import { CartTable } from './CartTable';
 import { CustomerBox, type CustomerBoxHandle } from './CustomerBox';
 import { useHotkeys } from './hooks';
 import { KhqrDialog } from './Khqr';
+import { PaywayDialog } from './Payway';
 import { LineOptionsDialog } from './LineOptions';
 import { LinkRxDrawer } from './LinkRx';
 import { CartFindings, KeyHints, PaymentView, SummaryActions, Totals } from './Panel';
@@ -41,12 +42,14 @@ export function PosDialogs({ pos, dlg, setDlg }: { pos: ReturnType<typeof usePos
         onDone={(n) => { setDlg({ kind: '' }); pos.reset(); toast.success(t('suspend.done', { number: n })); }} />
       <KhqrDialog open={dlg.kind === 'khqr'} branchId={pos.branchId} amountUsd={Math.max(total, 0)} rate={pos.rate} onClose={() => setDlg({ kind: '' })}
         onPaid={(k) => { setDlg({ kind: '' }); pos.addOther('KHQR', { khqr_id: k.id, amount: k.amount, currency: k.currency as 'USD' | 'KHR' }); }} />
+      <PaywayDialog open={dlg.kind === 'payway'} branchId={pos.branchId} amountUsd={Math.max(total, 0)} rate={pos.rate} onClose={() => setDlg({ kind: '' })}
+        onPaid={(k) => { setDlg({ kind: '' }); pos.addOther('PAYWAY', { khqr_id: k.id, amount: k.amount, currency: k.currency as 'USD' | 'KHR' }); }} />
       <ConfirmDialog open={dlg.kind === 'cancel'} onClose={() => setDlg({ kind: '' })} title={t('cancelSale.title')} body={t('cancelSale.body')} confirmLabel={t('cancelSale.confirm')} variant="danger" onConfirm={() => pos.reset()} />
     </>
   );
 }
 
-export type Dlg = { kind: '' | 'options' | 'rx' | 'pin' | 'approval' | 'suspend' | 'khqr' | 'cancel'; key?: string };
+export type Dlg = { kind: '' | 'options' | 'rx' | 'pin' | 'approval' | 'suspend' | 'khqr' | 'payway' | 'cancel'; key?: string };
 
 export default function PosPage() {
   const phone = useMediaQuery('(max-width: 1023px)');
@@ -157,7 +160,7 @@ function PosDesktop() {
             />
           ) : (
             <PaymentView preview={pos.p} tender={pos.tender} setTender={pos.setTender} changeIn={pos.changeIn} setChangeIn={pos.setChangeIn} rate={pos.rate}
-              onMethod={(m) => { if (m === 'KHQR') setDlg({ kind: 'khqr' }); else if (m !== 'cash') pos.addOther(m); }}
+              onMethod={(m) => { if (m === 'KHQR') setDlg({ kind: 'khqr' }); else if (m === 'PAYWAY') setDlg({ kind: 'payway' }); else if (m !== 'cash') pos.addOther(m); }}
               onBack={() => pos.setMode('cart')} completing={pos.complete.isPending} canComplete={pos.canPay && !!pos.p?.payment && pos.preview.fresh}
               onComplete={() => pos.complete.mutate()} error={<ApiErrorAlert error={pos.complete.error} />} />
           )}

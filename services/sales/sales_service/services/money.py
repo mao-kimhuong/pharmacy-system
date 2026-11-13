@@ -26,7 +26,7 @@ from decimal import ROUND_DOWN, ROUND_HALF_UP, Decimal
 from pharmacy_shared.errors import AppError, ErrorCode
 
 CENT = Decimal("0.01")
-NON_CASH = ("card", "ABA", "KHQR", "deposit")  # deposit: a sale order's, never gives change
+NON_CASH = ("card", "ABA", "KHQR", "PAYWAY", "deposit")  # deposit: a sale order's, never gives change
 
 
 def usd(value: Decimal | str | int) -> Decimal:

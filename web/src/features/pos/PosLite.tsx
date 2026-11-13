@@ -94,7 +94,7 @@ export function PosLite() {
         <CustomerBox customer={pos.cart.customer} onChange={(c) => pos.dispatch({ type: 'customer', customer: c })} />
         <Totals preview={pos.p} />
         <PaymentView preview={pos.p} tender={pos.tender} setTender={pos.setTender} changeIn={pos.changeIn} setChangeIn={pos.setChangeIn} rate={pos.rate}
-          onMethod={(m) => { if (m === 'KHQR') setDlg({ kind: 'khqr' }); else if (m !== 'cash') pos.addOther(m); }}
+          onMethod={(m) => { if (m === 'KHQR') setDlg({ kind: 'khqr' }); else if (m === 'PAYWAY') setDlg({ kind: 'payway' }); else if (m !== 'cash') pos.addOther(m); }}
           onBack={() => pos.setMode('cart')} completing={pos.complete.isPending} canComplete={pos.canPay && !!pos.p?.payment && pos.preview.fresh}
           onComplete={() => pos.complete.mutate()} error={<ApiErrorAlert error={pos.complete.error} />} />
       </Sheet>

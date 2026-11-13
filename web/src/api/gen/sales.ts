@@ -526,6 +526,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sales/v1/payments/payway/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Checkout
+         * @description PayWay Purchase at the till (cards, ABA PAY, KHQR, wallets on PayWay's hosted page). Post `form.fields` to
+         *     `form.action` as multipart/form-data in a new window; follow GET /payments/khqr/{id} (or PayWay's callback);
+         *     once paid, pay the sale with payments[{method: "PAYWAY", khqr_id, amount, currency}]. Cancel, refunds and the
+         *     daily check as for KHQR.
+         */
+        post: operations["checkout_api_sales_v1_payments_payway_checkout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sales/v1/sale-orders": {
         parameters: {
             query?: never;
@@ -859,6 +882,56 @@ export interface components {
             total_khr: number | null;
             /** Warnings */
             warnings: components["schemas"]["FindingOut"][];
+        };
+        /** CheckoutCreate */
+        CheckoutCreate: {
+            /**
+             * Amount
+             * @description USD, or KHR in whole hundreds
+             */
+            amount: number | string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /**
+             * Cart Ref
+             * @default
+             */
+            cart_ref?: string;
+            /**
+             * Currency
+             * @default USD
+             * @enum {string}
+             */
+            currency?: "USD" | "KHR";
+            /**
+             * Payment Option
+             * @description Empty: PayWay shows every method the merchant profile has
+             */
+            payment_option?: ("cards" | "abapay_khqr" | "alipay" | "wechat" | "google_pay") | null;
+        };
+        /** CheckoutForm */
+        CheckoutForm: {
+            /**
+             * Action
+             * @description PayWay's purchase URL: POST the fields there as multipart/form-data, in a new window
+             */
+            action: string;
+            /**
+             * Fields
+             * @description Signed by the server (hash); post them unchanged
+             */
+            fields: {
+                [key: string]: string;
+            };
+        };
+        /** CheckoutOut */
+        CheckoutOut: {
+            /** @description None with the fake provider (development: the owner marks it paid) */
+            form: components["schemas"]["CheckoutForm"] | null;
+            payment: components["schemas"]["KhqrOut"];
         };
         /** CommissionLineOut */
         CommissionLineOut: {
@@ -1236,6 +1309,12 @@ export interface components {
             id: string;
             /** Invoice Id */
             invoice_id: string | null;
+            /**
+             * Kind
+             * @description khqr: a QR (sale method KHQR); checkout: PayWay Purchase (PAYWAY)
+             * @enum {string}
+             */
+            kind: "khqr" | "checkout";
             /** Md5 */
             md5: string;
             /** Paid Amount */
@@ -1244,6 +1323,11 @@ export interface components {
             paid_at: string | null;
             /** Paid Currency */
             paid_currency: string | null;
+            /**
+             * Payment Option
+             * @description checkout: cards | abapay_khqr | alipay | wechat | google_pay
+             */
+            payment_option?: string | null;
             /**
              * Provider
              * @enum {string}
@@ -1713,7 +1797,7 @@ export interface components {
              * Method
              * @enum {string}
              */
-            method: "cash" | "card" | "ABA" | "KHQR" | "credit" | "deposit";
+            method: "cash" | "card" | "ABA" | "KHQR" | "PAYWAY" | "credit" | "deposit";
         };
         /** PeriodOut */
         PeriodOut: {
@@ -5367,6 +5451,126 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    checkout_api_sales_v1_payments_payway_checkout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutOut"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED";
+                    };
+                };
+            };
+            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR";
                     };
                 };
             };

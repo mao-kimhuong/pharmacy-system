@@ -65,7 +65,8 @@
       "ABA": "ABA",
       "KHQR": "KHQR",
       "credit": "ជំពាក់",
-      "deposit": "ប្រាក់កក់"
+      "deposit": "ប្រាក់កក់",
+      "PAYWAY": "ABA PayWay"
     },
     "tendered": "ប្រាក់ទទួល",
     "usd": "ដុល្លារ",
@@ -167,5 +168,24 @@
   },
   "below": "លក់ក្រោមថ្លៃដើម",
   "handoff": "ផ្ញើទៅឱសថការី (ផ្អាក)",
-  "pickBranch": "ជ្រើសសាខាដើម្បីលក់"
+  "pickBranch": "ជ្រើសសាខាដើម្បីលក់",
+  "payway": {
+    "title": "ការទូទាត់ ABA PayWay",
+    "open": "បើក PayWay",
+    "method": "វិធីទូទាត់",
+    "hint": "PayWay នឹងបើកក្នុងបង្អួចថ្មី៖ អតិថិជនបង់នៅទីនោះដោយកាត ABA PAY KHQR ឬកាបូបអេឡិចត្រូនិក។ សូមទុកប្រអប់នេះបើក។",
+    "waiting": "កំពុងរង់ចាំអតិថិជនបង់ក្នុងបង្អួច PayWay",
+    "reopen": "បើកបង្អួច PayWay ម្តងទៀត",
+    "options": {
+      "any": "ណាមួយ (អតិថិជនជ្រើសរើស)",
+      "cards": "កាត (Visa / Mastercard)",
+      "abapay_khqr": "ABA PAY / KHQR",
+      "alipay": "Alipay",
+      "wechat": "WeChat Pay",
+      "google_pay": "Google Pay"
+    },
+    "returnDone": "បានផ្ញើការទូទាត់",
+    "returnCancel": "បានលុបចោលការទូទាត់",
+    "returnBody": "អ្នកអាចបិទបង្អួចនេះ ហើយត្រឡប់ទៅបញ្ជរឱសថស្ថានវិញ។"
+  }
 }

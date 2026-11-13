@@ -29,7 +29,7 @@ from .pdf import FONTS, e, html_to_pdf
 from .stored import upsert_versioned, wait_for
 
 INVOICE_EVENTS = frozenset({"invoice.created", "invoice.cancelled", "invoice.returned"})
-METHODS = {"cash": "Cash", "card": "Card", "ABA": "ABA", "KHQR": "KHQR", "credit": "On credit"}
+METHODS = {"cash": "Cash", "card": "Card", "ABA": "ABA", "KHQR": "KHQR", "PAYWAY": "ABA PayWay", "credit": "On credit"}
 PX_TO_MM = 25.4 / 96
 
 

@@ -371,6 +371,7 @@ services:
       PAYWAY_MERCHANT_ID: ${PAYWAY_MERCHANT_ID:-}
       PAYWAY_API_KEY: ${PAYWAY_API_KEY:-}
       PAYWAY_CALLBACK_URL: ${PAYWAY_CALLBACK_URL:-}
+      PAYWAY_WEB_URL: ${PAYWAY_WEB_URL:-http://localhost}  # PayWay checkout sends the window back here
       PAYWAY_RSA_PUBLIC_KEY_FILE: /run/secrets/payway_rsa_public.pem
       PAYWAY_RSA_PRIVATE_KEY_FILE: /run/secrets/payway_rsa_private.pem  # mounted, never read (no API needs it)
     secrets:

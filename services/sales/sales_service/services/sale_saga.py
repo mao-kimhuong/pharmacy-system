@@ -220,7 +220,7 @@ async def create_invoice(
         ) for x in lines],
         payments=[InvoicePayment(seq=i, method=p.method, currency=p.currency, amount=p.amount, amount_usd=u,
                                  deposit_id=raw.get("deposit_id") if p.method == "deposit" else None,
-                                 khqr_id=raw.get("khqr_id") if p.method == "KHQR" else None)
+                                 khqr_id=raw.get("khqr_id") if p.method in ("KHQR", "PAYWAY") else None)
                   for i, ((p, u), raw) in enumerate(zip(s.payments, data["payments"], strict=True), start=1)],
     )  # fmt: skip
     session.add(inv)

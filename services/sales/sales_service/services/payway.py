@@ -31,6 +31,7 @@ from pharmacy_shared.errors import AppError, ErrorCode
 log = logging.getLogger(__name__)
 
 QR_PATH = "/api/payment-gateway/v1/payments/generate-qr"
+PURCHASE_PATH = "/api/payment-gateway/v1/payments/purchase"  # the browser posts the signed form here
 CHECK_PATH = "/api/payment-gateway/v1/payments/check-transaction-2"
 CLOSE_PATH = "/api/payment-gateway/v1/payments/close-transaction"
 REFUND_PATH = "/api/merchant-portal/merchant-access/online-transaction/refund"
@@ -240,6 +241,16 @@ class PayWay:
             raise self._rejected("QR", code or "?", answer)
         return Qr(answer["qrString"], answer.get("abapay_deeplink"))
 
+    def checkout_form(self, tran_id: str, amount: Decimal, currency: str, payment_option: str, lifetime: int,
+                      cancel_url: str, continue_success_url: str) -> dict[str, str]:  # fmt: skip
+        return purchase_form(self._key, self.merchant_id, tran_id, amount, currency, payment_option=payment_option,
+                             return_url=self.settings.payway_callback_url, cancel_url=cancel_url,
+                             continue_success_url=continue_success_url, lifetime=lifetime)  # fmt: skip
+
+    @property
+    def purchase_url(self) -> str:
+        return self.root + PURCHASE_PATH
+
     async def check(self, tran_id: str) -> Check:
         t = req_time()
         answer = await self._post(CHECK_PATH, {"req_time": t, "merchant_id": self.merchant_id, "tran_id": tran_id,
@@ -274,6 +285,34 @@ class PayWay:
             raise self._rejected("refund", code or "?", answer)
         return Refund(_dec(answer.get("total_refunded")) or amount, answer.get("currency"),
                       answer.get("transaction_status"))  # fmt: skip
+
+
+# Purchase (docs/payway/purchase.md): the hash takes these fields in exactly this order (empty = not sent)
+PURCHASE_HASH_ORDER = ("req_time", "merchant_id", "tran_id", "amount", "items", "shipping", "firstname", "lastname",
+                       "email", "phone", "type", "payment_option", "return_url", "cancel_url", "continue_success_url",
+                       "return_deeplink", "currency", "custom_fields", "return_params", "payout", "lifetime",
+                       "additional_params", "google_pay_token", "skip_success_page")  # fmt: skip
+CHECKOUT_OPTIONS = ("cards", "abapay_khqr", "alipay", "wechat", "google_pay")
+
+
+def purchase_form(api_key: str, merchant_id: str, tran_id: str, amount: Decimal, currency: str, *,
+                  return_url: str = "", cancel_url: str = "", continue_success_url: str = "", payment_option: str = "",
+                  lifetime: int = 0, items: list[dict[str, Any]] | None = None,
+                  at: datetime | None = None) -> dict[str, str]:  # fmt: skip
+    """The multipart/form-data fields the browser posts to PURCHASE_PATH (PayWay's hosted checkout opens).
+    return_url is where PayWay pushes the result (our callback, base64 as the docs say); cancel_url and
+    continue_success_url are pages of the web app. view_type and payment_gate are sent, not hashed (per the docs)."""
+    f = {k: "" for k in PURCHASE_HASH_ORDER}
+    f.update({"req_time": req_time(at), "merchant_id": merchant_id, "tran_id": tran_id, "amount": amount_text(amount),
+              "items": b64(json.dumps(items, separators=(",", ":"))) if items else "", "type": "purchase",
+              "payment_option": payment_option, "return_url": b64(return_url) if return_url else "",
+              "cancel_url": cancel_url, "continue_success_url": continue_success_url, "currency": currency,
+              "lifetime": str(lifetime) if lifetime else "", "skip_success_page": "1" if continue_success_url else ""})  # fmt: skip
+    fields = {k: v for k, v in f.items() if v != ""}
+    fields["hash"] = sign(api_key, *(f[k] for k in PURCHASE_HASH_ORDER))
+    fields["view_type"] = "hosted_view"
+    fields["payment_gate"] = "0"  # the Checkout service, also when the profile has the QR API
+    return fields
 
 
 def lifetime_minutes(seconds: int) -> int:

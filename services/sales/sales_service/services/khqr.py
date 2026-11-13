@@ -283,6 +283,43 @@ async def create(session: AsyncSession, actor: CurrentUser, data: dict[str, Any]
     return p
 
 
+async def create_checkout(session: AsyncSession, actor: CurrentUser, data: dict[str, Any],
+                          prov: Provider | None = None) -> tuple[KhqrPayment, dict[str, Any] | None]:  # fmt: skip
+    """PayWay Purchase at the till: a payment attempt on our own tran_id and the signed form the browser posts to
+    PayWay's hosted checkout (cards, ABA PAY, KHQR, wallets). Paid / cancelled / refunded exactly like a KHQR
+    (check-transaction, the callback, close, the refund API). The fake provider (development) has no form: the
+    owner marks it paid. Bakong has no checkout."""
+    settings = get_settings()
+    prov = prov or provider(settings)
+    if prov.name == "bakong":
+        raise AppError(ErrorCode.VALIDATION_ERROR, "PayWay checkout needs KHQR_PROVIDER=payway", status_code=422)
+    branch = await branch_for(session, actor, data["branch_id"])
+    currency, amount = data["currency"], Decimal(str(data["amount"]))
+    if currency == "KHR" and amount % 100:
+        raise AppError(ErrorCode.VALIDATION_ERROR, "Riel in whole hundreds (as every riel payment)", status_code=422)
+    p = KhqrPayment(id=uuid4(), branch_id=branch.id, cart_ref=data.get("cart_ref") or "", kind="checkout",
+                    payment_option=data.get("payment_option") or None, amount=amount, currency=currency,
+                    provider=prov.name, status="pending", created_by=actor.id, refunded_amount=Decimal("0"),
+                    expires_at=clock.now() + timedelta(minutes=settings.payway_checkout_minutes), created_at=clock.now(),
+                    tran_id=f"P{clock.now():%y%m%d%H%M%S}{secrets.randbelow(10**6):06d}", qr_string="",
+                    account_id=f"{prov.name}:{settings.payway_merchant_id}"[:40] if prov.name == "payway" else "fake")  # fmt: skip
+    p.md5 = hashlib.md5(p.tran_id.encode()).hexdigest()  # noqa: S324 – only an id (unique), as for the QRs
+    form = None
+    if isinstance(prov, PayWayProvider):
+        web = settings.payway_web_url.rstrip("/")
+        back = f"{web}/pos/payway-return?id={p.id}"
+        form = {"action": prov.api.purchase_url, "fields": prov.api.checkout_form(
+            p.tran_id, amount, currency, p.payment_option or "", settings.payway_checkout_minutes,
+            cancel_url=back + "&result=cancel", continue_success_url=back + "&result=done")}  # fmt: skip
+    session.add(p)
+    await session.flush()
+    audit(session, actor, "khqr.checkout_created", "khqr_payment", p.id, branch_id=branch.id,
+          after={"amount": str(amount), "currency": currency, "provider": prov.name,
+                 "payment_option": p.payment_option})  # fmt: skip
+    await session.commit()
+    return p, form
+
+
 async def get(session: AsyncSession, actor: CurrentUser, khqr_id: UUID, *, lock: bool = False) -> KhqrPayment:
     query = select(KhqrPayment).where(KhqrPayment.id == khqr_id)
     p = (await session.execute(query.with_for_update() if lock else query)).scalar_one_or_none()
@@ -373,9 +410,14 @@ async def cancel(session: AsyncSession, actor: CurrentUser, khqr_id: UUID, prov:
 
 
 async def check_for_sale(session: AsyncSession, actor: CurrentUser, branch_id: UUID, khqr_id: UUID, currency: str,
-                         amount: Decimal, *, lock: bool) -> KhqrPayment:  # fmt: skip
-    """A sale paying with this QR: paid, same branch, amount and currency, unused."""
+                         amount: Decimal, *, lock: bool, kind: str = "khqr") -> KhqrPayment:  # fmt: skip
+    """A sale paying with this QR (method KHQR) or PayWay checkout (method PAYWAY): paid, same branch, amount and
+    currency, unused."""
     p = await get(session, actor, khqr_id, lock=lock)
+    details = {"khqr_id": str(p.id), "status": p.status}
+    if p.kind != kind:
+        raise AppError(ErrorCode.KHQR_MISMATCH, "This payment is a " + ("PayWay checkout: pay with method PAYWAY"
+                       if p.kind == "checkout" else "KHQR: pay with method KHQR"), status_code=422, details=details)  # fmt: skip
     await refresh(session, p)
     details = {"khqr_id": str(p.id), "status": p.status}
     if p.branch_id != branch_id:

@@ -16,7 +16,16 @@ from pharmacy_shared.idempotency import require_idempotency_key
 
 from ..db import db
 from ..models import KhqrPayment
-from ..schemas.khqr import CallbackOut, KhqrCreate, KhqrIssueOut, KhqrOut, KhqrRefundIn, KhqrRefundOut
+from ..schemas.khqr import (
+    CallbackOut,
+    CheckoutCreate,
+    CheckoutOut,
+    KhqrCreate,
+    KhqrIssueOut,
+    KhqrOut,
+    KhqrRefundIn,
+    KhqrRefundOut,  # fmt: skip
+)
 from ..services import khqr
 from ..services.clients import Clients, get_clients
 
@@ -40,6 +49,19 @@ async def create(
     """A dynamic KHQR for this amount: ABA PayWay's QR API (KHQR_PROVIDER=payway) or the branch's Bakong account
     (or the shared one). Pay the sale with payments[{method: "KHQR", khqr_id, amount, currency}] once paid."""
     return await khqr.create(session, user, body.model_dump())
+
+
+@router.post("/payments/payway/checkout", response_model=CheckoutOut, status_code=201)
+async def checkout(
+    body: CheckoutCreate, user: CurrentUser = Depends(sell), _: str = Depends(require_idempotency_key),
+    session: AsyncSession = Depends(db.session),
+) -> CheckoutOut:  # fmt: skip
+    """PayWay Purchase at the till (cards, ABA PAY, KHQR, wallets on PayWay's hosted page). Post `form.fields` to
+    `form.action` as multipart/form-data in a new window; follow GET /payments/khqr/{id} (or PayWay's callback);
+    once paid, pay the sale with payments[{method: "PAYWAY", khqr_id, amount, currency}]. Cancel, refunds and the
+    daily check as for KHQR."""
+    p, form = await khqr.create_checkout(session, user, body.model_dump())
+    return CheckoutOut(payment=KhqrOut.model_validate(p), form=form)
 
 
 @router.get("/payments/khqr/refunds", response_model=list[KhqrRefundOut])

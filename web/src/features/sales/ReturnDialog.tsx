@@ -15,7 +15,7 @@ export function ReturnDialog({ invoice, open, onClose }: { invoice: SalesS['Invo
   const qc = useQueryClient();
   const [qty, setQty] = useState<Record<string, string>>({});
   const [opened, setOpened] = useState<Record<string, boolean>>({});
-  const paidByKhqr = invoice.payments.some((p) => p.method === 'KHQR');
+  const paidByKhqr = invoice.payments.some((p) => p.method === 'KHQR' || p.method === 'PAYWAY');
   const [refund, setRefund] = useState<'cash' | 'credit_note' | 'khqr'>(Number(invoice.credit_amount) > 0 ? 'credit_note' : 'cash');
   const [to, setTo] = useState<'stock' | 'quarantine'>('stock');
   const [reason, setReason] = useState('');

@@ -297,15 +297,19 @@ async def run_checks(session: AsyncSession, actor: CurrentUser, clients: Clients
         if mode == "raise":
             raise
         c.error(err)
-    for raw in raw_payments:  # a KHQR paid for this sale: checked (and locked when posting)
+    for raw in raw_payments:  # a KHQR / PayWay checkout paid for this sale: checked (and locked when posting)
+        if raw["method"] == "PAYWAY" and raw.get("khqr_id") is None:
+            c.add(ErrorCode.VALIDATION_ERROR, "Method PAYWAY needs the paid checkout's khqr_id", status=422)
+            continue
         if raw.get("khqr_id") is None:
             continue
-        if raw["method"] != "KHQR":
-            c.add(ErrorCode.VALIDATION_ERROR, "khqr_id goes with method KHQR", status=422)
+        if raw["method"] not in ("KHQR", "PAYWAY"):
+            c.add(ErrorCode.VALIDATION_ERROR, "khqr_id goes with method KHQR or PAYWAY", status=422)
             continue
         try:
             result.khqr.append(await khqr.check_for_sale(session, actor, branch.id, raw["khqr_id"], raw["currency"],
-                                                         Decimal(str(raw["amount"])), lock=mode == "raise"))  # fmt: skip
+                                                         Decimal(str(raw["amount"])), lock=mode == "raise",
+                                                         kind="checkout" if raw["method"] == "PAYWAY" else "khqr"))  # fmt: skip
         except AppError as err:
             if mode == "raise":
                 raise

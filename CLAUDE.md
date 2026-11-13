@@ -461,6 +461,14 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   sandbox only, a 100 KHR QR); `python -m sales_service.cli khqr-reconcile [--date]`. Riel is compared in riel
   (money.settle): what USD payments leave is due as riel at the invoice's rate, rounded to 100 (all-riel = total_khr);
   riel = due settles exactly and `payment_rounding_khr` keeps the difference; a riel KHQR/ABA/card may not exceed it.
+- **PayWay checkout at the till (Purchase):** `POST /payments/payway/checkout` (pos.sell, Idempotency-Key) → a
+  `khqr_payments` row with `kind="checkout"` (own `tran_id` per attempt) + the signed multipart form (hash in
+  `docs/payway/purchase.md`'s order, `payway.purchase_form`; `return_url` = our callback, base64; `continue_success_url`
+  / `cancel_url` = `PAYWAY_WEB_URL/pos/payway-return`). The POS opens a window on the click and posts the form there (CSP
+  `form-action` allows ABA's two checkout hosts); status, callback (trigger only), cancel/close, review, late payment,
+  refunds and the daily check are the KHQR ones. Sale method `PAYWAY` + `khqr_id` (a QR and a checkout are not
+  interchangeable: KHQR_MISMATCH). Opt-in sandbox test: `PAYWAY_SANDBOX_TEST=1` (signed form → 302 to "PayWay -
+  Checkout"; a changed hash → 403 code 1).
 - **Supplier returns (purchasing, from S8b):** `PP1-SRN-…` draft → credited | refunded, or cancelled (only a draft,
   reason); `purchasing.return`. Submit (Idempotency-Key): inventory `/internal/v1/movements/supplier-return` (movement
   type `supplier_return`, once per line, the batch must be the supplier's; controlled: PIN + witness, action

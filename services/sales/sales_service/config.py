@@ -50,6 +50,9 @@ class Settings(BaseServiceSettings):
     payway_rsa_private_key_file: str = ""
     payway_callback_url: str = ""  # the public URL of POST /payments/payway/callback (empty: polling only)
     payway_qr_template: str = "template3_color"
+    # PayWay Purchase (checkout at the till): where PayWay sends the browser back (the web app's origin)
+    payway_web_url: str = "http://localhost"
+    payway_checkout_minutes: int = 15
     # Expired or cancelled QRs are still asked about this long: a late payment → needs_refund
     khqr_late_check_hours: int = 24
     khqr_late_check_every_seconds: int = 60

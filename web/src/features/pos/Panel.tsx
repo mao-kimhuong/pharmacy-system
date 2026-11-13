@@ -51,7 +51,7 @@ export function SummaryActions({ onDiscount, onSuspend, onCredit, onKhqr, onPay,
   );
 }
 
-const METHODS: PaymentIn['method'][] = ['cash', 'card', 'ABA', 'KHQR', 'credit'];
+const METHODS: PaymentIn['method'][] = ['cash', 'card', 'ABA', 'KHQR', 'PAYWAY', 'credit'];
 
 export function PaymentView({ preview, tender, setTender, changeIn, setChangeIn, rate, onMethod, onComplete, onBack, completing, canComplete, error }: {
   preview?: Preview; tender: Tender; setTender: (t: Tender) => void; changeIn: ChangeIn; setChangeIn: (c: ChangeIn) => void; rate: number | null;

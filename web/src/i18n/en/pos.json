@@ -65,7 +65,8 @@
       "ABA": "ABA",
       "KHQR": "KHQR",
       "credit": "Credit",
-      "deposit": "Deposit"
+      "deposit": "Deposit",
+      "PAYWAY": "ABA PayWay"
     },
     "tendered": "Cash received",
     "usd": "USD",
@@ -167,5 +168,24 @@
   },
   "below": "Sale below cost",
   "handoff": "Hand to pharmacist (suspend)",
-  "pickBranch": "Choose a branch to sell from"
+  "pickBranch": "Choose a branch to sell from",
+  "payway": {
+    "title": "ABA PayWay checkout",
+    "open": "Open PayWay",
+    "method": "Method",
+    "hint": "PayWay opens in a new window: the customer pays there by card, ABA PAY, KHQR or a wallet. Keep this dialog open.",
+    "waiting": "Waiting for the customer to pay in the PayWay window",
+    "reopen": "Open the PayWay window again",
+    "options": {
+      "any": "Any (the customer chooses)",
+      "cards": "Card (Visa / Mastercard)",
+      "abapay_khqr": "ABA PAY / KHQR",
+      "alipay": "Alipay",
+      "wechat": "WeChat Pay",
+      "google_pay": "Google Pay"
+    },
+    "returnDone": "Payment sent",
+    "returnCancel": "Payment cancelled",
+    "returnBody": "You can close this window and go back to the pharmacy counter."
+  }
 }

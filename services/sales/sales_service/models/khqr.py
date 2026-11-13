@@ -36,6 +36,7 @@ class KhqrPayment(IdMixin, Base):
         CheckConstraint(f"status IN {STATUSES}", name="ck_khqr_payments_status"),
         CheckConstraint("currency IN ('USD', 'KHR')", name="ck_khqr_payments_currency"),
         CheckConstraint("provider IN ('fake', 'bakong', 'payway')", name="ck_khqr_payments_provider"),
+        CheckConstraint("kind IN ('khqr', 'checkout')", name="ck_khqr_payments_kind"),
         Index("ix_khqr_payments_pending", "status", "expires_at"),
     )
 
@@ -43,6 +44,10 @@ class KhqrPayment(IdMixin, Base):
     invoice_id: Mapped[UUID | None] = mapped_column(Uuid)
     cart_ref: Mapped[str] = mapped_column(String(80), default="")
     provider: Mapped[str] = mapped_column(String(8), default="fake", server_default="fake")
+    # khqr: a QR on the till's screen (sale method KHQR); checkout: PayWay Purchase, its hosted page in a new window
+    # (cards, ABA PAY, KHQR, wallets; sale method PAYWAY)
+    kind: Mapped[str] = mapped_column(String(10), default="khqr", server_default="khqr")
+    payment_option: Mapped[str | None] = mapped_column(String(20))
     tran_id: Mapped[str | None] = mapped_column(String(20), unique=True)  # PayWay's transaction id (ours)
     amount: Mapped[Decimal] = mapped_column(Numeric(16, 2))
     currency: Mapped[str] = mapped_column(String(3))

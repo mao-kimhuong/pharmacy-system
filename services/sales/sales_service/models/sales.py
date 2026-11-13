@@ -24,7 +24,7 @@ from pharmacy_shared.db import IdMixin, TimestampMixin
 from .base import Base
 
 INVOICE_STATUSES = ("pending", "completed", "failed", "cancelling", "cancelled", "needs_attention")
-PAY_METHODS = ("cash", "card", "ABA", "KHQR", "credit", "deposit")
+PAY_METHODS = ("cash", "card", "ABA", "KHQR", "PAYWAY", "credit", "deposit")
 
 
 class ExchangeRate(IdMixin, Base):
@@ -198,7 +198,7 @@ class InvoicePayment(IdMixin, Base):
     __tablename__ = "invoice_payments"
     __table_args__ = (
         CheckConstraint(
-            "method IN ('cash', 'card', 'ABA', 'KHQR', 'credit', 'deposit')",
+            "method IN ('cash', 'card', 'ABA', 'KHQR', 'PAYWAY', 'credit', 'deposit')",
             name="ck_invoice_payments_method",
         ),
         CheckConstraint("currency IN ('USD', 'KHR')", name="ck_invoice_payments_currency"),
@@ -212,7 +212,7 @@ class InvoicePayment(IdMixin, Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(16, 2))  # in `currency` (riel: whole hundreds)
     amount_usd: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     deposit_id: Mapped[UUID | None] = mapped_column(Uuid)  # method "deposit": a sale order's deposit
-    khqr_id: Mapped[UUID | None] = mapped_column(Uuid, unique=True)  # method "KHQR": the paid QR, used once
+    khqr_id: Mapped[UUID | None] = mapped_column(Uuid, unique=True)  # KHQR / PAYWAY: the paid QR or checkout, used once
 
 
 class SaleReturn(IdMixin, Base):

@@ -25,6 +25,8 @@ class KhqrOut(BaseModel):
     qr_string: str = Field(description="The EMV-KHQR string; the POS draws the QR from it")
     md5: str
     provider: Literal["fake", "bakong", "payway"]
+    kind: Literal["khqr", "checkout"] = Field(description="khqr: a QR (sale method KHQR); checkout: PayWay Purchase (PAYWAY)")
+    payment_option: str | None = Field(default=None, description="checkout: cards | abapay_khqr | alipay | wechat | google_pay")
     tran_id: str | None = Field(description="PayWay's transaction id (ours, sent to PayWay)")
     deeplink: str | None = Field(description="PayWay: opens the ABA app on a phone")
     status: Literal["pending", "paid", "expired", "cancelled", "used", "review", "needs_refund", "refunded"]
@@ -36,6 +38,27 @@ class KhqrOut(BaseModel):
     review_reason: str | None
     refunded_amount: Decimal
     invoice_id: UUID | None
+
+
+class CheckoutCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    branch_id: UUID
+    amount: Decimal = Field(gt=0, max_digits=16, decimal_places=2, description="USD, or KHR in whole hundreds")
+    currency: Literal["USD", "KHR"] = "USD"
+    payment_option: Literal["cards", "abapay_khqr", "alipay", "wechat", "google_pay"] | None = Field(
+        default=None, description="Empty: PayWay shows every method the merchant profile has")
+    cart_ref: str = Field(default="", max_length=80)
+
+
+class CheckoutForm(BaseModel):
+    action: str = Field(description="PayWay's purchase URL: POST the fields there as multipart/form-data, in a new window")
+    fields: dict[str, str] = Field(description="Signed by the server (hash); post them unchanged")
+
+
+class CheckoutOut(BaseModel):
+    payment: KhqrOut
+    form: CheckoutForm | None = Field(description="None with the fake provider (development: the owner marks it paid)")
 
 
 class KhqrRefundIn(BaseModel):

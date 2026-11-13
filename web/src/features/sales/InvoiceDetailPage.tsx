@@ -26,7 +26,7 @@ export default function InvoiceDetailPage() {
   const q = useQuery({ queryKey: ['sales', 'invoice', id], queryFn: () => call(api.sales.GET('/api/sales/v1/invoices/{invoice_id}', { params: { path: { invoice_id: id } } })) });
   const returns = useQuery({ queryKey: ['sales', 'returns', id], enabled: !!q.data, queryFn: () => call(api.sales.GET('/api/sales/v1/invoices/{invoice_id}/returns', { params: { path: { invoice_id: id } } })) });
   const inv = q.data;
-  const paidByKhqr = !!inv?.payments.some((p) => p.method === 'KHQR');
+  const paidByKhqr = !!inv?.payments.some((p) => p.method === 'KHQR' || p.method === 'PAYWAY');
   // a cancel or a return "back to the KHQR" leaves a refund due: offer it here to who may give it
   const khqrDue = useQuery({
     queryKey: ['sales', 'khqr-refunds', 'invoice', id],
