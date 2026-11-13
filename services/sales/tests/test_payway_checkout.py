@@ -143,3 +143,48 @@ async def test_sandbox_accepts_the_signed_purchase_form() -> None:
     assert r.history and r.history[0].status_code == 302 and r.status_code == 200
     assert "<title>PayWay - Checkout</title>" in r.text
     assert bad.status_code == 403 and payway.status_code(bad.json()) == "1"
+
+
+async def test_a_declined_try_keeps_the_attempt_open_and_says_so(client, pw) -> None:  # noqa: ANN001, F811
+    c = await new_checkout(client)
+    tran = c["payment"]["tran_id"]
+    pw.txns[tran] = {"amount": Decimal("0.90"), "currency": "USD", "status": 3, "paid": None, "refunded": Decimal("0")}
+    seen = await qr_status(client, c["payment"])
+    assert seen["status"] == "pending" and seen["provider_status"] == "declined"  # PayWay code 3: try again
+    pw.pay(tran)
+    await callback(client, tran)
+    paid = await qr_status(client, c["payment"])
+    assert paid["status"] == "paid" and paid["provider_status"] is None
+
+
+async def test_options_and_the_fake_decline_are_for_development_only(client, monkeypatch) -> None:  # noqa: ANN001
+    s = get_settings()
+    monkeypatch.setattr(s, "khqr_provider", "bakong")
+    opts = (await client.get(f"{PREFIX}/payments/options", headers=CASHIER)).json()
+    assert opts == {"khqr_provider": "bakong", "payway_checkout": False, "test_buttons": False}
+    monkeypatch.setattr(s, "khqr_provider", "fake")
+    assert (await client.get(f"{PREFIX}/payments/options", headers=CASHIER)).json()["test_buttons"] is True
+    r = await client.post(f"{PREFIX}/payments/payway/checkout", json={"branch_id": str(PP1), "amount": "0.90"},
+                          headers={**OWNER, **idem()})  # fmt: skip
+    kid = r.json()["payment"]["id"]
+    assert (await client.post(f"{PREFIX}/payments/khqr/{kid}/fake-decline", headers=CASHIER)).status_code == 404
+    assert (await client.post(f"{PREFIX}/payments/khqr/{kid}/fake-decline", headers=OWNER)).status_code == 204
+    seen = (await client.get(f"{PREFIX}/payments/khqr/{kid}", headers=OWNER)).json()
+    assert seen["provider_status"] == "declined" and seen["status"] == "pending"
+    from sales_service.services import khqr
+
+    khqr.FakeProvider.declined.clear()
+
+
+async def test_a_bank_transfer_keeps_its_reference(client) -> None:  # noqa: ANN001
+    para = await stocked()
+    await set_rate(client)
+    r = await sell(client, [line(para, "strip", 1)], [{"method": "ABA", "currency": "USD", "amount": "0.90",
+                                                        "reference": "TT 2026/11-0042"}])  # fmt: skip
+    assert r.status_code == 201, r.text
+    assert r.json()["payments"][0]["reference"] == "TT 2026/11-0042"
+    payload = [p for t, p in await outbox() if t == "invoice.created"][-1]
+    assert payload["payments"][0]["reference"] == "TT 2026/11-0042"
+    bad = await sell(client, [line(para, "strip", 1)], [{"method": "ABA", "currency": "USD", "amount": "0.90",
+                                                          "reference": "<script>"}])  # fmt: skip
+    assert bad.status_code == 422

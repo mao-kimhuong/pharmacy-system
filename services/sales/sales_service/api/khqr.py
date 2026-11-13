@@ -24,7 +24,8 @@ from ..schemas.khqr import (
     KhqrIssueOut,
     KhqrOut,
     KhqrRefundIn,
-    KhqrRefundOut,  # fmt: skip
+    KhqrRefundOut,
+    PaymentOptions,
 )
 from ..services import khqr
 from ..services.clients import Clients, get_clients
@@ -113,6 +114,33 @@ async def cancel(khqr_id: UUID, user: CurrentUser = Depends(sell),
     """Give up a pending QR (closed at PayWay). Already paid → KHQR_STATE; a payment that still arrives later
     becomes a refund due."""
     return await khqr.cancel(session, user, khqr_id)
+
+
+@router.get("/payments/options", response_model=PaymentOptions)
+async def payment_options(_: CurrentUser = Depends(sell)) -> PaymentOptions:
+    """What the till can offer: PayWay checkout (Card / Wallet) only with KHQR_PROVIDER=payway; otherwise a card
+    is a manual payment from the card terminal (with its reference). The fake provider: test buttons."""
+    from ..config import get_settings
+
+    s = get_settings()
+    return PaymentOptions(khqr_provider=s.khqr_provider, payway_checkout=s.khqr_provider in ("payway", "fake"),
+                          test_buttons=s.khqr_provider == "fake" and not s.is_production)  # fmt: skip
+
+
+@router.post("/payments/khqr/{khqr_id}/fake-decline", status_code=204)
+async def fake_decline(khqr_id: UUID, user: CurrentUser = Depends(requires("pos.sell")),
+                       session: AsyncSession = Depends(db.session)) -> None:  # fmt: skip
+    """Development only (fake provider, never in production; owner): the customer's try "fails", as PayWay's
+    code 3 – the attempt stays open (they may try again). 404 everywhere else."""
+    from pharmacy_shared.errors import ErrorCode
+
+    from ..config import get_settings
+
+    settings = get_settings()
+    if settings.khqr_provider != "fake" or settings.is_production or not user.is_owner:
+        raise AppError(ErrorCode.NOT_FOUND, "Not found", status_code=404)
+    p = await khqr.get(session, user, khqr_id)
+    khqr.FakeProvider.declined.add(p.md5)
 
 
 @router.post("/payments/khqr/{khqr_id}/fake-pay", status_code=204)

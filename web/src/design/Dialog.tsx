@@ -34,9 +34,20 @@ function useFocusTrap(open: boolean, onClose: () => void, ref: React.RefObject<H
         a.focus();
       }
     };
+    // The focused control can disappear (a step of the dialog replaced its content): focus would fall to <body>,
+    // and Escape / Tab would stop working. Bring it back into the dialog.
+    const onFocusOut = () => {
+      window.setTimeout(() => {
+        if (el && el.isConnected && (document.activeElement === document.body || document.activeElement === null)) {
+          (el.querySelector<HTMLElement>(FOCUSABLE) ?? el).focus();
+        }
+      }, 0);
+    };
     el?.addEventListener('keydown', onKey);
+    el?.addEventListener('focusout', onFocusOut);
     return () => {
       el?.removeEventListener('keydown', onKey);
+      el?.removeEventListener('focusout', onFocusOut);
       opener?.focus?.();
     };
   }, [open, ref, initialFocus]);

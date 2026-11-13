@@ -421,6 +421,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sales/v1/payments/khqr/{khqr_id}/fake-decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fake Decline
+         * @description Development only (fake provider, never in production; owner): the customer's try "fails", as PayWay's
+         *     code 3 – the attempt stays open (they may try again). 404 everywhere else.
+         */
+        post: operations["fake_decline_api_sales_v1_payments_khqr__khqr_id__fake_decline_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sales/v1/payments/khqr/{khqr_id}/fake-pay": {
         parameters: {
             query?: never;
@@ -498,6 +519,27 @@ export interface paths {
          *     twice: a refunded one comes back as it is.
          */
         post: operations["refund_api_sales_v1_payments_khqr_refunds__refund_id__refund_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/v1/payments/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payment Options
+         * @description What the till can offer: PayWay checkout (Card / Wallet) only with KHQR_PROVIDER=payway; otherwise a card
+         *     is a manual payment from the card terminal (with its reference). The fake provider: test buttons.
+         */
+        get: operations["payment_options_api_sales_v1_payments_options_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1212,6 +1254,8 @@ export interface components {
             deposit_id?: string | null;
             /** Method */
             method: string;
+            /** Reference */
+            reference?: string | null;
         };
         /** KhqrCreate */
         KhqrCreate: {
@@ -1333,6 +1377,11 @@ export interface components {
              * @enum {string}
              */
             provider: "fake" | "bakong" | "payway";
+            /**
+             * Provider Status
+             * @description pending only: declined = the customer's last try failed
+             */
+            provider_status?: string | null;
             /**
              * Qr String
              * @description The EMV-KHQR string; the POS draws the QR from it
@@ -1798,6 +1847,29 @@ export interface components {
              * @enum {string}
              */
             method: "cash" | "card" | "ABA" | "KHQR" | "PAYWAY" | "credit" | "deposit";
+            /**
+             * Reference
+             * @description Bank transfer (ABA) / card terminal: the transfer or slip reference
+             */
+            reference?: string | null;
+        };
+        /** PaymentOptions */
+        PaymentOptions: {
+            /**
+             * Khqr Provider
+             * @enum {string}
+             */
+            khqr_provider: "fake" | "bakong" | "payway";
+            /**
+             * Payway Checkout
+             * @description Card / Wallet opens PayWay's checkout (else a manual card payment)
+             */
+            payway_checkout: boolean;
+            /**
+             * Test Buttons
+             * @description Development: the owner can mark a QR / checkout paid or declined
+             */
+            test_buttons: boolean;
         };
         /** PeriodOut */
         PeriodOut: {
@@ -4972,6 +5044,98 @@ export interface operations {
             };
         };
     };
+    fake_decline_api_sales_v1_payments_khqr__khqr_id__fake_decline_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                khqr_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description NOT_AUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED";
+                    };
+                };
+            };
+            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
     fake_pay_api_sales_v1_payments_khqr__khqr_id__fake_pay_post: {
         parameters: {
             query?: never;
@@ -5359,6 +5523,98 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "PAYWAY_REJECTED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    payment_options_api_sales_v1_payments_options_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOptions"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED";
+                    };
+                };
+            };
+            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
                     };
                 };
             };

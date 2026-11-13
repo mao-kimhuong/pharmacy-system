@@ -26,7 +26,7 @@ export default function ReorderPage() {
   });
   const run = useMutation({
     mutationFn: () => call(api.inventory.POST('/api/inventory/v1/reorder-lists/run', { params: { query: { branch_id: oneBranch!.id } } })),
-    onSuccess: (r) => qc.setQueryData(['inventory', 'reorder', oneBranch?.id], r),
+    onSuccess: (r) => { qc.setQueryData(['inventory', 'reorder', oneBranch?.id], r); setSel(new Set()); }, // a new list: old ticks are gone
   });
   const act = useMutation({
     mutationFn: (kind: 'pr' | 'tr') => {

@@ -8,7 +8,7 @@ import type { SalesS } from '@/api/types';
 import { useUser } from '@/app/auth';
 import { useBranch } from '@/app/branch';
 import type { PinToken } from '@/design';
-import { cartReducer, defaultPack, emptyCart, emptyTender, toLinesIn, toPayments, type CartLine, type CartState, type RxLink, type ChangeIn, type PaymentIn, type Tender } from './cart';
+import { cartReducer, defaultPack, emptyCart, emptyTender, remainingAfterOthers, toLinesIn, toPayments, type CartLine, type CartState, type RxLink, type ChangeIn, type PaymentIn, type Tender } from './cart';
 import { useMedicines, usePreview, useRate, useRequestKey, toCartMedicine, type Finding } from './hooks';
 
 export interface PosLoad {
@@ -109,9 +109,7 @@ export function usePos() {
   }, [complete]);
 
   const addOther = (method: PaymentIn['method'], extra: Partial<PaymentIn> = {}) => {
-    const total = Number(p?.total ?? 0);
-    const paid = Number(p?.payment?.paid ?? 0) + Number(p?.payment?.credit ?? 0);
-    const due = Math.max(0, total - (mode === 'pay' ? paid : 0));
+    const due = remainingAfterOthers(Number(p?.total ?? 0), tender, rate.data?.khr_per_usd ?? null);
     if (due <= 0 && !extra.amount) return;
     setTender((t) => ({ ...t, others: [...t.others, { method, currency: 'USD', amount: due.toFixed(2), ...extra }] }));
     setMode('pay');

@@ -76,6 +76,8 @@ class PaymentIn(BaseModel):
     khqr_id: UUID | None = Field(
         default=None, description="method KHQR: the paid dynamic KHQR (POST /payments/khqr), used once"
     )
+    reference: str | None = Field(default=None, max_length=40, pattern=r"^[\w ./#:-]*$",
+                                  description="Bank transfer (ABA) / card terminal: the transfer or slip reference")
 
 
 class InvoiceCreate(BaseModel):
@@ -165,6 +167,7 @@ class InvoicePaymentOut(BaseModel):
     amount: Decimal
     amount_usd: Decimal
     deposit_id: UUID | None = None
+    reference: str | None = None
 
 
 class InvoiceOut(BaseModel):

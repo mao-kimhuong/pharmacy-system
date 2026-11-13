@@ -213,6 +213,7 @@ class InvoicePayment(IdMixin, Base):
     amount_usd: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     deposit_id: Mapped[UUID | None] = mapped_column(Uuid)  # method "deposit": a sale order's deposit
     khqr_id: Mapped[UUID | None] = mapped_column(Uuid, unique=True)  # KHQR / PAYWAY: the paid QR or checkout, used once
+    reference: Mapped[str | None] = mapped_column(String(40))  # bank transfer / card terminal reference
 
 
 class SaleReturn(IdMixin, Base):

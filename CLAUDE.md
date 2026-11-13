@@ -51,6 +51,9 @@ Traefik v3.6. Python 3.12. Lint with ruff.
 - Write the event to the outbox in the same transaction as the change.
 
 ## Commands
+- Shell commands for Claude: no shell variables and no `$(…)` (they trigger a permission prompt). Use plain paths, or
+  separate steps (list the files first, then read the one you need by its full path). Read files with the Read and Grep
+  tools, not cat / grep / sed in Bash.
 - `make env` then `make up` – start everything at http://localhost
 - `make test` – starts the test Postgres + Redis (docker-compose.test.yml), then ruff + pytest everywhere
   (picks python3.13/3.12/python3 ≥ 3.12; recreates an older .venv)
@@ -530,6 +533,14 @@ POS (`web/src/features/pos`): the cart holds only choices; prices, totals and ch
 Rx warnings come back under one code for the cart: actions follow `details.warnings[].kind` (allergy → override
 reason, duplicate_therapy → acknowledge). The checkout Idempotency-Key follows the exact request body (a retry
 replays; any change makes a new key). The scan box frees itself on Enter (scanners send the next code at once).
+Payment (`web/src/features/pos`): tiles Cash · KHQR · Card / Wallet · Bank transfer · Pay later (`PaymentTiles.tsx`, ≥ 88 px,
+KM + EN label, 1–5 outside number fields / Alt+1–5 anywhere, selected = border + ✓, disabled tiles say why). Each tile adds a
+row for what the payments already added leave (`cart.remainingAfterOthers`, not the preview); cash takes the rest. Bank
+transfer (`ABA`) and a terminal card (`card`, when PayWay is not set up: `GET /payments/options`) carry a `reference`. KHQR and
+Card / Wallet share `PaymentModal` (amount USD + KHR, reference, countdown, waiting → paid auto-closes; declined (PayWay code 3,
+`provider_status`) / expired / cancelled with Try again / Choose another method; closing while waiting asks, then cancels).
+Card / Wallet posts the signed PayWay form into an iframe in the modal (CSP `frame-src` = ABA's two checkout hosts; their page
+allows framing) with "Continue in PayWay" as the fallback window. Development: owner test buttons `fake-pay` / `fake-decline`.
 - [x] F0 Design system + app shell + auth + shared states
 - [x] F1 POS – all 9 flows on `/carts/preview`, POS lite, POS back office
 - [x] F2 Prescriptions + controlled drugs

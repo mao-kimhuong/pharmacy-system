@@ -1,6 +1,6 @@
 // POS lite (4a–4e): phone and small tablet. Scan with the camera or search, cart as cards, total + Pay at the
 // bottom, payment in a sheet. Same controller, findings and dialogs as the desktop POS.
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { ApiErrorAlert, BranchTag, Button, SafetyBadge, Scanner, Sheet, useToast } from '@/design';
@@ -9,7 +9,7 @@ import { khr, usd } from '@/lib/format';
 import { FindingRow } from './Findings';
 import { searchMedicines, toCartMedicine } from './hooks';
 import { CartFindings, PaymentView, Totals } from './Panel';
-import { PosDialogs, type Dlg } from './PosPage';
+import { PosDialogs, usePaymentPicker, type Dlg } from './PosPage';
 import { SaleComplete } from './SaleComplete';
 import { ScanBox } from './ScanBox';
 import { useFindingActions } from './useFindingActions';
@@ -21,6 +21,8 @@ export function PosLite() {
   const pos = usePos();
   const toast = useToast();
   const [dlg, setDlg] = useState<Dlg>({ kind: '' });
+  const picker = usePaymentPicker(pos, setDlg);
+  const cashField = useRef<HTMLInputElement>(null);
   const [camera, setCamera] = useState(false);
   const fa = useFindingActions(pos, {
     linkRx: (key) => setDlg({ kind: 'rx', key }), options: (key) => setDlg({ kind: 'options', key }), pin: () => setDlg({ kind: 'pin' }),
@@ -94,7 +96,7 @@ export function PosLite() {
         <CustomerBox customer={pos.cart.customer} onChange={(c) => pos.dispatch({ type: 'customer', customer: c })} />
         <Totals preview={pos.p} />
         <PaymentView preview={pos.p} tender={pos.tender} setTender={pos.setTender} changeIn={pos.changeIn} setChangeIn={pos.setChangeIn} rate={pos.rate}
-          onMethod={(m) => { if (m === 'KHQR') setDlg({ kind: 'khqr' }); else if (m === 'PAYWAY') setDlg({ kind: 'payway' }); else if (m !== 'cash') pos.addOther(m); }}
+          onMethod={picker.pick} hasCustomer={picker.hasCustomer} availableCredit={picker.availableCredit} cashField={cashField}
           onBack={() => pos.setMode('cart')} completing={pos.complete.isPending} canComplete={pos.canPay && !!pos.p?.payment && pos.preview.fresh}
           onComplete={() => pos.complete.mutate()} error={<ApiErrorAlert error={pos.complete.error} />} />
       </Sheet>

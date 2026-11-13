@@ -106,3 +106,14 @@ async def test_older_invoice_events_are_ignored(client) -> None:
     inv = invoice_event(version=2, status="cancelled")
     assert await store(inv) is True
     assert await store({**inv, "version": 1, "status": "completed"}) is False
+
+
+def test_payment_rows_show_bank_transfer_and_its_reference_escaped() -> None:
+    from document_service.services.receipts import _payments
+
+    rows = _payments({"payments": [
+        {"method": "ABA", "currency": "USD", "amount": "5.00", "reference": "TT 2026/11-0042"},
+        {"method": "PAYWAY", "currency": "USD", "amount": "2.00"},
+        {"method": "card", "currency": "KHR", "amount": "4100", "reference": None}]})  # fmt: skip
+    assert rows[0][0] == "Bank transfer · TT 2026/11-0042" and rows[1][0] == "Card / Wallet (PayWay)"
+    assert rows[2][0] == "Card"

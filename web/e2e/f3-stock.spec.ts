@@ -161,7 +161,9 @@ test.describe('F3 warehouse + stock', () => {
     await dlg.getByRole('button', { name: 'Save' }).click();
     await expect(dlg).toBeHidden(); // leaving the page earlier can cancel the save
     await page.goto('/stock/reorder');
+    const ran = page.waitForResponse((r) => r.url().includes('/reorder-lists/run'));
     await page.getByRole('button', { name: 'Run now' }).click();
+    await ran; // the run replaces the list shown before it: tick a line of the new one
     const row = page.getByRole('row', { name: new RegExp(d.meds.amox.sku) });
     await expect(row).toBeVisible();
     await row.getByRole('checkbox').check();

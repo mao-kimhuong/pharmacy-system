@@ -197,7 +197,7 @@ test.describe('F1 POS', () => {
     await page.goto('/pos');
     await scan(page, d.meds.para.packs.strip.barcode!);
     await page.getByRole('button', { name: 'KHQR' }).click();
-    await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByRole('button', { name: 'Show QR' }).click();
     await expect(page.getByRole('img', { name: 'KHQR' })).toBeVisible();
     await page.getByRole('button', { name: 'Mark paid (test)' }).click();
     await expect(page.getByRole('button', { name: /Complete & print/ })).toBeEnabled();

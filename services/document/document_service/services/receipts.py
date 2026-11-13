@@ -29,7 +29,8 @@ from .pdf import FONTS, e, html_to_pdf
 from .stored import upsert_versioned, wait_for
 
 INVOICE_EVENTS = frozenset({"invoice.created", "invoice.cancelled", "invoice.returned"})
-METHODS = {"cash": "Cash", "card": "Card", "ABA": "ABA", "KHQR": "KHQR", "PAYWAY": "ABA PayWay", "credit": "On credit"}
+METHODS = {"cash": "Cash", "card": "Card", "ABA": "Bank transfer", "KHQR": "KHQR", "PAYWAY": "Card / Wallet (PayWay)",
+           "credit": "On credit"}  # fmt: skip
 PX_TO_MM = 25.4 / 96
 
 
@@ -64,7 +65,8 @@ def _payments(inv: dict[str, Any]) -> list[tuple[str, str]]:
         amount = (
             f"{_riel(int(Decimal(p['amount'])))} ៛" if p["currency"] == "KHR" else f"${_usd(p['amount'])}"
         )
-        rows.append((METHODS.get(p["method"], p["method"]), amount))
+        label = METHODS.get(p["method"], p["method"])
+        rows.append((f"{label} · {p['reference']}" if p.get("reference") else label, amount))  # escaped when drawn
     return rows
 
 

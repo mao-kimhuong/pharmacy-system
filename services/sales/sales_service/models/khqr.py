@@ -62,6 +62,8 @@ class KhqrPayment(IdMixin, Base):
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     bank_ref: Mapped[str | None] = mapped_column(String(80))
     review_reason: Mapped[str | None] = mapped_column(Text)
+    # what the provider last said while it is still open: "declined" (PayWay code 3: the customer may try again)
+    provider_status: Mapped[str | None] = mapped_column(String(12))
     refunded_amount: Mapped[Decimal] = mapped_column(Numeric(16, 2), default=Decimal("0"), server_default="0")
     checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

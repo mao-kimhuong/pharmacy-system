@@ -36,8 +36,15 @@ class KhqrOut(BaseModel):
     paid_currency: str | None
     bank_ref: str | None
     review_reason: str | None
+    provider_status: str | None = Field(default=None, description="pending only: declined = the customer's last try failed")
     refunded_amount: Decimal
     invoice_id: UUID | None
+
+
+class PaymentOptions(BaseModel):
+    khqr_provider: Literal["fake", "bakong", "payway"]
+    payway_checkout: bool = Field(description="Card / Wallet opens PayWay's checkout (else a manual card payment)")
+    test_buttons: bool = Field(description="Development: the owner can mark a QR / checkout paid or declined")
 
 
 class CheckoutCreate(BaseModel):

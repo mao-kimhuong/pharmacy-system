@@ -58,7 +58,7 @@ async def invoice_payload(
         "khr_per_usd": inv.khr_per_usd, "total_khr": inv.total_khr,
         "sale_order_id": str(inv.sale_order_id) if inv.sale_order_id else None,
         "payments": [{"method": p.method, "currency": p.currency, "amount": str(p.amount),
-                      "amount_usd": str(p.amount_usd)} for p in inv.payments],
+                      "amount_usd": str(p.amount_usd), "reference": p.reference} for p in inv.payments],
         "paid": str(inv.paid), "credit_amount": str(inv.credit_amount), "change_usd": str(inv.change_usd),
         "change_in": inv.change_in, "change_given_usd": str(inv.change_given_usd),
         "change_given_khr": inv.change_given_khr, "change_rounding_khr": str(inv.change_rounding_khr),

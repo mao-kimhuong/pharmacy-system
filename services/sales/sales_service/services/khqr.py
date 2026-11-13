@@ -99,6 +99,7 @@ class Status:
     paid_at: datetime | None = None
     paid_currency: str | None = None
     refunded: Decimal = Decimal("0")
+    detail: str | None = None  # still pending: "declined" (the last try failed, the customer may try again)
 
 
 class Provider(Protocol):
@@ -122,14 +123,15 @@ class FakeProvider:
     name = "fake"
     paid: dict[str, Status] = {}
     refunded: dict[str, Decimal] = {}
+    declined: set[str] = set()
 
     async def make(self, p: KhqrPayment, account: dict[str, Any], settings: Settings) -> None:
         _emv(p, account, settings, account["bill_no"])
 
     async def status(self, p: KhqrPayment) -> Status:
-        st = self.paid.get(p.md5, Status("pending"))
+        st = self.paid.get(p.md5, Status("pending", detail="declined" if p.md5 in self.declined else None))
         return Status(st.status, st.paid_amount, st.bank_ref, st.paid_at, st.paid_currency,
-                      self.refunded.get(p.md5, Decimal("0")))  # fmt: skip
+                      self.refunded.get(p.md5, Decimal("0")), st.detail)  # fmt: skip
 
     async def close(self, p: KhqrPayment) -> None:
         return None
@@ -212,7 +214,9 @@ class PayWayProvider:
             return Status("paid", c.payment_amount, c.apv, clock.now(), c.payment_currency, c.refund_amount)
         if c.payment_status_code == payway.CANCELLED:
             return Status("cancelled")
-        return Status("pending")  # 2 pending, 3 declined: the customer may still pay
+        if c.payment_status_code == payway.DECLINED:
+            return Status("pending", detail="declined")  # the customer may try again in the same checkout
+        return Status("pending")
 
     async def close(self, p: KhqrPayment) -> None:
         if p.tran_id:
@@ -351,6 +355,7 @@ async def refresh(session: AsyncSession, p: KhqrPayment, prov: Provider | None =
     prov = prov or provider_for(p)
     p.checked_at = now
     st = await prov.status(p)
+    p.provider_status = st.detail if st.status == "pending" else None
     if st.status == "paid":
         _paid(session, p, st)
     elif p.status == "pending" and st.status == "cancelled":

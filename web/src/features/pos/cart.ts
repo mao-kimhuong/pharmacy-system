@@ -145,6 +145,14 @@ export interface Tender {
 
 export const emptyTender: Tender = { cashUsd: '', cashKhr: '', others: [] };
 
+/** USD left for the next method once the payments already added (not the cash fields) are counted: what a new KHQR,
+ *  card, transfer or credit row takes. From the tender itself, not the preview (which has no payment figures while
+ *  the payments are still short). Riel rows count at the rate. */
+export function remainingAfterOthers(total: number, t: Tender, rate: number | null): number {
+  const others = t.others.reduce((sum, p) => sum + (p.currency === 'KHR' ? (rate ? Number(p.amount) / rate : 0) : Number(p.amount)), 0);
+  return Math.max(0, Math.round((total - others) * 100) / 100);
+}
+
 export function toPayments(t: Tender): PaymentIn[] {
   const out: PaymentIn[] = [...t.others];
   const usd = Number(t.cashUsd);
