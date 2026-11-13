@@ -494,6 +494,10 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   what the buttons need: `transfer_request.created` value / has_controlled / requested_by, `purchase_request.created`
   value (last receipt cost, null if never received) / has_controlled, `count.submitted` needs_owner / needs_pin,
   decided events `decided_by` + `via`.
+- **Bot commands (T2 phase 3):** `staff_bot.Hooks.command` → `Scope` (auth access now + where: private / owner chat /
+  branch chat) → reports `/internal/v1/bot/{day|top|cash|debtors|expiring|stock}` (`services/bot.py`, `branch_ids`
+  comma list or none = all, `profit`, `names`). Branch chats: that branch, no cost, no names; names only in private.
+  Rate limit: command_reply messages per chat in the last minute (`commands_per_minute`).
 - **Supplier returns (purchasing, from S8b):** `PP1-SRN-…` draft → credited | refunded, or cancelled (only a draft,
   reason); `purchasing.return`. Submit (Idempotency-Key): inventory `/internal/v1/movements/supplier-return` (movement
   type `supplier_return`, once per line, the batch must be the supplier's; controlled: PIN + witness, action
@@ -546,7 +550,7 @@ API matches the spec, migration included, tests pass (`make test` and `make test
   connections (SSL stays configurable for production) and make the test DB fixture retry its first connect.
 - [ ] S10 AI – DeepSeek phase A
 - [ ] T2 Telegram – [x] 1 customers (link, consent, receipts, reminders, balance, promotions) · [x] 2 approval buttons ·
-  [ ] 3 bot commands · [ ] 4 operations alerts (heartbeat, opening, fridge sensors) · [ ] 5 partners (suppliers, clinics)
+  [x] 3 bot commands · [ ] 4 operations alerts (heartbeat, opening, fridge sensors) · [ ] 5 partners (suppliers, clinics)
 
 Front end (`web/`, plan: `docs/plans/frontend-plan.md`, design handoff: `docs/design/`, how it works: `web/README.md`).
 Decided: F-sprints hide designed details the API lacks (choice A alternative); refresh token in the httpOnly cookie

@@ -69,7 +69,7 @@ Clients = Callable[[str], Any]  # service name → client with get / post (Inter
 
 def default_clients(settings: Settings) -> Clients:
     urls = {"auth": settings.auth_url, "inventory": settings.inventory_url, "stockcount": settings.stockcount_url,
-            "purchasing": settings.purchasing_url, "sales": settings.sales_url}  # fmt: skip
+            "purchasing": settings.purchasing_url, "sales": settings.sales_url, "reports": settings.reports_url}  # fmt: skip
     return lambda name: InternalClient(urls[name], settings.service_name, settings.service_token)
 
 

@@ -11,6 +11,7 @@ import asyncio
 import sys
 
 from .config import get_settings
+from .services import staff_bot
 from .services.telegram import Sender
 
 
@@ -33,6 +34,8 @@ async def _run(args: argparse.Namespace) -> int:
             {"command": "settings", "description": "Choose your messages / ជ្រើសរើសសារ"},
             {"command": "stop", "description": "Stop and unlink / បញ្ឈប់"},
             {"command": "help", "description": "Help / ជំនួយ"}]})  # fmt: skip
+        await sender.call("setMyCommands", {"scope": {"type": "all_group_chats"}, "commands": [
+            {"command": c[1:], "description": f"{en} / {km}"[:256]} for c, (km, en) in staff_bot.HELP.items()]})  # fmt: skip
         return 0 if status == 200 else 1
     if args.command == "delete-webhook":
         status, body = await sender.call("deleteWebhook", {"drop_pending_updates": False})
