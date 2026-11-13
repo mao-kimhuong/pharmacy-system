@@ -7,6 +7,7 @@ from collections.abc import AsyncIterator
 from pathlib import Path
 from uuid import UUID, uuid4
 
+from pharmacy_shared.redis import connect as connect_redis
 from pharmacy_shared.testing import TEST_REDIS_URL, recreate_database, test_database_url
 
 TEST_DB = "test_auth"
@@ -61,7 +62,7 @@ async def clean() -> AsyncIterator[None]:
         await conn.execute(text("DELETE FROM roles WHERE NOT is_system"))
         await conn.execute(text("UPDATE roles SET is_active = true"))
     await sync_catalog()  # built-in roles get their default permissions back
-    redis = Redis.from_url(TEST_REDIS_URL)
+    redis = connect_redis(TEST_REDIS_URL)
     await redis.flushdb()
     await redis.aclose()
     yield
@@ -78,7 +79,7 @@ async def client() -> AsyncIterator[httpx.AsyncClient]:
 
 @pytest.fixture
 async def redis() -> AsyncIterator[Redis]:
-    client = Redis.from_url(TEST_REDIS_URL, decode_responses=True)
+    client = connect_redis(TEST_REDIS_URL, decode_responses=True)
     yield client
     await client.aclose()
 

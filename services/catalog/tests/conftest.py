@@ -8,6 +8,7 @@ from collections.abc import AsyncIterator
 from pathlib import Path
 from uuid import UUID, uuid4
 
+from pharmacy_shared.redis import connect as connect_redis
 from pharmacy_shared.testing import TEST_REDIS_URL, recreate_database, test_database_url
 
 TEST_DB = "test_catalog"
@@ -20,7 +21,6 @@ import pytest  # noqa: E402
 from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
 from openpyxl import Workbook  # noqa: E402
-from redis.asyncio import Redis  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 
 from catalog_service.db import db  # noqa: E402
@@ -48,7 +48,7 @@ async def clean() -> AsyncIterator[None]:
             text("TRUNCATE import_rows, imports, hamper_components, pack_units, medicines, categories, brands, promotions,"
                  " outbox CASCADE")
         )
-    redis = Redis.from_url(TEST_REDIS_URL)
+    redis = connect_redis(TEST_REDIS_URL)
     await redis.flushdb()
     await redis.aclose()
     yield

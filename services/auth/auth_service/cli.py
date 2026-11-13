@@ -14,10 +14,10 @@ import getpass
 import os
 import sys
 
-from redis.asyncio import Redis
 from sqlalchemy import select
 
 from pharmacy_shared.outbox import add_event
+from pharmacy_shared.redis import connect as connect_redis
 
 from .config import get_settings
 from .db import db
@@ -117,7 +117,7 @@ async def reset_2fa(phone: str) -> User:
         phone = normalize_phone(phone)
     except ValueError as exc:
         raise CliError("Invalid phone number") from exc
-    redis = Redis.from_url(get_settings().redis_url)
+    redis = connect_redis(get_settings().redis_url)
     try:
         async with db.sessionmaker() as session, session.begin():
             user = (await session.execute(select(User).where(User.phone == phone).with_for_update())).scalar_one_or_none()
