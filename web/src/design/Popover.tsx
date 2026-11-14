@@ -28,7 +28,7 @@ export function Popover({
     <div ref={ref} className="relative">
       {trigger({ open, toggle: () => setOpen((o) => !o), props: { 'aria-expanded': open, 'aria-haspopup': 'menu' } })}
       {open && (
-        <div role="menu" aria-label={label} className={cx('absolute top-[calc(100%+6px)] z-40 flex flex-col rounded-xl border border-neutral-200 bg-white p-1.5 text-[13px] shadow-menu', align === 'right' ? 'right-0' : 'left-0')}
+        <div role="menu" aria-label={label} className={cx('absolute top-[calc(100%+6px)] z-40 flex flex-col rounded-xl border border-neutral-200 bg-surface p-1.5 text-[13px] shadow-menu', align === 'right' ? 'right-0' : 'left-0')}
           style={{ width }}>
           {children(() => setOpen(false))}
         </div>

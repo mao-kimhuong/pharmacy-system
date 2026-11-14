@@ -34,7 +34,7 @@ function fromPromo(p: Promo): Create {
 
 function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
   return <button type="button" aria-pressed={on} onClick={onClick}
-    className={cx('rounded-full border px-3 py-1.5 text-[13px] font-medium', on ? 'border-primary-600 bg-primary-600 text-white' : 'border-neutral-300 bg-white text-neutral-900')}>{children}</button>;
+    className={cx('rounded-full border px-3 py-1.5 text-[13px] font-medium', on ? 'border-primary-600 bg-primary-600 text-white' : 'border-neutral-300 bg-surface text-neutral-900')}>{children}</button>;
 }
 
 function Editor({ promo, onClose }: { promo: Promo | null; onClose: () => void }) {

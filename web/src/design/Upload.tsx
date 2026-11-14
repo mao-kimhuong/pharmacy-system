@@ -19,7 +19,7 @@ export function UploadBox({ onFile, accept = 'image/jpeg,image/png,application/p
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); setOver(false); const f = e.dataTransfer.files[0]; if (f) onFile(f); }}
-      className={cx('flex cursor-pointer flex-col gap-1 rounded-lg border-[1.5px] border-dashed p-5 text-center text-[13px] text-neutral-700', over ? 'border-primary-600 bg-primary-50' : 'border-[#9FB5B3] bg-neutral-50', className)}
+      className={cx('flex cursor-pointer flex-col gap-1 rounded-lg border-[1.5px] border-dashed p-5 text-center text-[13px] text-neutral-700', over ? 'border-primary-600 bg-primary-50' : 'border-neutral-300 bg-neutral-50', className)}
     >
       <b>{label ?? t('upload.drop')}</b>
       <span className="text-neutral-500">{t('upload.hint')}</span>

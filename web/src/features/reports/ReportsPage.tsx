@@ -117,9 +117,9 @@ export function ReportView() {
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chart}>
-                <CartesianGrid stroke="#EEF1F0" vertical={false} />
-                <XAxis dataKey="k" tick={{ fontSize: 11, fill: '#66706F' }} />
-                <YAxis tick={{ fontSize: 11, fill: '#66706F' }} width={60} />
+                <CartesianGrid stroke="var(--c-neutral-100, #EEF1F0)" vertical={false} />
+                <XAxis dataKey="k" tick={{ fontSize: 11, fill: 'var(--c-neutral-500, #66706F)' }} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--c-neutral-500, #66706F)' }} width={60} />
                 <Tooltip formatter={(v) => usd(v as number)} />
                 <Bar dataKey="v" fill="#13908A" radius={[2, 2, 0, 0]} />
               </BarChart>

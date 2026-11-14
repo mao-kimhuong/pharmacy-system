@@ -6,10 +6,10 @@ export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'danger-outline
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 const VARIANT: Record<ButtonVariant, string> = {
-  primary: 'bg-primary-600 text-white border-primary-600 hover:bg-primary-700 hover:border-primary-700',
-  secondary: 'bg-white text-neutral-900 border-neutral-300 hover:bg-neutral-50',
-  danger: 'bg-danger text-white border-danger hover:bg-[#9A1D14]',
-  'danger-outline': 'bg-white text-danger border-[#E8A39C] hover:bg-danger-bg',
+  primary: 'bg-primary-600 text-white border-primary-600 hover:bg-primary-deep hover:border-primary-deep',
+  secondary: 'bg-surface text-neutral-900 border-neutral-300 hover:bg-neutral-50',
+  danger: 'bg-danger text-white border-danger hover:bg-danger-strong',
+  'danger-outline': 'bg-surface text-danger border-danger-bd hover:bg-danger-bg',
   ghost: 'bg-transparent text-neutral-700 border-transparent hover:bg-neutral-100',
   link: 'bg-transparent text-primary-600 border-transparent hover:text-primary-700 px-0',
 };
@@ -56,7 +56,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
           aria-hidden
           className={cx(
             'rounded-sm px-1.5 py-0.5 font-mono text-[11px] font-normal',
-            variant === 'primary' || variant === 'danger' ? 'bg-primary-900/40' : variant === 'danger-outline' ? 'bg-danger-bg' : 'bg-neutral-100 text-neutral-700',
+            variant === 'primary' || variant === 'danger' ? 'bg-primary-deep/40' : variant === 'danger-outline' ? 'bg-danger-bg' : 'bg-neutral-100 text-neutral-700',
           )}
         >
           {kbd}
@@ -68,7 +68,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 
 export function Kbd({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <kbd className={cx('rounded-sm border border-neutral-200 bg-white px-1.5 py-0.5 font-mono text-[11px] text-neutral-700', className)}>
+    <kbd className={cx('rounded-sm border border-neutral-200 bg-surface px-1.5 py-0.5 font-mono text-[11px] text-neutral-700', className)}>
       {children}
     </kbd>
   );

@@ -7,6 +7,18 @@ const px = (n: number) => `${n}px`;
 const strip = <T extends object>(o: T) =>
   Object.fromEntries(Object.entries(o).filter(([k]) => !k.startsWith('$'))) as Record<string, never>;
 
+/** A colour as a CSS variable with the light value as its fallback: `.dark` (src/index.css) redefines the variables,
+ * so every class (bg-, text-, border-, /opacity) follows the theme with no `dark:` variants. */
+const cv = (name: string, light: string) => `var(--c-${name}, ${light})`;
+const scale = (name: string, o: Record<string, string>) =>
+  Object.fromEntries(Object.entries(o).filter(([k]) => !k.startsWith('$')).map(([k, hex]) => [k, cv(`${name}-${k}`, hex)]));
+const sem = tokens.color.semantic;
+// Text, border and tint shades the design used as raw hex next to the semantic colours (now theme-aware tokens)
+const semantic = (k: 'success' | 'warning' | 'danger' | 'info', extra: Record<string, string>) => ({
+  DEFAULT: cv(k, sem[k]), bg: cv(`${k}-bg`, sem[`${k}-bg`]),
+  ...Object.fromEntries(Object.entries(extra).map(([n, hex]) => [n, cv(`${k}-${n}`, hex)])),
+});
+
 const safety = Object.fromEntries(
   Object.entries(strip(tokens.color.safety)).map(([k, v]: [string, { bg: string; fg: string }]) => [
     k,
@@ -15,9 +27,9 @@ const safety = Object.fromEntries(
 );
 const pill = Object.fromEntries(
   Object.entries(strip(tokens.color['status-pill'])).map(
-    ([k, v]: [string, { fg: string; bg: string; bd: string; dot: string }]) => [
+    ([k, p]: [string, { fg: string; bg: string; bd: string; dot: string }]) => [
       k,
-      { DEFAULT: v.bg, fg: v.fg, bd: v.bd, dot: v.dot },
+      { DEFAULT: cv(`pill-${k}`, p.bg), fg: cv(`pill-${k}-fg`, p.fg), bd: cv(`pill-${k}-bd`, p.bd), dot: cv(`pill-${k}-dot`, p.dot) },
     ],
   ),
 );
@@ -43,14 +55,18 @@ export default {
     },
     extend: {
       colors: {
-        primary: tokens.color.primary,
-        neutral: tokens.color.neutral,
-        canvas: tokens.color.canvas,
-        focus: tokens.color['focus-ring'],
-        success: { DEFAULT: tokens.color.semantic.success, bg: tokens.color.semantic['success-bg'] },
-        warning: { DEFAULT: tokens.color.semantic.warning, bg: tokens.color.semantic['warning-bg'] },
-        danger: { DEFAULT: tokens.color.semantic.danger, bg: tokens.color.semantic['danger-bg'] },
-        info: { DEFAULT: tokens.color.semantic.info, bg: tokens.color.semantic['info-bg'] },
+        primary: { ...scale('primary', tokens.color.primary), deep: cv('primary-deep', tokens.color.primary['700']) },
+        neutral: scale('neutral', tokens.color.neutral),
+        canvas: cv('canvas', tokens.color.canvas),
+        focus: cv('focus', tokens.color['focus-ring']),
+        surface: cv('surface', '#FFFFFF'), // cards, inputs, dialogs (was bg-white)
+        scrim: cv('scrim', tokens.color.neutral['900']), // behind dialogs and drawers
+        inverse: cv('inverse', tokens.color.neutral['900']), // dark bars with white text (toast, offline)
+        success: semantic('success', { fg: '#164E2E', bd: '#BFE2CC' }),
+        warning: semantic('warning', { fg: '#5C3B00', bd: '#F0D48E', soft: '#FFFBF0' }),
+        danger: semantic('danger', { fg: '#7A1610', bd: '#F4C3BD', soft: '#FFF8F7', strong: '#9A1D14' }),
+        info: semantic('info', { fg: '#173F6E', bd: '#C3D7F0' }),
+        rxsoft: { DEFAULT: cv('rxsoft', '#ECEAFB'), fg: cv('rxsoft-fg', '#262A7A') },
         safety,
         pill,
         posdark: strip(tokens.color['pos-dark']),

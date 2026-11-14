@@ -45,7 +45,7 @@ export function SummaryActions({ onDiscount, onSuspend, onCredit, onKhqr, onPay,
         <Button size="lg" className="text-[14px] font-medium" onClick={onCredit} disabled={!canPay}>{t('actions.credit')}</Button>
         <Button size="lg" className="text-[14px] font-medium" onClick={onKhqr} disabled={!canPay}>{t('actions.khqr')}</Button>
       </div>
-      {blockMsg && <div className="rounded-md bg-danger-bg px-3 py-2 text-[13px] font-medium text-[#7A1610]" role="alert">{blockMsg}</div>}
+      {blockMsg && <div className="rounded-md bg-danger-bg px-3 py-2 text-[13px] font-medium text-danger-fg" role="alert">{blockMsg}</div>}
       <Button variant="primary" size="lg" className="mt-auto h-14 text-[17px]" kbd="F9" disabled={!canPay} onClick={onPay}>{t('actions.pay')}</Button>
       <Button variant="danger-outline" size="lg" kbd="Esc" onClick={onCancel}>{t('actions.cancel')}</Button>
     </div>
@@ -103,12 +103,12 @@ export function PaymentView({ preview, tender, setTender, changeIn, setChangeIn,
       <div className="flex flex-col gap-1.5">
         <span className="text-[12px] font-semibold text-neutral-700">{t('pay.tendered')}</span>
         <div className="grid grid-cols-2 gap-2">
-          <label className="flex h-11 items-center overflow-hidden rounded-md border border-neutral-300 bg-white text-[18px] focus-within:border-2 focus-within:border-primary-600 focus-within:shadow-focus">
+          <label className="flex h-11 items-center overflow-hidden rounded-md border border-neutral-300 bg-surface text-[18px] focus-within:border-2 focus-within:border-primary-600 focus-within:shadow-focus">
             <span className="px-2.5 text-[14px] text-neutral-500">$</span>
             <input ref={cashField} aria-label={t('pay.usd')} inputMode="decimal" className="num w-full min-w-0 pr-2.5 text-right font-semibold outline-none focus-visible:shadow-none" value={tender.cashUsd}
               onChange={(e) => setTender({ ...tender, cashUsd: e.target.value.replace(/[^\d.]/g, '') })} autoFocus />
           </label>
-          <label className={cx('flex h-11 items-center overflow-hidden rounded-md border bg-white text-[18px] focus-within:border-2 focus-within:border-primary-600 focus-within:shadow-focus', khrOk ? 'border-neutral-300' : 'border-danger')}>
+          <label className={cx('flex h-11 items-center overflow-hidden rounded-md border bg-surface text-[18px] focus-within:border-2 focus-within:border-primary-600 focus-within:shadow-focus', khrOk ? 'border-neutral-300' : 'border-danger')}>
             <span className="px-2.5 text-[14px] text-neutral-500">៛</span>
             <input aria-label={t('pay.khr')} inputMode="numeric" disabled={!rate} className="num w-full min-w-0 pr-2.5 text-right font-semibold outline-none focus-visible:shadow-none" value={tender.cashKhr}
               onChange={(e) => setTender({ ...tender, cashKhr: e.target.value.replace(/\D/g, '') })}
@@ -126,14 +126,14 @@ export function PaymentView({ preview, tender, setTender, changeIn, setChangeIn,
         <Segmented size="sm" value={changeIn} onChange={setChangeIn} options={[{ value: 'USD_KHR', label: t('pay.changeUsdKhr') }, { value: 'USD', label: 'USD' }, { value: 'KHR', label: 'KHR' }]} />
       </div>
       {pay && (
-        <div className={cx('flex flex-col gap-0.5 rounded-lg border px-3 py-2.5', due > 0.004 ? 'border-[#F0D48E] bg-warning-bg' : 'border-[#BFE2CC] bg-success-bg')} aria-live="polite">
+        <div className={cx('flex flex-col gap-0.5 rounded-lg border px-3 py-2.5', due > 0.004 ? 'border-warning-bd bg-warning-bg' : 'border-success-bd bg-success-bg')} aria-live="polite">
           {due > 0.004 ? (
-            <div className="flex items-baseline justify-between"><span className="text-[13px] font-semibold text-[#7A4F00]">{t('pay.due')}</span><span className="num text-[22px] font-bold text-[#5C3B00]">{usd(due)}</span></div>
+            <div className="flex items-baseline justify-between"><span className="text-[13px] font-semibold text-warning-fg">{t('pay.due')}</span><span className="num text-[22px] font-bold text-warning-fg">{usd(due)}</span></div>
           ) : (
             <>
               <div className="flex items-baseline justify-between">
                 <span className="text-[13px] font-semibold text-pill-success-fg">{t('pay.change')}</span>
-                <span className="num text-[26px] font-bold text-[#164E2E]" data-testid="pos-change">
+                <span className="num text-[26px] font-bold text-success-fg" data-testid="pos-change">
                   {[Number(pay.change_given_usd) > 0 ? usd(pay.change_given_usd) : null, pay.change_given_khr > 0 ? khr(pay.change_given_khr) : null].filter(Boolean).join(' + ') || usd(0)}
                 </span>
               </div>

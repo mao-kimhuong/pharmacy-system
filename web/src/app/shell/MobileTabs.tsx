@@ -24,7 +24,7 @@ export function MobileTabs({ onScan }: { onScan: () => void }) {
     </NavLink>
   );
   return (
-    <nav aria-label={t('menu')} className="no-print fixed inset-x-0 bottom-0 z-30 grid h-tabbar grid-cols-5 border-t border-neutral-200 bg-white px-1 pt-1.5 pb-3.5">
+    <nav aria-label={t('menu')} className="no-print fixed inset-x-0 bottom-0 z-30 grid h-tabbar grid-cols-5 border-t border-neutral-200 bg-surface px-1 pt-1.5 pb-3.5">
       {tab('/', '⌂', t('tabs.home'))}
       {canOpen('/pos') ? tab('/pos', '◎', t('tabs.pos')) : <span />}
       <button type="button" onClick={onScan} className="flex flex-col items-center justify-center gap-0.5 font-medium text-neutral-500">

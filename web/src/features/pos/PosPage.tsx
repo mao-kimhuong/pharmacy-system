@@ -6,7 +6,7 @@ import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { ApiErrorAlert, BranchTag, ConfirmDialog, PinDialog, WitnessDialog, cx, useToast } from '@/design';
 import { api, call } from '@/api/client';
-import { LangToggle } from '@/app/shell/Header';
+import { LangToggle, ThemeToggle } from '@/app/shell/Header';
 import { initials } from '@/lib/format';
 import { useMediaQuery, useOnline } from '@/lib/hooks';
 import { branchName } from '@/app/branch';
@@ -133,13 +133,14 @@ function PosDesktop() {
   const tokens = [pos.pin && t('find.pinOk', { name: pos.pin.name }), pos.approval && t('find.approved', { name: pos.approval.name })].filter(Boolean);
   return (
     <div className="relative flex h-dvh flex-col bg-neutral-50">
-      <header className="flex h-12 flex-none items-center gap-3.5 border-b border-neutral-200 bg-white px-4 text-[13px]">
+      <header className="flex h-12 flex-none items-center gap-3.5 border-b border-neutral-200 bg-surface px-4 text-[13px]">
         <Link to="/" aria-label={t('common:action.goHome')} className="flex size-7 items-center justify-center rounded-[7px] bg-primary-600 font-bold text-white no-underline">+</Link>
         <span className="font-semibold">{t('title')}</span>
         {pos.branch && <span className="flex items-center gap-1.5"><BranchTag code={pos.branch.code} />{branchName(pos.branch, i18n.language)}</span>}
         <span className={cx('flex items-center gap-1.5', online ? 'text-pill-success-fg' : 'text-pill-warning-fg')}><span className={cx('size-2 rounded-full', online ? 'bg-pill-success-dot' : 'bg-warning')} />{online ? t('online') : t('offline')}</span>
         <span className="ml-auto text-neutral-700">{pos.rate ? t('rate', { rate: pos.rate.toLocaleString('en-US') }) : <span className="text-danger">{t('noRate')}</span>}</span>
         <LangToggle size="sm" />
+        <ThemeToggle />
         <span className="flex items-center gap-2">
           <span className="flex size-7 items-center justify-center rounded-full bg-primary-600 text-[11px] font-semibold text-white">{initials(pos.user.name)}</span>
           <span className="flex flex-col leading-[15px]"><b>{pos.user.name}</b><span className="text-[11px] text-neutral-500">{t(`shell:role.${pos.user.role}`, { defaultValue: pos.user.role })}</span></span>
@@ -150,14 +151,14 @@ function PosDesktop() {
           <ScanBox ref={scan} onAdd={(m, pack) => { setNotFound(null); pos.dispatch({ type: 'add', medicine: m, pack_unit_id: pack }); }} onError={setNotFound} />
           {notFound && <div role="alert" className="text-[13px] text-danger">{t('noMatch', { q: notFound })}</div>}
           {pos.cart.resumedFrom && (
-            <div className="rounded-lg border border-[#C3D7F0] bg-info-bg px-3.5 py-2.5 text-[13px] text-[#173F6E]">
+            <div className="rounded-lg border border-info-bd bg-info-bg px-3.5 py-2.5 text-[13px] text-info-fg">
               <b>{t('resumed.title', { number: pos.cart.resumedFrom.number })}</b>{' '}
               {pos.cart.resumedFrom.changes.length === 0 ? t('resumed.none') : (
                 <span>{t('resumed.changes')} {pos.cart.resumedFrom.changes.map((c, i) => <span key={i} className="mr-2">· {typeof c === 'object' && c ? Object.values(c as Record<string, unknown>).join(' ') : String(c)}</span>)}</span>
               )}
             </div>
           )}
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-neutral-200 bg-surface">
             <CartTable lines={pos.cart.lines} preview={pos.p} selected={pos.cart.selected}
               h={{ qty: (key, qty) => pos.dispatch({ type: 'qty', key, qty }), unit: (key, id) => pos.dispatch({ type: 'unit', key, pack_unit_id: id }), select: (i) => pos.dispatch({ type: 'select', index: i }), actionsFor: fa.line }} />
             <div className="flex gap-4 border-t border-neutral-100 px-3 py-2 text-[12px] text-neutral-500">
@@ -166,7 +167,7 @@ function PosDesktop() {
           </div>
           <KeyHints />
         </div>
-        <aside className="flex w-[400px] flex-none flex-col border-l border-neutral-200 bg-white">
+        <aside className="flex w-[400px] flex-none flex-col border-l border-neutral-200 bg-surface">
           <CustomerBox ref={customerBox} customer={pos.cart.customer} onChange={(c) => pos.dispatch({ type: 'customer', customer: c })} />
           <Totals preview={pos.p} />
           <div className="flex flex-col gap-1 px-4 pt-2">

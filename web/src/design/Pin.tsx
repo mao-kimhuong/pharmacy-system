@@ -70,7 +70,7 @@ export function PinPad({ length = 6, value, onChange, onComplete, disabled, erro
             onClick={() => press(k)}
             aria-label={k === '⌫' ? t('pin.delete') : k === 'C' ? t('pin.clear') : k}
             className={cx('h-[52px] rounded-lg border border-neutral-200 text-[20px] font-medium select-none active:bg-primary-100 disabled:opacity-50',
-              k === 'C' || k === '⌫' ? 'bg-white text-neutral-700' : 'bg-neutral-50')}
+              k === 'C' || k === '⌫' ? 'bg-surface text-neutral-700' : 'bg-neutral-50')}
           >
             {k}
           </button>

@@ -53,7 +53,7 @@ export function DataTable<T>({
   const hasFooter = columns.some((c) => c.footer !== undefined);
   const pad = dense ? 'px-3 py-2' : 'px-3 py-3';
   return (
-    <div className={cx('flex min-h-0 flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white', className)}>
+    <div className={cx('flex min-h-0 flex-col overflow-hidden rounded-xl border border-neutral-200 bg-surface', className)}>
       {toolbar && <div className="flex flex-wrap items-center gap-2 border-b border-neutral-200 px-4 py-3">{toolbar}</div>}
       {selection && selection.selected.size > 0 && (
         <div className="flex flex-wrap items-center gap-3 border-b border-primary-100 bg-primary-50 px-4 py-2 text-[13px]">

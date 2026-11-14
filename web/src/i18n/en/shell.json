@@ -15,7 +15,8 @@
     "on": "On",
     "off": "Off",
     "language": "Language",
-    "logout": "Log out"
+    "logout": "Log out",
+    "theme": "Theme"
   },
   "role": {
     "owner": "Owner",
@@ -45,5 +46,11 @@
   },
   "skip": "Skip to content",
   "menu": "Menu",
-  "openMenu": "Open menu"
+  "openMenu": "Open menu",
+  "theme": {
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark",
+    "label": "Theme: {{mode}}"
+  }
 }

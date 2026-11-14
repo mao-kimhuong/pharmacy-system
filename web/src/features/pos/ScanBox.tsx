@@ -44,7 +44,7 @@ export const ScanBox = forwardRef<ScanBoxHandle, { onAdd: (m: CartMedicine, pack
     };
     return (
       <div className="relative">
-        <div className={cx('flex h-[52px] items-center gap-3 rounded-lg border-2 border-primary-600 px-3.5 shadow-focus', dark ? 'bg-posdark-raised text-posdark-text' : 'bg-white')}>
+        <div className={cx('flex h-[52px] items-center gap-3 rounded-lg border-2 border-primary-600 px-3.5 shadow-focus', dark ? 'bg-posdark-raised text-posdark-text' : 'bg-surface')}>
           <span className="flex h-5 items-stretch gap-px" aria-hidden>{[2, 1, 3, 1, 2, 1].map((w, i) => <span key={i} style={{ width: w }} className={dark ? 'bg-posdark-text' : 'bg-neutral-900'} />)}</span>
           <input
             ref={input}
@@ -72,7 +72,7 @@ export const ScanBox = forwardRef<ScanBoxHandle, { onAdd: (m: CartMedicine, pack
           {busy ? <Spinner /> : <Kbd>F2</Kbd>}
         </div>
         {hits && (
-          <div role="listbox" aria-label={t('scan')} className="absolute z-30 mt-1 flex max-h-80 w-full flex-col overflow-y-auto rounded-lg border border-neutral-200 bg-white p-1 shadow-menu">
+          <div role="listbox" aria-label={t('scan')} className="absolute z-30 mt-1 flex max-h-80 w-full flex-col overflow-y-auto rounded-lg border border-neutral-200 bg-surface p-1 shadow-menu">
             {hits.length === 0 && <div className="px-3 py-2.5 text-[13px] text-neutral-500">{t('noMatch', { q })}</div>}
             {hits.map((h, i) => (
               <div key={h.id} role="option" aria-selected={i === active} onMouseEnter={() => setActive(i)} onMouseDown={(e) => { e.preventDefault(); setQ(''); pick(h); }}

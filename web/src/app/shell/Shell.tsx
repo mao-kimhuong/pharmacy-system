@@ -10,7 +10,7 @@ import { OfflineBanner } from './OfflineBanner';
 import { UpdateBanner } from './UpdateBanner';
 import { SessionExpiredDialog } from './SessionExpired';
 import { CommandPalette } from './CommandPalette';
-import { Bell, BranchSwitcher, LangToggle, SearchButton, UserMenu } from './Header';
+import { Bell, BranchSwitcher, LangToggle, SearchButton, ThemeToggle, UserMenu } from './Header';
 import { MobileTabs } from './MobileTabs';
 import { Sidebar } from './Sidebar';
 import { useNav } from './useNav';
@@ -52,11 +52,11 @@ export function Shell() {
 
   return (
     <div className="flex h-dvh bg-neutral-50">
-      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-white focus:p-2">{t('skip')}</a>
+      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-surface focus:p-2">{t('skip')}</a>
       {!phone && <Sidebar groups={groups} collapsed={collapsed} onToggle={toggle} />}
       <div className="flex min-w-0 flex-1 flex-col">
         {phone ? (
-          <header className="no-print flex flex-none items-center gap-2 border-b border-neutral-200 bg-white px-4 pt-2 pb-2.5">
+          <header className="no-print flex flex-none items-center gap-2 border-b border-neutral-200 bg-surface px-4 pt-2 pb-2.5">
             <BranchSwitcher compact />
             <span className="ml-auto" />
             <LangToggle size="sm" />
@@ -64,11 +64,12 @@ export function Shell() {
             <UserMenu compact />
           </header>
         ) : (
-          <header className="no-print flex h-header flex-none items-center gap-3 border-b border-neutral-200 bg-white px-5">
+          <header className="no-print flex h-header flex-none items-center gap-3 border-b border-neutral-200 bg-surface px-5">
             <BranchSwitcher />
             <SearchButton onOpen={() => setPalette({ open: true, initial: '' })} />
             <span className="ml-auto" />
             <LangToggle />
+            <ThemeToggle />
             <Bell />
             <UserMenu />
           </header>

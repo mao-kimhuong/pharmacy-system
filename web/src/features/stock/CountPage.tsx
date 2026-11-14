@@ -49,7 +49,7 @@ function CounterView({ count }: { count: StockcountS['CounterView'] }) {
       <div className="flex flex-col gap-2">
         {lines.map((l) => (
           <button key={l.id} type="button" onClick={() => { setLine(l); setQty(l.my_count != null ? String(l.my_count) : ''); }}
-            className={cx('flex min-h-touch items-center justify-between gap-2 rounded-xl border bg-white p-3 text-left', l.status === 'agreed' ? 'border-success' : l.status === 'needs_second' || l.status === 'recount' ? 'border-warning' : 'border-neutral-200')}>
+            className={cx('flex min-h-touch items-center justify-between gap-2 rounded-xl border bg-surface p-3 text-left', l.status === 'agreed' ? 'border-success' : l.status === 'needs_second' || l.status === 'recount' ? 'border-warning' : 'border-neutral-200')}>
             <span className="flex min-w-0 flex-col gap-0.5">
               <span className="flex flex-wrap items-center gap-1.5 font-semibold">{name(l)}{l.is_controlled && <SafetyBadge kind="controlled" />}</span>
               <span className="text-[12px] text-neutral-500"><span className="font-mono">{l.lot_no}</span> · {date(l.expiry_date)}{l.location ? ` · ${l.location}` : ''}</span>
@@ -103,7 +103,7 @@ function ReviewView({ countId }: { countId: string }) {
       {review && <span className="text-[12px] text-neutral-500">{t('counts.ownerNote')}</span>}
       <DataTable rows={r.lines} rowKey={(l) => l.id} minWidth={900} dense
         selection={review ? { selected: sel, onChange: setSel, actions: <Button size="sm" variant="link" onClick={() => setDlg('recount')}>{t('counts.recount')}</Button> } : undefined}
-        rowClassName={(l) => ((l.variance ?? 0) !== 0 ? 'bg-[#FFFBF0]' : undefined)}
+        rowClassName={(l) => ((l.variance ?? 0) !== 0 ? 'bg-warning-soft' : undefined)}
         columns={[
           { key: 'n', header: t('common:label.medicine'), cell: (l) => <span className="flex flex-wrap items-center gap-1.5">{i18n.language === 'km' && l.name_km ? l.name_km : l.name}{l.is_controlled && <SafetyBadge kind="controlled" />}</span> },
           { key: 'l', header: t('common:label.lot'), cell: (l) => <span className="font-mono text-[12px]">{l.lot_no}</span> },

@@ -43,7 +43,7 @@ export function SkeletonRows({ rows = 5, className }: { rows?: number; className
           <div className="shimmer size-8 rounded-md" />
           <div className="flex flex-1 flex-col gap-1.5">
             <div className="h-2.5 rounded bg-neutral-100" style={{ width: `${28 + ((i * 7) % 14)}%` }} />
-            <div className="h-2.5 rounded bg-[#F1F3F2]" style={{ width: `${14 + ((i * 5) % 10)}%` }} />
+            <div className="h-2.5 rounded bg-neutral-100" style={{ width: `${14 + ((i * 5) % 10)}%` }} />
           </div>
           <div className="h-2.5 w-16 rounded bg-neutral-100" />
         </div>
@@ -58,7 +58,7 @@ export function SkeletonTiles({ count = 3 }: { count?: number }) {
   return (
     <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }} aria-busy>
       {Array.from({ length: count }, (_, i) => (
-        <div key={i} className="flex flex-col gap-2 rounded-xl border border-neutral-200 bg-white p-5">
+        <div key={i} className="flex flex-col gap-2 rounded-xl border border-neutral-200 bg-surface p-5">
           <div className="h-2.5 w-1/3 rounded bg-neutral-100" />
           <div className="shimmer h-6 w-1/2 rounded" />
         </div>
@@ -98,10 +98,10 @@ export function ErrorState({ error, onRetry, title, className }: { error: unknow
 
 export type AlertTone = 'info' | 'success' | 'warning' | 'danger';
 const ALERT: Record<AlertTone, { box: string; icon: string; glyph: string }> = {
-  info: { box: 'bg-info-bg border-[#C3D7F0] text-[#173F6E]', icon: 'bg-info', glyph: 'i' },
-  success: { box: 'bg-success-bg border-[#BFE2CC] text-[#174F31]', icon: 'bg-success', glyph: '✓' },
-  warning: { box: 'bg-[#FFFBF0] border-[#E9B949] text-[#5C3B00]', icon: 'bg-warning', glyph: '!' },
-  danger: { box: 'bg-danger-bg border-[#F4C3BD] text-[#7A1610]', icon: 'bg-danger', glyph: '✕' },
+  info: { box: 'bg-info-bg border-info-bd text-info-fg', icon: 'bg-info', glyph: 'i' },
+  success: { box: 'bg-success-bg border-success-bd text-success-fg', icon: 'bg-success', glyph: '✓' },
+  warning: { box: 'bg-warning-soft border-warning-bd text-warning-fg', icon: 'bg-warning', glyph: '!' },
+  danger: { box: 'bg-danger-bg border-danger-bd text-danger-fg', icon: 'bg-danger', glyph: '✕' },
 };
 
 export function Alert({ tone = 'info', title, children, action, className }: { tone?: AlertTone; title?: ReactNode; children?: ReactNode; action?: ReactNode; className?: string }) {

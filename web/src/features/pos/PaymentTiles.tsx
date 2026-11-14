@@ -65,7 +65,7 @@ export function PaymentTiles({ state, onPick, active = true }: {
             onClick={() => !s.disabled && onPick(k)}
             className={cx(
               'relative flex min-h-[88px] flex-col items-center justify-center gap-0.5 rounded-lg px-1 pb-1.5 pt-2 text-center transition-colors',
-              s.selected ? 'border-2 border-primary-600 bg-primary-50 text-primary-700' : 'border border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50',
+              s.selected ? 'border-2 border-primary-600 bg-primary-50 text-primary-700' : 'border border-neutral-300 bg-surface text-neutral-800 hover:bg-neutral-50',
               s.disabled && 'cursor-not-allowed border-dashed bg-neutral-50 text-neutral-400 hover:bg-neutral-50',
             )}>
             <span className="absolute left-1.5 top-1 font-mono text-[11px] text-neutral-500" aria-hidden>{i + 1}</span>

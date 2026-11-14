@@ -19,7 +19,7 @@ export default function ApprovalsPage() {
     <div className="flex flex-col gap-3 p-4 tablet:px-7">
       <PageHeader title={t('dash.approvals')} />
       {!d ? <SkeletonRows /> : items.length === 0 ? <EmptyState title={t('dash.nothing')} /> : items.map((x) => (
-        <Link key={x.to} to={x.to} className="flex min-h-touch items-center justify-between rounded-xl border border-[#F0D48E] bg-[#FFFBF0] px-4 py-3 no-underline">
+        <Link key={x.to} to={x.to} className="flex min-h-touch items-center justify-between rounded-xl border border-warning-bd bg-warning-soft px-4 py-3 no-underline">
           <span className="text-neutral-900">{x.label}</span><b className="text-[18px] text-pill-warning-fg">{x.n}</b>
         </Link>
       ))}

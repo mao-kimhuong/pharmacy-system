@@ -39,7 +39,7 @@ export function PosLite() {
   const cartFindings = pos.p ? [...pos.p.hard_stops, ...pos.p.requirements, ...pos.p.warnings].filter((f) => f.line_no == null) : [];
   return (
     <div className="relative flex h-dvh flex-col bg-neutral-50">
-      <header className="flex flex-none items-center gap-2 border-b border-neutral-200 bg-white px-4 py-2.5">
+      <header className="flex flex-none items-center gap-2 border-b border-neutral-200 bg-surface px-4 py-2.5">
         <Link to="/" aria-label={t('common:action.goHome')} className="flex size-9 items-center justify-center rounded-lg bg-primary-600 font-bold text-white no-underline pointer-coarse:size-11">+</Link>
         <b className="text-[15px]">{t('title')}</b>
         {pos.branch && <BranchTag code={pos.branch.code} />}
@@ -56,7 +56,7 @@ export function PosLite() {
           const pl = pos.p?.lines.find((x) => x.line_no === i + 1);
           const findings = [...(pl?.hard_stops ?? []), ...(pl?.requirements ?? []), ...(pl?.warnings ?? [])].filter((f) => f.code !== 'NEAR_EXPIRY');
           return (
-            <div key={l.key} className="flex flex-col gap-2 rounded-xl border border-neutral-200 bg-white p-3">
+            <div key={l.key} className="flex flex-col gap-2 rounded-xl border border-neutral-200 bg-surface p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex min-w-0 flex-col gap-1">
                   <b className="text-[15px]">{i18n.language === 'km' && l.medicine.name_km ? l.medicine.name_km : l.medicine.name}</b>
@@ -69,7 +69,7 @@ export function PosLite() {
                 <span className="num text-[16px] font-semibold">{pl ? usd(pl.net) : '…'}</span>
               </div>
               <div className="flex items-center gap-2">
-                <select aria-label={t('cols.unit')} value={l.pack_unit_id} onChange={(e) => pos.dispatch({ type: 'unit', key: l.key, pack_unit_id: e.target.value })} className="h-11 rounded-md border border-neutral-300 bg-white px-2 text-[14px]">
+                <select aria-label={t('cols.unit')} value={l.pack_unit_id} onChange={(e) => pos.dispatch({ type: 'unit', key: l.key, pack_unit_id: e.target.value })} className="h-11 rounded-md border border-neutral-300 bg-surface px-2 text-[14px]">
                   {l.medicine.pack_units.filter((u) => u.is_active).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
                 <span className="ml-auto flex h-11 items-center overflow-hidden rounded-md border border-neutral-300">
@@ -84,7 +84,7 @@ export function PosLite() {
         })}
         <CartFindings findings={cartFindings} actionsFor={fa.cart} />
       </div>
-      <div className="flex flex-none items-center gap-3 border-t border-neutral-200 bg-white px-4 pt-3 pb-5">
+      <div className="flex flex-none items-center gap-3 border-t border-neutral-200 bg-surface px-4 pt-3 pb-5">
         <div className="flex flex-col">
           <span className="num text-[24px] leading-7 font-bold" data-testid="pos-total">{usd(pos.p?.total ?? 0)}</span>
           <span className="num text-[13px] text-primary-700">{pos.p?.total_khr != null ? khr(pos.p.total_khr) : ''}</span>

@@ -13,7 +13,7 @@ export default function PaywayReturn() {
     return () => window.clearTimeout(timer);
   }, []);
   return (
-    <main className="grid min-h-dvh place-items-center bg-white p-6 text-center">
+    <main className="grid min-h-dvh place-items-center bg-surface p-6 text-center">
       <div className="flex max-w-[360px] flex-col gap-2">
         <h1 className="m-0 text-[20px] font-semibold">{done ? t('payway.returnDone') : t('payway.returnCancel')}</h1>
         <p className="m-0 text-[14px] text-neutral-600">{t('payway.returnBody')}</p>

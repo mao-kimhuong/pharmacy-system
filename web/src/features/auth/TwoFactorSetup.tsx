@@ -34,7 +34,7 @@ export function KeyPanel({ secret, qr }: { secret: string; qr: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div className="flex flex-wrap items-center gap-4">
-      <img alt={t('setup.qrAlt')} className="size-40 rounded-lg border border-neutral-200 bg-white p-2" src={qr} />
+      <img alt={t('setup.qrAlt')} className="size-40 rounded-lg border border-neutral-200 bg-surface p-2" src={qr} />
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <span className="text-[13px] text-neutral-500">{t('setup.cantScan')}</span>
         <code data-testid="totp-secret" className="font-mono text-[14px] break-all">{secret.replace(/(.{4})/g, '$1 ').trim()}</code>

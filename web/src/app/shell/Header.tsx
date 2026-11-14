@@ -5,6 +5,7 @@ import { api, call } from '@/api/client';
 import { BranchTag, Kbd, MenuItem, Popover, Segmented, cx } from '@/design';
 import { setLang } from '@/i18n';
 import { initials, type Lang } from '@/lib/format';
+import { nextMode, useTheme, type ThemeMode } from '../theme';
 import { useAuth, useUser } from '../auth';
 import { ALL, branchName, useBranch } from '../branch';
 
@@ -21,6 +22,30 @@ export function LangToggle({ size = 'md' }: { size?: 'sm' | 'md' }) {
   );
 }
 
+const THEME_ICON: Record<ThemeMode, string> = { system: '◐', light: '☀', dark: '☾' };
+
+/** Header button: System → Light → Dark. */
+export function ThemeToggle({ size = 'md' }: { size?: 'md' | 'lg' }) {
+  const { t } = useTranslation('shell');
+  const [mode, set] = useTheme();
+  const label = t('theme.label', { mode: t(`theme.${mode}`) });
+  return (
+    <button type="button" onClick={() => set(nextMode(mode))} aria-label={label} title={label}
+      className={cx('flex items-center justify-center rounded-md border border-neutral-300 bg-surface text-[15px] text-neutral-700', size === 'lg' ? 'size-11 rounded-lg' : 'size-9')}>
+      <span aria-hidden>{THEME_ICON[mode]}</span>
+    </button>
+  );
+}
+
+export function ThemeSegmented() {
+  const { t } = useTranslation('shell');
+  const [mode, set] = useTheme();
+  return (
+    <Segmented<ThemeMode> ariaLabel={t('user.theme')} size="sm" value={mode} onChange={set}
+      options={(['system', 'light', 'dark'] as const).map((m) => ({ value: m, label: THEME_ICON[m], title: t(`theme.${m}`) }))} />
+  );
+}
+
 export function BranchSwitcher({ compact }: { compact?: boolean }) {
   const { t, i18n } = useTranslation('shell');
   const b = useBranch();
@@ -28,7 +53,7 @@ export function BranchSwitcher({ compact }: { compact?: boolean }) {
   return (
     <Popover label={t('branchSwitch')} trigger={({ toggle, props }) => (
       <button type="button" onClick={toggle} {...props} aria-label={t('branchSwitch')}
-        className={cx('flex h-control items-center gap-2 rounded-md border border-neutral-300 bg-white px-3 text-[13px] whitespace-nowrap pointer-coarse:h-11', compact && 'h-11 px-2.5')}>
+        className={cx('flex h-control items-center gap-2 rounded-md border border-neutral-300 bg-surface px-3 text-[13px] whitespace-nowrap pointer-coarse:h-11', compact && 'h-11 px-2.5')}>
         <BranchTag code={cur?.code ?? 'ALL'} />
         {!compact && (cur ? (i18n.language === 'km' ? cur.name_km : cur.name_en) : t('branchAll'))}
         <span className="text-neutral-500" aria-hidden>▾</span>
@@ -75,7 +100,7 @@ export function Bell({ size = 'md' }: { size?: 'md' | 'lg' }) {
   return (
     <Popover align="right" width={300} label={t('notifications')} trigger={({ toggle, props }) => (
       <button type="button" onClick={toggle} {...props} aria-label={`${t('notifications')} (${count})`}
-        className={cx('relative flex items-center justify-center rounded-md border border-neutral-300 bg-white text-[15px]', size === 'lg' ? 'size-11 rounded-lg' : 'size-9')}>
+        className={cx('relative flex items-center justify-center rounded-md border border-neutral-300 bg-surface text-[15px]', size === 'lg' ? 'size-11 rounded-lg' : 'size-9')}>
         <span aria-hidden>🔔</span>
         {count > 0 && <span className="absolute -top-1.5 -right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger px-1 text-[11px] font-semibold text-white">{count}</span>}
       </button>
@@ -120,6 +145,7 @@ export function UserMenu({ compact }: { compact?: boolean }) {
           <MenuItem onClick={() => { close(); nav('/profile#pin'); }}>{t('user.pin')}</MenuItem>
           <MenuItem onClick={() => { close(); nav('/profile#twofa'); }} aside={user.totp_enabled ? t('user.on') : t('user.off')}>{t('user.twofa')}</MenuItem>
           <div className="flex items-center justify-between px-2.5 py-1.5"><span>{t('user.language')}</span><LangToggle size="sm" /></div>
+          <div className="flex items-center justify-between px-2.5 py-1.5"><span>{t('user.theme')}</span><ThemeSegmented /></div>
           <MenuItem danger onClick={() => { close(); void logout(); }}>{t('user.logout')}</MenuItem>
         </>
       )}

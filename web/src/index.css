@@ -13,7 +13,88 @@
 @import '@fontsource/jetbrains-mono/400.css';
 @import '@fontsource/jetbrains-mono/500.css';
 
-@custom-variant dark (&:where(.pos-dark, .pos-dark *));
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Dark theme: the colour tokens (tailwind.config.ts: var(--c-…, light value)) get dark values. The class is set on
+   <html> by src/app/theme.ts (Light / Dark / System). Safety badges keep their colours (strong fills, white text). */
+.dark {
+  color-scheme: dark;
+  --c-neutral-0: #141c1b;
+  --c-neutral-50: #0e1514;
+  --c-neutral-100: #1a2322;
+  --c-neutral-200: #283231;
+  --c-neutral-300: #3a4544;
+  --c-neutral-400: #6e7a78;
+  --c-neutral-500: #98a3a1;
+  --c-neutral-700: #c8d1cf;
+  --c-neutral-900: #eaf0ef;
+  --c-canvas: #0a100f;
+  --c-surface: #141c1b;
+  --c-scrim: #000000;
+  --c-inverse: #2e3a38;
+  --c-focus: #1f5c57;
+  --c-primary-50: #0f2a28;
+  --c-primary-100: #123a37;
+  --c-primary-300: #2a7c75;
+  --c-primary-500: #2bb3a6;
+  --c-primary-600: #158078;
+  --c-primary-700: #6fd3c8;
+  --c-primary-900: #b5ebe4;
+  --c-primary-deep: #0e5a55;
+  --c-success: #4cc27e;
+  --c-success-bg: #10291b;
+  --c-success-fg: #8fe0b0;
+  --c-success-bd: #1e5234;
+  --c-warning: #e8b04a;
+  --c-warning-bg: #33270e;
+  --c-warning-fg: #f2cd84;
+  --c-warning-bd: #6b5218;
+  --c-warning-soft: #2a210c;
+  --c-danger: #e5675b;
+  --c-danger-bg: #3a1512;
+  --c-danger-fg: #f8a79f;
+  --c-danger-bd: #6e2a24;
+  --c-danger-soft: #2c1210;
+  --c-danger-strong: #c9473b;
+  --c-info: #6fa6ea;
+  --c-info-bg: #12253d;
+  --c-info-fg: #a9c9f3;
+  --c-info-bd: #284a73;
+  --c-rxsoft: #1e1f45;
+  --c-rxsoft-fg: #c3c5f5;
+  --c-pill-neutral: #1f2928;
+  --c-pill-neutral-fg: #c8d1cf;
+  --c-pill-neutral-bd: #34403e;
+  --c-pill-neutral-dot: #8c9594;
+  --c-pill-info: #12253d;
+  --c-pill-info-fg: #a9c9f3;
+  --c-pill-info-bd: #284a73;
+  --c-pill-info-dot: #6fa6ea;
+  --c-pill-primary: #0f2e2b;
+  --c-pill-primary-fg: #8ee0d6;
+  --c-pill-primary-bd: #1f5550;
+  --c-pill-primary-dot: #2bb3a6;
+  --c-pill-warning: #33270e;
+  --c-pill-warning-fg: #f2cd84;
+  --c-pill-warning-bd: #6b5218;
+  --c-pill-warning-dot: #e8b04a;
+  --c-pill-success: #10291b;
+  --c-pill-success-fg: #8fe0b0;
+  --c-pill-success-bd: #1e5234;
+  --c-pill-success-dot: #4cc27e;
+  --c-pill-danger: #3a1512;
+  --c-pill-danger-fg: #f8a79f;
+  --c-pill-danger-bd: #6e2a24;
+  --c-pill-danger-dot: #ef6f63;
+  --c-pill-cancelled: #141c1b;
+  --c-pill-cancelled-fg: #f8a79f;
+  --c-pill-cancelled-bd: #6e2a24;
+  --c-pill-cancelled-dot: #ef6f63;
+  --c-pill-purple: #2a1a3d;
+  --c-pill-purple-fg: #d3b5f2;
+  --c-pill-purple-bd: #4d3470;
+  --c-pill-purple-dot: #a97bdb;
+}
 
 @layer base {
   html {
@@ -40,7 +121,7 @@
   }
   *:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px #cdebe8;
+    box-shadow: 0 0 0 3px var(--c-focus, #cdebe8);
   }
   @media (prefers-reduced-motion: reduce) {
     *,
@@ -60,7 +141,7 @@
     font-variant-numeric: tabular-nums;
   }
   .shimmer {
-    background: linear-gradient(90deg, #eef1f0 0, #f6f8f7 50%, #eef1f0 100%);
+    background: linear-gradient(90deg, var(--c-neutral-100, #eef1f0) 0, var(--c-neutral-50, #f6f8f7) 50%, var(--c-neutral-100, #eef1f0) 100%);
     background-size: 800px 100%;
     animation: shimmer 1.4s linear infinite;
   }
@@ -72,4 +153,11 @@
 
 @media print {
   .no-print { display: none !important; }
+}
+
+/* Recharts draws its tooltip with inline white; follow the theme. */
+.dark .recharts-default-tooltip {
+  background-color: var(--c-surface) !important;
+  border-color: var(--c-neutral-200) !important;
+  color: var(--c-neutral-900);
 }

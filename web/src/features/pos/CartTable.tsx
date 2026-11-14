@@ -44,7 +44,7 @@ export function CartTable({ lines, preview, selected, h, dark }: { lines: CartLi
           return (
             <div key={l.key} role="row" aria-selected={i === selected} onClick={() => h.select(i)}
               className={cx('flex flex-col border-b border-l-[3px]', dark ? 'border-b-posdark-line' : 'border-b-neutral-100',
-                blocking ? 'border-l-danger bg-[#FFF8F7]' : need ? 'border-l-safety-rx bg-[#FBFBFF]' : i === selected ? 'border-l-primary-600 bg-primary-50' : 'border-l-transparent',
+                blocking ? 'border-l-danger bg-danger-soft' : need ? 'border-l-safety-rx bg-rxsoft/40' : i === selected ? 'border-l-primary-600 bg-primary-50' : 'border-l-transparent',
                 dark && !blocking && !need && i !== selected && 'bg-transparent')}>
               <div className={cx(grid, 'text-[13px]')}>
                 <div role="cell" className="px-2.5 py-2.5 text-neutral-500">{i + 1}</div>
@@ -67,12 +67,12 @@ export function CartTable({ lines, preview, selected, h, dark }: { lines: CartLi
                 </div>
                 <div role="cell" className="px-2.5" onClick={(e) => e.stopPropagation()}>
                   <select aria-label={t('cols.unit')} value={l.pack_unit_id} onChange={(e) => h.unit(l.key, e.target.value)}
-                    className="h-[30px] w-full rounded-md border border-neutral-300 bg-white px-2 text-[13px] text-neutral-900">
+                    className="h-[30px] w-full rounded-md border border-neutral-300 bg-surface px-2 text-[13px] text-neutral-900">
                     {l.medicine.pack_units.filter((u) => u.is_active || u.id === l.pack_unit_id).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                   </select>
                 </div>
                 <div role="cell" className="px-2.5" onClick={(e) => e.stopPropagation()}>
-                  <span className={cx('flex h-[30px] items-center overflow-hidden rounded-md border bg-white text-[13px] text-neutral-900', findings.some((f) => f.code === 'OUT_OF_STOCK' || f.code === 'RX_QUANTITY_EXCEEDED') ? 'border-danger' : 'border-neutral-300')}>
+                  <span className={cx('flex h-[30px] items-center overflow-hidden rounded-md border bg-surface text-[13px] text-neutral-900', findings.some((f) => f.code === 'OUT_OF_STOCK' || f.code === 'RX_QUANTITY_EXCEEDED') ? 'border-danger' : 'border-neutral-300')}>
                     <button type="button" aria-label="−" className="w-[26px] text-neutral-500" onClick={() => h.qty(l.key, l.qty - 1)}>−</button>
                     <input aria-label={t('cols.qty')} inputMode="numeric" value={l.qty} onChange={(e) => { const n = parseInt(e.target.value.replace(/\D/g, ''), 10); if (n > 0) h.qty(l.key, n); }}
                       className="w-full min-w-0 flex-1 text-center font-semibold outline-none focus-visible:shadow-none" />

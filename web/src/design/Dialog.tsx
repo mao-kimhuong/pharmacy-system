@@ -1,5 +1,5 @@
 // Modal dialog and side drawer: portal, focus trap, Esc closes, focus goes back to the opener.
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { cx } from './cx';
@@ -53,6 +53,28 @@ function useFocusTrap(open: boolean, onClose: () => void, ref: React.RefObject<H
   }, [open, ref, initialFocus]);
 }
 
+export const MOTION_MS = 200;
+
+/** Keeps something on screen while it animates out. `mounted`: render it; `shown`: the "in" state (it starts
+ * "out" for one frame, then moves in; on close it moves out, then unmounts after `ms`). Reduced motion: the global
+ * CSS makes the transitions instant. */
+export function usePresence(open: boolean, ms = MOTION_MS): { mounted: boolean; shown: boolean } {
+  const [mounted, setMounted] = useState(open);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      let second = 0;
+      const first = requestAnimationFrame(() => { second = requestAnimationFrame(() => setShown(true)); });
+      return () => { cancelAnimationFrame(first); cancelAnimationFrame(second); };
+    }
+    setShown(false);
+    const timer = window.setTimeout(() => setMounted(false), ms);
+    return () => window.clearTimeout(timer);
+  }, [open, ms]);
+  return { mounted: open || mounted, shown: open && shown };
+}
+
 export interface DialogProps {
   open: boolean;
   onClose: () => void;
@@ -74,14 +96,14 @@ export function Dialog({ open, onClose, title, subtitle, children, footer, width
   useFocusTrap(open, onClose, ref, initialFocus);
   if (!open) return null;
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/35 p-4" onMouseDown={(e) => dismissable && e.target === e.currentTarget && onClose()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/35 p-4" onMouseDown={(e) => dismissable && e.target === e.currentTarget && onClose()}>
       <div
         ref={ref}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={cx('flex max-h-[calc(100vh-32px)] w-full flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-menu', className)}
+        className={cx('flex max-h-[calc(100vh-32px)] w-full flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-surface shadow-menu', className)}
         style={{ maxWidth: width }}
       >
         <div className="flex items-start justify-between gap-4 border-b border-neutral-100 px-5 py-4">
@@ -104,10 +126,13 @@ export function Drawer({ open, onClose, title, subtitle, children, footer, width
   const titleId = useId();
   const { t } = useTranslation();
   useFocusTrap(open, onClose, ref);
-  if (!open) return null;
+  const { mounted, shown } = usePresence(open);
+  if (!mounted) return null;
   return createPortal(
-    <div className="fixed inset-0 z-50 flex justify-end bg-neutral-900/35" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="flex h-full w-full flex-col bg-white shadow-drawer" style={{ maxWidth: width }}>
+    <div className={cx('fixed inset-0 z-50 flex justify-end bg-scrim/35 transition-opacity duration-200 ease-out', shown ? 'opacity-100' : 'pointer-events-none opacity-0')}
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()} inert={!open || undefined}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} style={{ maxWidth: width }}
+        className={cx('flex h-full w-full flex-col bg-surface shadow-drawer transition-transform duration-200 ease-out', shown ? 'translate-x-0' : 'translate-x-full')}>
         <div className="flex items-start justify-between gap-4 border-b border-neutral-100 p-4">
           <div className="flex flex-col">
             <h2 id={titleId} className="m-0 text-[15px] leading-6 font-semibold">{title}</h2>
@@ -128,10 +153,13 @@ export function Sheet({ open, onClose, title, children, footer }: Omit<DialogPro
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
   useFocusTrap(open, onClose, ref);
-  if (!open) return null;
+  const { mounted, shown } = usePresence(open);
+  if (!mounted) return null;
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end bg-neutral-900/35" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="flex max-h-[90vh] w-full flex-col rounded-t-2xl bg-white shadow-dialog">
+    <div className={cx('fixed inset-0 z-50 flex items-end bg-scrim/35 transition-opacity duration-200 ease-out', shown ? 'opacity-100' : 'pointer-events-none opacity-0')}
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()} inert={!open || undefined}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}
+        className={cx('flex max-h-[90vh] w-full flex-col rounded-t-2xl bg-surface shadow-dialog transition-transform duration-200 ease-out', shown ? 'translate-y-0' : 'translate-y-full')}>
         <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-neutral-300" aria-hidden />
         <h2 id={titleId} className="m-0 px-4 pt-3 pb-2 text-[17px] font-semibold">{title}</h2>
         <div className="flex-1 overflow-y-auto px-4 pb-4">{children}</div>

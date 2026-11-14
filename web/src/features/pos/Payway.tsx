@@ -109,7 +109,7 @@ export function PaywayDialog({ open, branchId, amountUsd, rate, onClose, onPaid,
         <div className="flex justify-center py-6"><div className="flex size-[160px] items-center justify-center rounded-full bg-success-bg text-[64px] text-pill-success-fg" aria-hidden>✓</div></div>
       ) : c.form ? (
         <iframe name={FRAME} title={t('payway.frame')} onLoad={() => setLoaded(true)} data-testid="payway-frame"
-          className="h-[560px] w-full rounded-md border border-neutral-200 bg-white" referrerPolicy="no-referrer"
+          className="h-[560px] w-full rounded-md border border-neutral-200 bg-surface" referrerPolicy="no-referrer"
           sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation" />
       ) : (
         <p className="m-0 rounded-md bg-neutral-50 px-3 py-3 text-center text-[13px] text-neutral-700">{t('payway.testNote')}</p>
