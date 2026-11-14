@@ -12,8 +12,8 @@ from pharmacy_shared.internal import InternalCaller, internal_caller
 
 from ..db import db
 from ..schemas.purchasing import PRInternal, SupplierReturnInternal
+from ..services import orders, supplier_returns
 from ..services import requests as svc
-from ..services import supplier_returns
 
 router = APIRouter()
 
@@ -47,3 +47,12 @@ async def decide_purchase_request(request_id: UUID, body: DecideIn, caller: Inte
     r = await svc.decide(session, acting_user(body.actor), request_id, body.decision,
                          body.reason if body.decision == "reject" else None, via=VIA_TELEGRAM)  # fmt: skip
     return {"status": r.status, "number": r.number}
+
+
+@router.post("/purchase-orders/{po_id}/supplier-confirm")
+async def supplier_confirm(po_id: UUID, body: dict, caller: InternalCaller = Depends(internal_caller),
+                           session: AsyncSession = Depends(db.session)) -> dict:  # fmt: skip
+    """T2: the supplier tapped "Received / Confirmed" (notification: a chat linked to body.supplier_id)."""
+    po = await orders.supplier_confirm(session, po_id, UUID(str(body["supplier_id"])), str(body.get("by") or ""))
+    return {"number": po.number, "supplier_confirmed_at": po.supplier_confirmed_at.isoformat(),
+            "supplier_confirmed_by": po.supplier_confirmed_by}

@@ -24,7 +24,7 @@ from pharmacy_shared.errors import AppError
 
 from ..config import Settings
 from ..models import KnownBranch, Message, TelegramChat
-from . import approvals, links
+from . import approvals, links, suppliers
 from .telegram import Sender
 
 COMMANDS = ("/today", "/yesterday", "/branch", "/stock", "/expiring", "/debtors", "/cash", "/top10", "/help")
@@ -56,8 +56,11 @@ class Hooks:
 
     async def callback(self, session: AsyncSession, settings: Settings, sender: Sender, cb: dict[str, Any],
                        reply: Any) -> None:  # fmt: skip
-        if str(cb.get("data") or "").startswith("ap:"):
+        data = str(cb.get("data") or "")
+        if data.startswith("ap:"):
             await approvals.tap(session, settings, sender, cb, self.clients(settings))
+        elif data.startswith("po:"):  # phase 5: a supplier confirms a PO
+            await suppliers.tap(session, settings, sender, cb, self.clients(settings)("purchasing"))
 
     async def command(self, session: AsyncSession, settings: Settings, command: str, arg: str, chat_id: str,
                       user_id: str, private: bool, reply: Any) -> bool:  # fmt: skip

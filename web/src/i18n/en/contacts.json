@@ -30,10 +30,19 @@
     "linked": "Linked",
     "notLinked": "Not linked",
     "since": "since {{when}} · via {{via}}",
-    "via": { "receipt": "receipt QR", "statement": "statement QR", "counter": "counter QR" },
+    "via": {
+      "receipt": "receipt QR",
+      "statement": "statement QR",
+      "counter": "counter QR"
+    },
     "consent": "Messages the customer allows",
     "never": "never set",
-    "source": { "bot_start": "at Start", "bot_settings": "in the bot", "bot_stop": "/stop", "staff": "by staff" },
+    "source": {
+      "bot_start": "at Start",
+      "bot_settings": "in the bot",
+      "bot_stop": "/stop",
+      "staff": "by staff"
+    },
     "topic": {
       "receipts": "Receipts and refunds",
       "reminders": "Refill reminders",
@@ -96,5 +105,12 @@
     "returns": "Returns",
     "hidden": "VAT TIN, contact person and early-payment discount are not supplier fields in the API.",
     "saved": "Supplier saved"
+  },
+  "stg": {
+    "hint": "Link a chat of the supplier's staff: sent purchase orders go there as a PDF with a Received / Confirmed button.",
+    "none": "No chat linked yet.",
+    "contact": "Contact name",
+    "link": "Make a link",
+    "send": "Send this link to the contact (once, until {{when}}):"
   }
 }

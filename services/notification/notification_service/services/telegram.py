@@ -175,6 +175,9 @@ class Sender:
         if m.method == "edit":
             return await self.call("editMessageText", {"chat_id": m.chat_id, "message_id": m.edit_message_id,
                                                        "text": m.text, **markup})  # fmt: skip
+        if m.method == "caption":  # a document's text is its caption
+            return await self.call("editMessageCaption", {"chat_id": m.chat_id, "message_id": m.edit_message_id,
+                                                          "caption": m.text, **markup})  # fmt: skip
         if m.document:
             name, pdf = await self._pdf(m.document)
             return await self.call("sendDocument", {"chat_id": m.chat_id, "caption": m.text, **markup},
@@ -195,7 +198,7 @@ class Sender:
         except AppError as exc:  # the PDF could not be made yet (document not ready / unavailable)
             status, body = 0, {"description": f"document: {exc.code}"}
         description = str(body.get("description") or "")
-        if (status == 200 and body.get("ok")) or (m.method == "edit" and "message is not modified" in description):
+        if (status == 200 and body.get("ok")) or (m.method != "send" and "message is not modified" in description):
             result = body.get("result") if isinstance(body.get("result"), dict) else {}
             if result.get("message_id"):
                 m.tg_message_id = str(result["message_id"])

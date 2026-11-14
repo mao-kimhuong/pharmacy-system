@@ -978,6 +978,13 @@ export interface components {
              */
             status: "draft" | "sent" | "partially_received" | "received" | "cancelled";
             supplier: components["schemas"]["SupplierOut"];
+            /**
+             * Supplier Confirmed At
+             * @description The supplier confirmed on Telegram
+             */
+            supplier_confirmed_at?: string | null;
+            /** Supplier Confirmed By */
+            supplier_confirmed_by?: string | null;
             /** Total */
             total?: string | null;
             /** Version */

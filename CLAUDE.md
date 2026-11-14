@@ -503,6 +503,9 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   `branch_prefs`), late opening from `branch_days` (invoice.created), fridge sensors (`sensor_devices` /
   `sensor_readings`, feature copy from `feature.changed`; public `/sensors/readings` with a device Bearer token).
   Set-up guide `docs/sensors.md`.
+- **Supplier chats (T2 phase 5):** `services/suppliers.py`: `purchase_order.sent` → PDF + button `po:<id>` to every
+  `supplier` link; the tap → purchasing `/internal/v1/purchase-orders/{id}/supplier-confirm` (once), caption edited
+  (`method="caption"`).
 - **Supplier returns (purchasing, from S8b):** `PP1-SRN-…` draft → credited | refunded, or cancelled (only a draft,
   reason); `purchasing.return`. Submit (Idempotency-Key): inventory `/internal/v1/movements/supplier-return` (movement
   type `supplier_return`, once per line, the batch must be the supplier's; controlled: PIN + witness, action
@@ -554,8 +557,8 @@ API matches the spec, migration included, tests pass (`make test` and `make test
   upgrade" test DB errors (seen in catalog and sales tests): set `ssl=disable` explicitly for local and test DB
   connections (SSL stays configurable for production) and make the test DB fixture retry its first connect.
 - [ ] S10 AI – DeepSeek phase A
-- [ ] T2 Telegram – [x] 1 customers (link, consent, receipts, reminders, balance, promotions) · [x] 2 approval buttons ·
-  [x] 3 bot commands · [x] 4 operations alerts (heartbeat, opening, fridge sensors) · [ ] 5 partners (suppliers, clinics)
+- [x] T2 Telegram – [x] 1 customers (link, consent, receipts, reminders, balance, promotions) · [x] 2 approval buttons ·
+  [x] 3 bot commands · [x] 4 operations alerts (heartbeat, opening, fridge sensors) · [x] 5 partners (suppliers, clinics)
 
 Front end (`web/`, plan: `docs/plans/frontend-plan.md`, design handoff: `docs/design/`, how it works: `web/README.md`).
 Decided: F-sprints hide designed details the API lacks (choice A alternative); refresh token in the httpOnly cookie

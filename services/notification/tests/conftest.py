@@ -58,7 +58,7 @@ class FakeTelegram:
             payload = json.loads(request.content or b"{}")
         payload["_method"] = method
         self.calls.append(payload)
-        if method in ("sendMessage", "sendDocument", "editMessageText"):
+        if method in ("sendMessage", "sendDocument", "editMessageText", "editMessageCaption"):
             self.sent.append(payload)
             self.next_id += 1
             default = (200, {"ok": True, "result": {"message_id": self.next_id}})

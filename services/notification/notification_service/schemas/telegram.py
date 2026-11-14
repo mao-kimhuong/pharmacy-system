@@ -95,6 +95,24 @@ class MyTelegramOut(BaseModel):
     can_approve: bool = Field(description="Has notifications.approve_via_telegram")
 
 
+class SupplierLinkIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    label: str = Field(min_length=1, max_length=80, description="The contact's name, e.g. 'Sales – Mr Vuthy'")
+
+
+class UnlinkIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    link_id: UUID
+
+
+class SupplierTelegramOut(BaseModel):
+    supplier_id: UUID
+    links: list[TelegramLinkOut]
+    bot_configured: bool
+
+
 class LinkTokenOut(BaseModel):
     url: str | None = Field(description="t.me deep link; null when no bot username is set")
     expires_at: datetime

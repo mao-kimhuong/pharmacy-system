@@ -39,7 +39,8 @@
       "partially_received": "ទទួលបានខ្លះ",
       "received": "បានទទួល",
       "cancelled": "បានបោះបង់"
-    }
+    },
+    "supplierConfirmed": "អ្នកផ្គត់ផ្គង់បានបញ្ជាក់"
   },
   "receive": {
     "title": "ទទួលទំនិញ",

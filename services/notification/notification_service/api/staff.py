@@ -1,5 +1,7 @@
 """T2: My profile → Telegram (any signed-in user links their own Telegram, for approval buttons and commands)."""
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,8 +9,8 @@ from pharmacy_shared.auth import CurrentUser, current_user
 
 from ..db import db
 from ..models import LinkToken, Staff
-from ..schemas.telegram import LinkTokenOut, MyTelegramOut
-from ..services import links
+from ..schemas.telegram import LinkTokenOut, MyTelegramOut, SupplierLinkIn, SupplierTelegramOut, UnlinkIn
+from ..services import links, suppliers
 
 router = APIRouter(tags=["telegram staff"])
 
@@ -38,6 +40,29 @@ async def my_link_token(request: Request, user: CurrentUser = Depends(current_us
     row = await session.get(LinkToken, links.token_hash(token))
     await session.commit()
     return {"url": links.deep_link(settings, token), "expires_at": row.expires_at}
+
+
+@router.get("/suppliers/{supplier_id}/telegram", response_model=SupplierTelegramOut)
+async def supplier_telegram(supplier_id: UUID, request: Request, user: CurrentUser = Depends(current_user),
+                            session: AsyncSession = Depends(db.session)) -> dict:  # fmt: skip
+    """The supplier's linked chats (purchasing.order or contacts.suppliers)."""
+    return await suppliers.status(session, request.app.state.settings, user, supplier_id)
+
+
+@router.post("/suppliers/{supplier_id}/telegram/link-token", response_model=LinkTokenOut)
+async def supplier_link_token(supplier_id: UUID, body: SupplierLinkIn, request: Request,
+                              user: CurrentUser = Depends(current_user),
+                              session: AsyncSession = Depends(db.session)) -> dict:  # fmt: skip
+    """A t.me link for one contact of the supplier (purchasing.order; 7 days, once; a private or group chat).
+    Sent POs then go there as a PDF with a "Received / Confirmed" button."""
+    return await suppliers.link_token(session, request.app.state.settings, user, supplier_id, body.label)
+
+
+@router.post("/suppliers/{supplier_id}/telegram/unlink", response_model=SupplierTelegramOut)
+async def supplier_unlink(supplier_id: UUID, body: UnlinkIn, request: Request, user: CurrentUser = Depends(current_user),
+                          session: AsyncSession = Depends(db.session)) -> dict:  # fmt: skip
+    await suppliers.unlink(session, user, supplier_id, body.link_id)
+    return await suppliers.status(session, request.app.state.settings, user, supplier_id)
 
 
 @router.post("/me/telegram/unlink", response_model=MyTelegramOut)

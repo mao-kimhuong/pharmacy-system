@@ -365,6 +365,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/notifications/v1/suppliers/{supplier_id}/telegram": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Supplier Telegram
+         * @description The supplier's linked chats (purchasing.order or contacts.suppliers).
+         */
+        get: operations["supplier_telegram_api_notifications_v1_suppliers__supplier_id__telegram_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/v1/suppliers/{supplier_id}/telegram/link-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Supplier Link Token
+         * @description A t.me link for one contact of the supplier (purchasing.order; 7 days, once; a private or group chat).
+         *     Sent POs then go there as a PDF with a "Received / Confirmed" button.
+         */
+        post: operations["supplier_link_token_api_notifications_v1_suppliers__supplier_id__telegram_link_token_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/v1/suppliers/{supplier_id}/telegram/unlink": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Supplier Unlink */
+        post: operations["supplier_unlink_api_notifications_v1_suppliers__supplier_id__telegram_unlink_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/notifications/v1/telegram/webhook": {
         parameters: {
             query?: never;
@@ -764,6 +822,26 @@ export interface components {
              */
             telegram_approval_max_usd?: string;
         };
+        /** SupplierLinkIn */
+        SupplierLinkIn: {
+            /**
+             * Label
+             * @description The contact's name, e.g. 'Sales – Mr Vuthy'
+             */
+            label: string;
+        };
+        /** SupplierTelegramOut */
+        SupplierTelegramOut: {
+            /** Bot Configured */
+            bot_configured: boolean;
+            /** Links */
+            links: components["schemas"]["TelegramLinkOut"][];
+            /**
+             * Supplier Id
+             * Format: uuid
+             */
+            supplier_id: string;
+        };
         /** TelegramLinkOut */
         TelegramLinkOut: {
             /**
@@ -788,6 +866,14 @@ export interface components {
              * @description "owner" or a branch id
              */
             target: string;
+        };
+        /** UnlinkIn */
+        UnlinkIn: {
+            /**
+             * Link Id
+             * Format: uuid
+             */
+            link_id: string;
         };
         /** WebhookOk */
         WebhookOk: {
@@ -2659,6 +2745,296 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SettingsOut"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED";
+                    };
+                };
+            };
+            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    supplier_telegram_api_notifications_v1_suppliers__supplier_id__telegram_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                supplier_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierTelegramOut"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED";
+                    };
+                };
+            };
+            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    supplier_link_token_api_notifications_v1_suppliers__supplier_id__telegram_link_token_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                supplier_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierLinkIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkTokenOut"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED";
+                    };
+                };
+            };
+            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description VALIDATION_ERROR */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "VALIDATION_ERROR";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    supplier_unlink_api_notifications_v1_suppliers__supplier_id__telegram_unlink_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                supplier_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnlinkIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierTelegramOut"];
                 };
             };
             /** @description NOT_AUTHENTICATED */

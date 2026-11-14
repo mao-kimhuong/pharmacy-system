@@ -148,6 +148,8 @@ class POOut(BaseModel):
     note: str
     expected_on: date | None
     sent_at: datetime | None
+    supplier_confirmed_at: datetime | None = Field(default=None, description="The supplier confirmed on Telegram")
+    supplier_confirmed_by: str | None = None
     cancel_reason: str | None
     version: int
     lines: list[POLineOut]
