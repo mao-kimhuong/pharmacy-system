@@ -560,7 +560,7 @@ API matches the spec, migration included, tests pass (`make test` and `make test
 - [x] T2 Telegram – [x] 1 customers (link, consent, receipts, reminders, balance, promotions) · [x] 2 approval buttons ·
   [x] 3 bot commands · [x] 4 operations alerts (heartbeat, opening, fridge sensors) · [x] 5 partners (suppliers, clinics)
 
-Front end (`web/`, plan: `docs/plans/frontend-plan.md`, design handoff: `docs/design/`, how it works: `web/README.md`).
+Front end (`web/`, design handoff: `docs/design/`, how it works: `web/README.md`).
 Decided: F-sprints hide designed details the API lacks (choice A alternative); refresh token in the httpOnly cookie
 (B); offline POS needs S9 backend work first (C); e2e against `BASE_URL` (D); openapi-typescript + openapi-fetch (E);
 dev-only `/dev/design` (F). The `web` service is Traefik `PathPrefix(/)` priority 1 (static nginx, its own CSP).

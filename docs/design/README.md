@@ -28,7 +28,7 @@ visual source of truth for the web front end (`web/`). For behaviour, `docs/spec
 | `project/ui-audit.md`, `api-audit.md`, `api-inventory.md` | The designer's coverage table, API audit and (older) UI → API list. |
 | `project/uploads/ui-design-prompt.md` | The brief the design was made from. |
 | `project/uploads/spec-*.json` | The 14 OpenAPI documents the designer used: a snapshot from before S8b. The current ones come from `make openapi`. |
-| `project/S8b-plan.md` | The S8b plan as uploaded to the design project (the final one is `docs/plans/S8b-plan.md`). |
+| `project/S8b-plan.md` | The S8b plan as uploaded to the design project (S8b is built; `docs/spec.md` has what was made). |
 | `project/support.js` | The Claude Design runtime the `.dc.html` files load. |
 
 ## Reading the `.dc.html` files
@@ -40,7 +40,7 @@ them rendered. Opened locally, they need `support.js` next to them and React on 
 ## Notes for the build
 
 - **API tags are from design time.** Some name endpoints that never existed, such as `/api/stock/v1/...` and
-  `/api/rx/v1/...` in `api-inventory.md`. The real endpoint for each screen is in `docs/plans/frontend-plan.md`.
+  `/api/rx/v1/...` in `api-inventory.md`. The real endpoint for each screen is the one its page in `web/src/features/` calls.
 - **"⚠ API pending" is out of date.** The ten items marked "API pending" in `api-audit.md` were built in S8b:
   - KHQR;
   - promotion preview;

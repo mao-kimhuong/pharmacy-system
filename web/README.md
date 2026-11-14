@@ -2,7 +2,7 @@
 
 React 19 + TypeScript (strict) + Vite, Tailwind (theme from `docs/design/tokens.json`), TanStack Query, React
 Router, react-i18next (KM default, EN), typed API clients generated from the services' OpenAPI documents.
-Plan: `docs/plans/frontend-plan.md`. Design: `docs/design/`.
+Design: `docs/design/`. Progress (F-sprints): `CLAUDE.md`.
 
 Node 20+ (`.nvmrc`: 24). The Makefile picks a Node ≥ 20 from nvm if the default one is older.
 
