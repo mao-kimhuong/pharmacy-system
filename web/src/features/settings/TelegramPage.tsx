@@ -6,9 +6,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api, call } from '@/api/client';
 import { useUser } from '@/app/auth';
+import { useFeatures } from '@/app/features';
 import { branchName, useBranch } from '@/app/branch';
 import { Alert, ApiErrorAlert, Button, Card, DataTable, Field, Input, PageHeader, Select, SkeletonRows, StatusPill, Switch, TextArea, Toolbar, useToast, type PillTone } from '@/design';
 import { dateTime } from '@/lib/format';
+import { FridgeSensors } from './FridgeSensors';
 
 const STATUS: Record<string, PillTone> = { sent: 'success', queued: 'info', failed: 'danger', skipped: 'neutral' };
 
@@ -124,6 +126,7 @@ export function NotificationSettingsPage() {
   const { t } = useTranslation(['settings', 'common', 'nav']);
   const toast = useToast();
   const q = useQuery({ queryKey: ['notifications', 'settings'], queryFn: () => call(api.notifications.GET('/api/notifications/v1/settings')) });
+  const fridges = !!useFeatures().data?.find((f) => f.key === 'fridge_sensors')?.enabled;
   const [v, setV] = useState({ pct: '', usd: '', tg: '' });
   useEffect(() => { if (q.data) setV({ pct: q.data.large_discount_pct, usd: q.data.large_discount_usd, tg: String(q.data.telegram_approval_max_usd ?? '100') }); }, [q.data]);
   const save = useMutation({
@@ -143,6 +146,7 @@ export function NotificationSettingsPage() {
         </form>
         <ApiErrorAlert error={q.error ?? save.error} className="mt-3" />
       </Card>
+      {fridges && <FridgeSensors />}
     </div>
   );
 }

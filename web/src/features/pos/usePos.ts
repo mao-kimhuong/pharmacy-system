@@ -18,6 +18,31 @@ export interface PosLoad {
   resumed?: { number: string; changes: unknown[] } | null;
 }
 
+/** A random id per browser (one per till), kept in localStorage when it can be. */
+export function deviceId(): string {
+  try {
+    const known = localStorage.getItem('pos-device-id');
+    if (known) return known;
+    const made = `till-${crypto.randomUUID().slice(0, 12)}`;
+    localStorage.setItem('pos-device-id', made);
+    return made;
+  } catch {
+    return 'till-nostorage';
+  }
+}
+
+/** T2: the POS tells the server it is alive every minute (offline alert after 10 minutes in opening hours). */
+function useHeartbeat(branchId: string | undefined) {
+  useEffect(() => {
+    if (!branchId) return;
+    const id = deviceId();
+    const beat = () => { void api.notifications.POST('/api/notifications/v1/heartbeat', { body: { branch_id: branchId, device_id: id } }).catch(() => undefined); };
+    beat();
+    const timer = window.setInterval(beat, 60_000);
+    return () => window.clearInterval(timer);
+  }, [branchId]);
+}
+
 /** A PIN / approval token is good for 2 minutes and for one sale. */
 function fresh(t: PinToken | null): PinToken | null {
   return t && Date.parse(t.expires_at) > Date.now() + 5_000 ? t : null;
@@ -39,6 +64,7 @@ export function usePos() {
   const [done, setDone] = useState<SalesS['InvoiceOut'] | null>(null);
   const [pending, setPending] = useState<PosLoad | null>(null);
   const rate = useRate(branchId);
+  useHeartbeat(branchId);
 
   // lines handed over by the back office (resume, template, order): load their medicines first
   useEffect(() => {

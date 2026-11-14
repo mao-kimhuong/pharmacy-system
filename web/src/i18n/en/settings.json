@@ -143,6 +143,20 @@
     "campaignSend": "Send to customers",
     "campaignDone": "Queued for {{queued}} customers; {{over}} skipped (already 2 this month)."
   },
+  "sensors": {
+    "title": "Fridge temperature sensors",
+    "add": "Add sensor",
+    "hint": "Each sensor posts its temperature with its own token. Out of range for more than 10 minutes, back in range, and no reading for 30 minutes go to the branch's and the owner's Telegram.",
+    "range": "Allowed",
+    "last": "Last reading",
+    "min": "Minimum",
+    "max": "Maximum",
+    "newToken": "New token",
+    "state": { "ok": "In range", "out": "Out of range", "silent": "No readings" },
+    "tokenTitle": "Token for {{name}}",
+    "tokenBody": "Put this token in the sensor now: it is shown only once (a new token stops the old one).",
+    "how": "The sensor sends:"
+  },
   "notify": {
     "title": "Notification settings",
     "largePct": "Alert on manual discount above (%)",
