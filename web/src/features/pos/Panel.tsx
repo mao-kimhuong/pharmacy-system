@@ -1,11 +1,12 @@
 // Right panel: totals (USD + KHR from the preview), actions (summary mode) or tender (payment mode).
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Kbd, Segmented, cx } from '@/design';
 import { khr, usd } from '@/lib/format';
-import { quickKhr, quickUsd, rielIsValid, type ChangeIn, type PaymentIn, type Tender } from './cart';
+import { quickKhr, quickUsd, remainingAfterOthers, rielIsValid, type ChangeIn, type Tender } from './cart';
 import { FindingRow, type FindingAction } from './Findings';
 import type { Finding, Preview } from './hooks';
+import { PaymentTiles, type TileKey, type TileState } from './PaymentTiles';
 
 export function Totals({ preview, dark }: { preview?: Preview; dark?: boolean }) {
   const { t } = useTranslation('pos');
@@ -44,39 +45,55 @@ export function SummaryActions({ onDiscount, onSuspend, onCredit, onKhqr, onPay,
         <Button size="lg" className="text-[14px] font-medium" onClick={onCredit} disabled={!canPay}>{t('actions.credit')}</Button>
         <Button size="lg" className="text-[14px] font-medium" onClick={onKhqr} disabled={!canPay}>{t('actions.khqr')}</Button>
       </div>
-      {blockMsg && <div className="rounded-md bg-danger-bg px-3 py-2 text-[13px] font-medium text-[#7A1610]" role="alert">{blockMsg}</div>}
+      {blockMsg && <div className="rounded-md bg-danger-bg px-3 py-2 text-[13px] font-medium text-danger-fg" role="alert">{blockMsg}</div>}
       <Button variant="primary" size="lg" className="mt-auto h-14 text-[17px]" kbd="F9" disabled={!canPay} onClick={onPay}>{t('actions.pay')}</Button>
       <Button variant="danger-outline" size="lg" kbd="Esc" onClick={onCancel}>{t('actions.cancel')}</Button>
     </div>
   );
 }
 
-const METHODS: PaymentIn['method'][] = ['cash', 'card', 'ABA', 'KHQR', 'credit'];
+/** What each tile can do now (pure: tested). `due` = what is left after the payments already added (not cash). */
+export function tileStates(args: { tender: Tender; due: number; hasCustomer: boolean; availableCredit: number | null; t: (k: string, o?: Record<string, unknown>) => string }): Record<TileKey, TileState> {
+  const { tender, due, hasCustomer, availableCredit, t } = args;
+  const has = (...m: string[]) => tender.others.some((p) => m.includes(p.method));
+  const nothing = due <= 0.004 ? t('tiles.why.nothingDue') : null;
+  const credit = !hasCustomer ? t('tiles.why.customer')
+    : availableCredit !== null && availableCredit + 0.004 < due ? t('tiles.why.limit', { amount: usd(Math.max(availableCredit, 0)) }) : null;
+  return {
+    cash: { selected: !tender.others.length || !!(Number(tender.cashUsd) || Number(tender.cashKhr)), disabled: null },
+    KHQR: { selected: has('KHQR'), disabled: nothing },
+    card: { selected: has('card', 'PAYWAY'), disabled: nothing },
+    ABA: { selected: has('ABA'), disabled: nothing },
+    credit: { selected: has('credit'), disabled: nothing ?? credit },
+  };
+}
 
-export function PaymentView({ preview, tender, setTender, changeIn, setChangeIn, rate, onMethod, onComplete, onBack, completing, canComplete, error }: {
+export function PaymentView({ preview, tender, setTender, changeIn, setChangeIn, rate, onMethod, onComplete, onBack, completing, canComplete, error, hasCustomer = false, availableCredit = null, cashField }: {
   preview?: Preview; tender: Tender; setTender: (t: Tender) => void; changeIn: ChangeIn; setChangeIn: (c: ChangeIn) => void; rate: number | null;
-  onMethod: (m: PaymentIn['method']) => void; onComplete: () => void; onBack: () => void; completing: boolean; canComplete: boolean; error?: ReactNode;
+  onMethod: (m: TileKey) => void; onComplete: () => void; onBack: () => void; completing: boolean; canComplete: boolean; error?: ReactNode;
+  hasCustomer?: boolean; availableCredit?: number | null; cashField?: RefObject<HTMLInputElement | null>;
 }) {
   const { t } = useTranslation('pos');
   const total = Number(preview?.total ?? 0);
   const pay = preview?.payment;
   const due = Math.max(0, total - Number(pay?.paid ?? 0) - Number(pay?.credit ?? 0));
+  const remaining = remainingAfterOthers(total, tender, rate); // what the next method (or cash) pays
   const khrOk = rielIsValid(tender.cashKhr);
+  const states = tileStates({ tender, due: remaining, hasCustomer, availableCredit, t });
   return (
     <div className="flex flex-1 flex-col gap-2.5 px-4 py-3.5">
-      <div className="grid grid-cols-5 gap-1.5" role="group" aria-label={t('pay.lines')}>
-        {METHODS.map((m) => (
-          <button key={m} type="button" onClick={() => onMethod(m)}
-            className={cx('h-9 rounded-md border text-[13px]', m === 'cash' ? 'border-primary-600 bg-primary-50 font-semibold text-primary-700' : 'border-neutral-300 bg-white')}>
-            {t(`pay.method.${m}`)}
-          </button>
-        ))}
+      <div className="flex items-baseline justify-between text-[13px]">
+        <span className="text-neutral-600">{t('pay.total')} <b className="num text-neutral-900">{usd(total)}</b></span>
+        <span data-testid="pay-remaining" className={cx('font-semibold', remaining > 0.004 ? 'text-neutral-900' : 'text-pill-success-fg')}>
+          {remaining > 0.004 ? t('pay.remaining', { amount: usd(remaining) }) : t('pay.covered')}
+        </span>
       </div>
+      <PaymentTiles state={states} onPick={(k) => (k === 'cash' ? cashField?.current?.focus() : onMethod(k))} />
       {tender.others.length > 0 && (
         <div className="flex flex-col gap-1 text-[13px]">
           {tender.others.map((p, i) => (
             <div key={i} className="flex items-center justify-between rounded-md bg-neutral-50 px-2.5 py-1.5">
-              <span>{t(`pay.method.${p.method}`)}</span>
+              <span>{t(`pay.method.${p.method}`)}{p.reference ? <span className="text-neutral-500"> · {p.reference}</span> : null}</span>
               <span className="flex items-center gap-2"><span className="num font-semibold">{p.currency === 'KHR' ? khr(p.amount) : usd(p.amount)}</span>
                 <button type="button" aria-label={t('actions.remove')} className="text-neutral-500" onClick={() => setTender({ ...tender, others: tender.others.filter((_, j) => j !== i) })}>✕</button></span>
             </div>
@@ -86,12 +103,12 @@ export function PaymentView({ preview, tender, setTender, changeIn, setChangeIn,
       <div className="flex flex-col gap-1.5">
         <span className="text-[12px] font-semibold text-neutral-700">{t('pay.tendered')}</span>
         <div className="grid grid-cols-2 gap-2">
-          <label className="flex h-11 items-center overflow-hidden rounded-md border border-neutral-300 bg-white text-[18px] focus-within:border-2 focus-within:border-primary-600 focus-within:shadow-focus">
+          <label className="flex h-11 items-center overflow-hidden rounded-md border border-neutral-300 bg-surface text-[18px] focus-within:border-2 focus-within:border-primary-600 focus-within:shadow-focus">
             <span className="px-2.5 text-[14px] text-neutral-500">$</span>
-            <input aria-label={t('pay.usd')} inputMode="decimal" className="num w-full min-w-0 pr-2.5 text-right font-semibold outline-none focus-visible:shadow-none" value={tender.cashUsd}
+            <input ref={cashField} aria-label={t('pay.usd')} inputMode="decimal" className="num w-full min-w-0 pr-2.5 text-right font-semibold outline-none focus-visible:shadow-none" value={tender.cashUsd}
               onChange={(e) => setTender({ ...tender, cashUsd: e.target.value.replace(/[^\d.]/g, '') })} autoFocus />
           </label>
-          <label className={cx('flex h-11 items-center overflow-hidden rounded-md border bg-white text-[18px] focus-within:border-2 focus-within:border-primary-600 focus-within:shadow-focus', khrOk ? 'border-neutral-300' : 'border-danger')}>
+          <label className={cx('flex h-11 items-center overflow-hidden rounded-md border bg-surface text-[18px] focus-within:border-2 focus-within:border-primary-600 focus-within:shadow-focus', khrOk ? 'border-neutral-300' : 'border-danger')}>
             <span className="px-2.5 text-[14px] text-neutral-500">៛</span>
             <input aria-label={t('pay.khr')} inputMode="numeric" disabled={!rate} className="num w-full min-w-0 pr-2.5 text-right font-semibold outline-none focus-visible:shadow-none" value={tender.cashKhr}
               onChange={(e) => setTender({ ...tender, cashKhr: e.target.value.replace(/\D/g, '') })}
@@ -109,14 +126,14 @@ export function PaymentView({ preview, tender, setTender, changeIn, setChangeIn,
         <Segmented size="sm" value={changeIn} onChange={setChangeIn} options={[{ value: 'USD_KHR', label: t('pay.changeUsdKhr') }, { value: 'USD', label: 'USD' }, { value: 'KHR', label: 'KHR' }]} />
       </div>
       {pay && (
-        <div className={cx('flex flex-col gap-0.5 rounded-lg border px-3 py-2.5', due > 0.004 ? 'border-[#F0D48E] bg-warning-bg' : 'border-[#BFE2CC] bg-success-bg')} aria-live="polite">
+        <div className={cx('flex flex-col gap-0.5 rounded-lg border px-3 py-2.5', due > 0.004 ? 'border-warning-bd bg-warning-bg' : 'border-success-bd bg-success-bg')} aria-live="polite">
           {due > 0.004 ? (
-            <div className="flex items-baseline justify-between"><span className="text-[13px] font-semibold text-[#7A4F00]">{t('pay.due')}</span><span className="num text-[22px] font-bold text-[#5C3B00]">{usd(due)}</span></div>
+            <div className="flex items-baseline justify-between"><span className="text-[13px] font-semibold text-warning-fg">{t('pay.due')}</span><span className="num text-[22px] font-bold text-warning-fg">{usd(due)}</span></div>
           ) : (
             <>
               <div className="flex items-baseline justify-between">
                 <span className="text-[13px] font-semibold text-pill-success-fg">{t('pay.change')}</span>
-                <span className="num text-[26px] font-bold text-[#164E2E]" data-testid="pos-change">
+                <span className="num text-[26px] font-bold text-success-fg" data-testid="pos-change">
                   {[Number(pay.change_given_usd) > 0 ? usd(pay.change_given_usd) : null, pay.change_given_khr > 0 ? khr(pay.change_given_khr) : null].filter(Boolean).join(' + ') || usd(0)}
                 </span>
               </div>

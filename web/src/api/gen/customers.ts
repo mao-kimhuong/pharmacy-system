@@ -300,6 +300,12 @@ export interface components {
              * @example 200.00
              */
             credit_limit?: number | string;
+            /**
+             * Credit Terms Days
+             * @description A credit invoice is due this many days later
+             * @default 30
+             */
+            credit_terms_days?: number;
             /** Group Id */
             group_id?: string | null;
             /** Name */
@@ -319,6 +325,13 @@ export interface components {
              * @example 012 345 678
              */
             phone: string;
+            /**
+             * Preferred Lang
+             * @description Language of Telegram messages
+             * @default km
+             * @enum {string}
+             */
+            preferred_lang?: "km" | "en";
         };
         /** CustomerOut */
         CustomerOut: {
@@ -333,6 +346,11 @@ export interface components {
             created_at: string;
             /** Credit Limit */
             credit_limit: string;
+            /**
+             * Credit Terms Days
+             * @default 30
+             */
+            credit_terms_days?: number;
             group: components["schemas"]["GroupOut"] | null;
             /**
              * Id
@@ -349,6 +367,11 @@ export interface components {
             note: string;
             /** Phone */
             phone: string;
+            /**
+             * Preferred Lang
+             * @default km
+             */
+            preferred_lang?: string;
         };
         /** CustomerPage */
         CustomerPage: {
@@ -368,6 +391,8 @@ export interface components {
              * @description Changing it needs customers.credit_limit
              */
             credit_limit?: (number | string) | null;
+            /** Credit Terms Days */
+            credit_terms_days?: number | null;
             /** Group Id */
             group_id?: string | null;
             /** Name */
@@ -378,6 +403,8 @@ export interface components {
             note?: string | null;
             /** Phone */
             phone?: string | null;
+            /** Preferred Lang */
+            preferred_lang?: ("km" | "en") | null;
         };
         /** DebtOut */
         DebtOut: {
@@ -456,6 +483,12 @@ export interface components {
              */
             default_discount_pct?: number | string;
             /**
+             * Is Clinic
+             * @description Clinics get order status and invoices on Telegram
+             * @default false
+             */
+            is_clinic?: boolean;
+            /**
              * Name En
              * @example Clinic
              */
@@ -477,6 +510,11 @@ export interface components {
             id: string;
             /** Is Active */
             is_active: boolean;
+            /**
+             * Is Clinic
+             * @default false
+             */
+            is_clinic?: boolean;
             /** Name En */
             name_en: string;
             /** Name Km */
@@ -486,6 +524,8 @@ export interface components {
         GroupUpdate: {
             /** Default Discount Pct */
             default_discount_pct?: number | string | null;
+            /** Is Clinic */
+            is_clinic?: boolean | null;
             /** Name En */
             name_en?: string | null;
             /** Name Km */

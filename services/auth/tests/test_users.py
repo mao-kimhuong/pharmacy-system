@@ -287,14 +287,19 @@ async def test_change_own_password_ends_sessions(client) -> None:
     ).status_code == 200
 
 
-async def test_owner_resets_a_lost_2fa(client) -> None:
+async def test_owner_resets_a_lost_2fa(client, redis) -> None:
     import pyotp
+
+    from auth_service.services import pins
 
     owner, b1, _ = await setup_owner_and_branches()
     manager = await make_user(
         phone="012222222", role="branch_manager", branches=(b1,), totp_secret=pyotp.random_base32()
     )
-    r = await client.post(f"{PREFIX}/users/{manager.id}/2fa/reset", headers=await as_user(owner))
+    pin = await pins._issue(redis, owner, "auth.mfa_reset", "actor", owner.id)
+    r = await client.post(
+        f"{PREFIX}/users/{manager.id}/2fa/reset", json={"pin_token": pin["pin_token"]}, headers=await as_user(owner)
+    )
     assert r.status_code == 204
     data = (await login(client, phone="012222222")).json()
     assert data["mfa_setup_required"] is True  # sets it up again

@@ -92,3 +92,24 @@ async def test_branch_events_keep_the_branch_list_up_to_date() -> None:
         branch = (await session.execute(select(KnownBranch).where(KnownBranch.id == bid))).scalar_one()
     assert branch.name_en == "Riverside 2"
     assert branch.is_active is False
+
+
+async def test_an_event_from_the_seed_dev_clock_keeps_its_time(client) -> None:
+    # make seed-realistic (development only) back-dates calls; the User Log keeps when it "happened"
+    from datetime import datetime
+
+    from pharmacy_shared import clock
+
+    owner = await make_user(phone="010000000", role="owner")
+    token = clock.set_override(datetime.fromisoformat("2026-08-15T10:30:00+07:00"))
+    try:
+        payload = audit_payload(service="sales", action="invoice.created", entity_type="invoice", entity_id="INV-9",
+                                actor=None)  # fmt: skip
+    finally:
+        clock.reset_override(token)
+    assert payload["occurred_at"].startswith("2026-08-15T03:30")
+    assert "occurred_at" not in audit_payload(service="sales", action="x.y", entity_type="x", entity_id="1", actor=None)
+    assert await deliver(AUDIT_EVENT, payload)
+    r = await client.get(f"{PREFIX}/audit-logs", params={"action": "invoice.created"}, headers=await as_user(owner))
+    [entry] = r.json()["items"]
+    assert entry["occurred_at"].startswith("2026-08-15")

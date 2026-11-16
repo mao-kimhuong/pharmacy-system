@@ -91,6 +91,10 @@ class BranchSettings(Base):
     # S8b: language of receipts and A4 invoices; this branch's Bakong KHQR account (empty: the shared one)
     receipt_lang: Mapped[str] = mapped_column(String(2), default="km", server_default="km")
     khqr: Mapped[dict[str, Any] | None] = mapped_column(JSON, default=None)
+    # T2: Telegram refill reminders this many days before an Rx supply runs out; opening hours per weekday
+    # {"mon": ["07:00", "21:00"], ...} (a day left out = closed; null = not set: no heartbeat / opening alerts)
+    refill_reminder_days: Mapped[int] = mapped_column(Integer, default=3, server_default="3")
+    opening_hours: Mapped[dict[str, list[str]] | None] = mapped_column(JSON, default=None)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -118,6 +122,8 @@ class BranchSettings(Base):
             "max_discount_pct": dict(self.max_discount_pct or {}),
             "receipt_lang": self.receipt_lang,
             "khqr": dict(self.khqr) if self.khqr else None,
+            "refill_reminder_days": self.refill_reminder_days,
+            "opening_hours": dict(self.opening_hours) if self.opening_hours else None,
         }
 
 

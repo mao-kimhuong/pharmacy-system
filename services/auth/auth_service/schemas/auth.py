@@ -62,6 +62,7 @@ class MeResponse(BaseModel):
     permissions: list[str] = []
     menu: list[MenuItemOut] = []
     mfa_setup_required: bool = False
+    mfa_required_for_role: bool = Field(default=False, description="This role cannot turn 2FA off")
 
 
 class TokenResponse(BaseModel):
@@ -140,10 +141,26 @@ class PinConsumeRequest(BaseModel):
     kind: Literal["actor", "witness"]
 
 
-class BackupCodesRequest(BaseModel):
+class TwoFactorProof(BaseModel):
+    """Your password and a 6-digit code or one backup code."""
+
     model_config = ConfigDict(extra="forbid")
 
     password: str = Field(min_length=1, max_length=200)
+    code: str | None = Field(default=None, min_length=6, max_length=6, pattern=r"^\d{6}$")
+    backup_code: str | None = Field(default=None, min_length=10, max_length=12)
+
+    @model_validator(mode="after")
+    def _one(self) -> "TwoFactorProof":
+        if (self.code is None) == (self.backup_code is None):
+            raise ValueError("Send either code or backup_code")
+        return self
+
+
+class TwoFactorResetConfirm(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$", description="From the new key")
 
 
 class BackupCodesOut(BaseModel):

@@ -7,7 +7,8 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { Http, apiLogin, secretFromUri, totpCode, waitFor } from './lib/api';
+import { BASE, Http, apiLogin, secretFromUri, totpCode, waitFor } from './lib/api';
+import { checkServerClock } from './lib/clock';
 import { ensureSalesData, type SalesData } from './lib/data';
 
 export const SEED_FILE = path.resolve(import.meta.dirname, '.auth/seed.json');
@@ -62,6 +63,7 @@ function ownerFromEnvOrCreate(): Account {
 }
 
 export default async function seed() {
+  await checkServerClock(BASE); // a drifted Docker clock fails every 2FA login: say so before any test runs
   let s: Seed | null = null;
   try {
     s = loadSeed();

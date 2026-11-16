@@ -64,7 +64,7 @@ function Dashboard() {
           <Card title={t('dash.last30')}>
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={line}><CartesianGrid stroke="#EEF1F0" vertical={false} /><XAxis dataKey="k" tick={{ fontSize: 11, fill: '#66706F' }} /><YAxis tick={{ fontSize: 11, fill: '#66706F' }} width={56} />
+                <LineChart data={line}><CartesianGrid stroke="var(--c-neutral-100, #EEF1F0)" vertical={false} /><XAxis dataKey="k" tick={{ fontSize: 11, fill: 'var(--c-neutral-500, #66706F)' }} /><YAxis tick={{ fontSize: 11, fill: 'var(--c-neutral-500, #66706F)' }} width={56} />
                   <Tooltip formatter={(v) => usd(v as number)} /><Line dataKey="v" stroke="#13908A" strokeWidth={2} dot={false} /></LineChart>
               </ResponsiveContainer>
             </div>
@@ -72,7 +72,7 @@ function Dashboard() {
         )}
         <Card title={t('dash.approvals')}>
           {pending.length === 0 ? <span className="text-neutral-500">{t('dash.nothing')}</span> : (
-            <div className="flex flex-col gap-2">{pending.map((x) => <Link key={x.to} to={x.to} className="flex items-center justify-between rounded-lg border border-[#F0D48E] bg-[#FFFBF0] px-3 py-2.5 no-underline"><span className="text-neutral-900">{x.label}</span><b className="text-pill-warning-fg">{x.n}</b></Link>)}</div>
+            <div className="flex flex-col gap-2">{pending.map((x) => <Link key={x.to} to={x.to} className="flex items-center justify-between rounded-lg border border-warning-bd bg-warning-soft px-3 py-2.5 no-underline"><span className="text-neutral-900">{x.label}</span><b className="text-pill-warning-fg">{x.n}</b></Link>)}</div>
           )}
         </Card>
       </div>
@@ -87,7 +87,7 @@ function Dashboard() {
         )}
         {d && (
           <Card title={t('dash.topMeds')}>
-            <div className="h-48"><ResponsiveContainer><BarChart data={d.top_medicines.map((m) => ({ k: m.sku ?? m.name ?? '', v: Number(m.net) }))} layout="vertical"><XAxis type="number" hide /><YAxis type="category" dataKey="k" width={110} tick={{ fontSize: 11 }} /><Tooltip formatter={(v) => usd(v as number)} /><Bar dataKey="v" fill="#13908A" /></BarChart></ResponsiveContainer></div>
+            <div className="h-48"><ResponsiveContainer><BarChart data={d.top_medicines.map((m) => ({ k: m.sku ?? m.name ?? '', v: Number(m.net) }))} layout="vertical"><XAxis type="number" hide /><YAxis type="category" dataKey="k" width={110} tick={{ fontSize: 11, fill: 'var(--c-neutral-500, #66706F)' }} /><Tooltip formatter={(v) => usd(v as number)} /><Bar dataKey="v" fill="#13908A" /></BarChart></ResponsiveContainer></div>
           </Card>
         )}
         {d && (

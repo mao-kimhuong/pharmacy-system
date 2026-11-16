@@ -66,6 +66,8 @@ async def event_payload(session: AsyncSession, po: PurchaseOrder) -> dict[str, A
         "note": po.note, "expected_on": po.expected_on.isoformat() if po.expected_on else None,
         "created_at": po.created_at.isoformat() if po.created_at else None,
         "sent_at": po.sent_at.isoformat() if po.sent_at else None,
+        "supplier_confirmed_at": po.supplier_confirmed_at.isoformat() if po.supplier_confirmed_at else None,
+        "supplier_confirmed_by": po.supplier_confirmed_by,
         "cancel_reason": po.cancel_reason, "total": str(po.total), "lines": lines,
         "group": {"id": str(group.id), "number": group.number} if group else None,
     }  # fmt: skip
@@ -200,6 +202,25 @@ async def update_order(
         audit(session, actor, "purchase_order.updated", "purchase_order", po.id, branch_id=po.branch_id,
               before=old, after=new)  # fmt: skip
     await commit(session)
+    return po
+
+
+async def supplier_confirm(session: AsyncSession, po_id: UUID, supplier_id: UUID, by: str) -> PurchaseOrder:
+    """T2: the supplier confirmed a sent PO on Telegram (notification checked the chat is linked to this supplier).
+    Once: a second tap keeps the first confirmation. A draft or cancelled PO cannot be confirmed."""
+    po = (await session.execute(select(PurchaseOrder).where(PurchaseOrder.id == po_id).with_for_update(of=PurchaseOrder))
+          ).scalar_one_or_none()  # fmt: skip
+    if po is None or po.supplier_id != supplier_id:
+        raise AppError(ErrorCode.NOT_FOUND, "Purchase order not found", status_code=404)
+    if po.status in ("draft", "cancelled"):
+        raise po_state(f"This purchase order is {po.status}", po.status)
+    if po.supplier_confirmed_at is None:
+        po.supplier_confirmed_at, po.supplier_confirmed_by = clock.now(), (by or "supplier")[:80]
+        po.version += 1
+        await _publish(session, po, "purchase_order.updated")
+        audit(session, None, "purchase_order.supplier_confirmed", "purchase_order", po.id, branch_id=po.branch_id,
+              after={"number": po.number, "by": po.supplier_confirmed_by, "via": "telegram"})  # fmt: skip
+        await commit(session)
     return po
 
 

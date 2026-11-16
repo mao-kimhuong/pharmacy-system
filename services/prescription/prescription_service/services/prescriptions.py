@@ -58,6 +58,8 @@ async def payload(session: AsyncSession, rx: Prescription) -> dict[str, Any]:
             "strength": products[i.medicine_id].strength if i.medicine_id in products else "",
             "base_unit": products[i.medicine_id].base_unit if i.medicine_id in products else "",
             "qty_base": i.qty_base, "dosage": i.dosage, "frequency": i.frequency, "duration_days": i.duration_days,
+            "units_per_dose": str(i.units_per_dose) if i.units_per_dose is not None else None,
+            "doses_per_day": str(i.doses_per_day) if i.doses_per_day is not None else None,
             "repeats_allowed": i.repeats_allowed, "repeats_used": i.repeats_used,
             "dispensed_base": i.dispensed_base, "remaining_base": i.remaining_base,
         } for i in rx.items],
@@ -137,6 +139,7 @@ async def _items(session: AsyncSession, raw: list[dict[str, Any]]) -> list[RxIte
         items.append(RxItem(
             line_no=n, medicine_id=product.id, qty_base=x["qty_base"], dosage=clean(x.get("dosage")),
             frequency=clean(x.get("frequency")), duration_days=x.get("duration_days"),
+            units_per_dose=x.get("units_per_dose"), doses_per_day=x.get("doses_per_day"),
             repeats_allowed=x.get("repeats_allowed") or 0, dispensed_base=0, held_base=0,
         ))  # fmt: skip
     return items

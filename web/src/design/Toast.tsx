@@ -43,7 +43,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div aria-live="polite" className="no-print pointer-events-none fixed right-4 bottom-4 z-[60] flex w-[380px] max-w-[calc(100vw-32px)] flex-col gap-2">
         {items.map((x) => (
-          <div key={x.id} role={x.kind === 'error' ? 'alert' : 'status'} className="pointer-events-auto flex items-center gap-3 rounded-lg bg-neutral-900 px-3.5 py-3 text-[13px] text-white shadow-toast">
+          <div key={x.id} role={x.kind === 'error' ? 'alert' : 'status'} className="pointer-events-auto flex items-center gap-3 rounded-lg bg-inverse px-3.5 py-3 text-[13px] text-white shadow-toast">
             <span className={x.kind === 'error' ? 'font-bold text-[#FF8A7E]' : x.kind === 'info' ? 'font-bold text-[#F3C24B]' : 'font-bold text-posdark-accent-soft'} aria-hidden>
               {x.kind === 'error' ? '✕' : x.kind === 'info' ? 'i' : '✓'}
             </span>

@@ -41,7 +41,7 @@ export function OtpInput({ value, onChange, onComplete, invalid, length = 6, aut
             }
           }}
           className={cx('h-14 rounded-lg border text-center text-[24px] font-semibold outline-none focus:border-2 focus:border-primary-600 focus:shadow-focus',
-            invalid ? 'border-danger bg-[#FFF8F7] text-[#A3201A]' : 'border-neutral-300')}
+            invalid ? 'border-danger bg-danger-soft text-danger-fg' : 'border-neutral-300')}
         />
       ))}
     </div>

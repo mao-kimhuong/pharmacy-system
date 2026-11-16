@@ -38,6 +38,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sales/v1/carts/discount-approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask Discount Approval
+         * @description T2: ask a manager / the owner on Telegram for a discount above your cap (instead of their PIN at the till).
+         *     Only when a discount is above your cap (else 422 VALIDATION_ERROR, reason within_cap). Pending for 10 minutes.
+         */
+        post: operations["ask_discount_approval_api_sales_v1_carts_discount_approvals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/v1/carts/discount-approvals/{approval_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Discount Approval
+         * @description The till polls this; approved → `token` for the sale's discount_approval_token.
+         */
+        get: operations["discount_approval_api_sales_v1_carts_discount_approvals__approval_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sales/v1/carts/preview": {
         parameters: {
             query?: never;
@@ -369,8 +410,8 @@ export interface paths {
         put?: never;
         /**
          * Create
-         * @description A dynamic KHQR for this amount on the branch's Bakong account (or the shared one).
-         *     Pay the sale with payments[{method: "KHQR", khqr_id, amount, currency}] once paid.
+         * @description A dynamic KHQR for this amount: ABA PayWay's QR API (KHQR_PROVIDER=payway) or the branch's Bakong account
+         *     (or the shared one). Pay the sale with payments[{method: "KHQR", khqr_id, amount, currency}] once paid.
          */
         post: operations["create_api_sales_v1_payments_khqr_post"];
         delete?: never;
@@ -388,11 +429,54 @@ export interface paths {
         };
         /**
          * Status
-         * @description pending / paid / expired / used / needs_refund. Asks Bakong at most every 2 s per QR.
+         * @description pending / paid / expired / cancelled / used / review / needs_refund / refunded. Asks the provider at most
+         *     every 2 s per QR.
          */
         get: operations["status_api_sales_v1_payments_khqr__khqr_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/v1/payments/khqr/{khqr_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel
+         * @description Give up a pending QR (closed at PayWay). Already paid → KHQR_STATE; a payment that still arrives later
+         *     becomes a refund due.
+         */
+        post: operations["cancel_api_sales_v1_payments_khqr__khqr_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/v1/payments/khqr/{khqr_id}/fake-decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fake Decline
+         * @description Development only (fake provider, never in production; owner): the customer's try "fails", as PayWay's
+         *     code 3 – the attempt stays open (they may try again). 404 everywhere else.
+         */
+        post: operations["fake_decline_api_sales_v1_payments_khqr__khqr_id__fake_decline_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -414,6 +498,134 @@ export interface paths {
          *     as a customer would, to try the till. 404 everywhere else.
          */
         post: operations["fake_pay_api_sales_v1_payments_khqr__khqr_id__fake_pay_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/v1/payments/khqr/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reconciliation
+         * @description What the daily check (00:40 Asia/Phnom_Penh) found: QR payments that do not agree with the provider.
+         */
+        get: operations["reconciliation_api_sales_v1_payments_khqr_reconciliation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/v1/payments/khqr/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Refunds
+         * @description Money to give back on KHQR payments (failed or cancelled sales, returns, late payments, wrong amounts).
+         */
+        get: operations["list_refunds_api_sales_v1_payments_khqr_refunds_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/v1/payments/khqr/refunds/{refund_id}/refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refund
+         * @description Give the money back (owner, branch manager of the branch; PIN, action sales.khqr_refund). PayWay: the
+         *     refund API, at once; Bakong has no refund API: this records that it was refunded at the bank. Never
+         *     twice: a refunded one comes back as it is.
+         */
+        post: operations["refund_api_sales_v1_payments_khqr_refunds__refund_id__refund_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/v1/payments/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payment Options
+         * @description What the till can offer: PayWay checkout (Card / Wallet) only with KHQR_PROVIDER=payway; otherwise a card
+         *     is a manual payment from the card terminal (with its reference). The fake provider: test buttons.
+         */
+        get: operations["payment_options_api_sales_v1_payments_options_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/v1/payments/payway/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Payway Callback
+         * @description ABA PayWay's pushback after a payment (public: Traefik router sales-payway-callback, rate-limited per IP).
+         *     It is not signed, so nothing in it is believed: only its tran_id is read, and we ask PayWay
+         *     (check-transaction) ourselves. Idempotent; an unknown or malformed tran_id is answered the same way.
+         */
+        post: operations["payway_callback_api_sales_v1_payments_payway_callback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sales/v1/payments/payway/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Checkout
+         * @description PayWay Purchase at the till (cards, ABA PAY, KHQR, wallets on PayWay's hosted page). Post `form.fields` to
+         *     `form.action` as multipart/form-data in a new window; follow GET /payments/khqr/{id} (or PayWay's callback);
+         *     once paid, pay the sale with payments[{method: "PAYWAY", khqr_id, amount, currency}]. Cancel, refunds and the
+         *     daily check as for KHQR.
+         */
+        post: operations["checkout_api_sales_v1_payments_payway_checkout_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -536,6 +748,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sales/v1/sale-orders/{order_id}/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ready
+         * @description Ready for pickup (ordered / partly fulfilled): the customer gets a Telegram message with what is
+         *     left to pay (if linked and they allow order messages). Again later: a new message.
+         */
+        post: operations["ready_api_sales_v1_sale_orders__order_id__ready_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sales/v1/sale-templates": {
         parameters: {
             query?: never;
@@ -615,6 +848,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** CallbackOut */
+        CallbackOut: {
+            /**
+             * Received
+             * @default true
+             */
+            received?: boolean;
+        };
         /** CartIn */
         CartIn: {
             /**
@@ -746,6 +987,56 @@ export interface components {
             /** Warnings */
             warnings: components["schemas"]["FindingOut"][];
         };
+        /** CheckoutCreate */
+        CheckoutCreate: {
+            /**
+             * Amount
+             * @description USD, or KHR in whole hundreds
+             */
+            amount: number | string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /**
+             * Cart Ref
+             * @default
+             */
+            cart_ref?: string;
+            /**
+             * Currency
+             * @default USD
+             * @enum {string}
+             */
+            currency?: "USD" | "KHR";
+            /**
+             * Payment Option
+             * @description Empty: PayWay shows every method the merchant profile has
+             */
+            payment_option?: ("cards" | "abapay_khqr" | "alipay" | "wechat" | "google_pay") | null;
+        };
+        /** CheckoutForm */
+        CheckoutForm: {
+            /**
+             * Action
+             * @description PayWay's purchase URL: POST the fields there as multipart/form-data, in a new window
+             */
+            action: string;
+            /**
+             * Fields
+             * @description Signed by the server (hash); post them unchanged
+             */
+            fields: {
+                [key: string]: string;
+            };
+        };
+        /** CheckoutOut */
+        CheckoutOut: {
+            /** @description None with the fake provider (development: the owner marks it paid) */
+            form: components["schemas"]["CheckoutForm"] | null;
+            payment: components["schemas"]["KhqrOut"];
+        };
         /** CommissionLineOut */
         CommissionLineOut: {
             /** Amount */
@@ -836,6 +1127,43 @@ export interface components {
              * @enum {string}
              */
             method: "cash" | "card" | "ABA" | "KHQR";
+        };
+        /**
+         * DiscountApprovalOut
+         * @description T2: a discount above the seller's cap asked on Telegram. approved → send discount_approval_token
+         *     "tg:<id>" with exactly this cart (within 10 minutes).
+         */
+        DiscountApprovalOut: {
+            /** Cap Pct */
+            cap_pct: string;
+            /** Decided At */
+            decided_at: string | null;
+            /** Discount Usd */
+            discount_usd: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Needs Owner */
+            needs_owner: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "approved" | "rejected" | "used";
+            /**
+             * Token
+             * @description When approved: the discount_approval_token for the sale
+             */
+            token?: string | null;
+            /** Worst Pct */
+            worst_pct: string;
         };
         /**
          * ErrorOut
@@ -982,6 +1310,11 @@ export interface components {
             paid: string;
             /** Patient Id */
             patient_id: string | null;
+            /**
+             * Payment Rounding Khr
+             * @description Riel due (rounded to 100 riel) − exact riel when riel paid it exactly
+             */
+            payment_rounding_khr: string;
             /** Payments */
             payments: components["schemas"]["InvoicePaymentOut"][];
             /** Returned Total */
@@ -1020,6 +1353,8 @@ export interface components {
             deposit_id?: string | null;
             /** Method */
             method: string;
+            /** Reference */
+            reference?: string | null;
         };
         /** KhqrCreate */
         KhqrCreate: {
@@ -1046,6 +1381,47 @@ export interface components {
              */
             currency?: "USD" | "KHR";
         };
+        /** KhqrIssueOut */
+        KhqrIssueOut: {
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Khqr Id
+             * Format: uuid
+             */
+            khqr_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "not_paid_at_provider" | "paid_not_recorded" | "amount_mismatch" | "refund_mismatch" | "paid_not_used" | "refund_open";
+            /** Ours */
+            ours: {
+                [key: string]: unknown;
+            };
+            /**
+             * Run Date
+             * Format: date
+             */
+            run_date: string;
+            /** Theirs */
+            theirs: {
+                [key: string]: unknown;
+            };
+        };
         /** KhqrOut */
         KhqrOut: {
             /** Amount */
@@ -1060,6 +1436,11 @@ export interface components {
             /** Currency */
             currency: string;
             /**
+             * Deeplink
+             * @description PayWay: opens the ABA app on a phone
+             */
+            deeplink: string | null;
+            /**
              * Expires At
              * Format: date-time
              */
@@ -1071,20 +1452,113 @@ export interface components {
             id: string;
             /** Invoice Id */
             invoice_id: string | null;
+            /**
+             * Kind
+             * @description khqr: a QR (sale method KHQR); checkout: PayWay Purchase (PAYWAY)
+             * @enum {string}
+             */
+            kind: "khqr" | "checkout";
             /** Md5 */
             md5: string;
+            /** Paid Amount */
+            paid_amount: string | null;
             /** Paid At */
             paid_at: string | null;
+            /** Paid Currency */
+            paid_currency: string | null;
+            /**
+             * Payment Option
+             * @description checkout: cards | abapay_khqr | alipay | wechat | google_pay
+             */
+            payment_option?: string | null;
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "fake" | "bakong" | "payway";
+            /**
+             * Provider Status
+             * @description pending only: declined = the customer's last try failed
+             */
+            provider_status?: string | null;
             /**
              * Qr String
              * @description The EMV-KHQR string; the POS draws the QR from it
              */
             qr_string: string;
+            /** Refunded Amount */
+            refunded_amount: string;
+            /** Review Reason */
+            review_reason: string | null;
             /**
              * Status
              * @enum {string}
              */
-            status: "pending" | "paid" | "expired" | "used" | "needs_refund";
+            status: "pending" | "paid" | "expired" | "cancelled" | "used" | "review" | "needs_refund" | "refunded";
+            /**
+             * Tran Id
+             * @description PayWay's transaction id (ours, sent to PayWay)
+             */
+            tran_id: string | null;
+        };
+        /** KhqrRefundIn */
+        KhqrRefundIn: {
+            /**
+             * Pin Token
+             * @description POST /pin/verify, action sales.khqr_refund
+             */
+            pin_token?: string | null;
+        };
+        /** KhqrRefundOut */
+        KhqrRefundOut: {
+            /** Amount */
+            amount: string;
+            /**
+             * Branch Id
+             * Format: uuid
+             */
+            branch_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Currency */
+            currency: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Khqr Id
+             * Format: uuid
+             */
+            khqr_id: string;
+            /** Last Error */
+            last_error: string | null;
+            /**
+             * Method
+             * @description payway | by_hand (Bakong: refunded at the bank) | fake
+             */
+            method: string | null;
+            payment: components["schemas"]["KhqrOut"];
+            /** Reason */
+            reason: string;
+            /** Refunded At */
+            refunded_at: string | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "failed_sale" | "invoice_cancel" | "return" | "late_payment" | "review";
+            /** Source Ref */
+            source_ref: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "due" | "requested" | "refunded";
         };
         /** LineBatchOut */
         LineBatchOut: {
@@ -1431,6 +1905,8 @@ export interface components {
             note: string;
             /** Number */
             number: string;
+            /** Ready At */
+            ready_at?: string | null;
             /** Reservation Released At */
             reservation_released_at: string | null;
             /** Reserve Until */
@@ -1471,7 +1947,30 @@ export interface components {
              * Method
              * @enum {string}
              */
-            method: "cash" | "card" | "ABA" | "KHQR" | "credit" | "deposit";
+            method: "cash" | "card" | "ABA" | "KHQR" | "PAYWAY" | "credit" | "deposit";
+            /**
+             * Reference
+             * @description Bank transfer (ABA) / card terminal: the transfer or slip reference
+             */
+            reference?: string | null;
+        };
+        /** PaymentOptions */
+        PaymentOptions: {
+            /**
+             * Khqr Provider
+             * @enum {string}
+             */
+            khqr_provider: "fake" | "bakong" | "payway";
+            /**
+             * Payway Checkout
+             * @description Card / Wallet opens PayWay's checkout (else a manual card payment)
+             */
+            payway_checkout: boolean;
+            /**
+             * Test Buttons
+             * @description Development: the owner can mark a QR / checkout paid or declined
+             */
+            test_buttons: boolean;
         };
         /** PeriodOut */
         PeriodOut: {
@@ -1751,9 +2250,10 @@ export interface components {
             reason: string;
             /**
              * Refund Method
+             * @description khqr: back to the customer's KHQR payment of this invoice (a refund due: the refund button)
              * @enum {string}
              */
-            refund_method: "cash" | "credit_note";
+            refund_method: "cash" | "credit_note" | "khqr";
             /**
              * To
              * @default stock
@@ -2129,7 +2629,7 @@ export interface operations {
                     "application/json": components["schemas"]["CartOut"][];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2137,11 +2637,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2149,7 +2649,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -2165,7 +2665,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2173,7 +2685,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -2186,6 +2698,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -2223,7 +2747,7 @@ export interface operations {
                     "application/json": components["schemas"]["ResumedCart"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2231,11 +2755,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2243,7 +2767,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -2259,7 +2783,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description CART_STATE */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2267,11 +2791,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "CART_STATE";
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
                     };
                 };
             };
-            /** @description FILE_REJECTED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2279,7 +2803,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FILE_REJECTED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -2292,6 +2816,256 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    ask_discount_approval_api_sales_v1_carts_discount_approvals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CartPreviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscountApprovalOut"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
+                    };
+                };
+            };
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    discount_approval_api_sales_v1_carts_discount_approvals__approval_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                approval_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscountApprovalOut"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
+                    };
+                };
+            };
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -2367,7 +3141,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description KHQR_NOT_PAID, KHQR_USED */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2375,7 +3149,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "KHQR_NOT_PAID" | "KHQR_USED";
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
                     };
                 };
             };
@@ -2400,6 +3174,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -2439,7 +3225,7 @@ export interface operations {
                     "application/json": components["schemas"]["PricedCart"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2447,11 +3233,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2459,7 +3245,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -2475,7 +3261,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description FILE_REJECTED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2483,7 +3281,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FILE_REJECTED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -2496,6 +3294,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -2535,7 +3345,7 @@ export interface operations {
                     "application/json": components["schemas"]["CartOut"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2543,11 +3353,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2555,7 +3365,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -2571,7 +3381,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description FILE_REJECTED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2579,7 +3401,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FILE_REJECTED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -2592,6 +3414,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -2630,7 +3464,7 @@ export interface operations {
                     "application/json": components["schemas"]["PeriodOut"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2638,11 +3472,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2650,7 +3484,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -2666,7 +3500,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description PERIOD_LOCKED */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE, PERIOD_LOCKED */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2674,11 +3508,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "PERIOD_LOCKED";
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE" | "PERIOD_LOCKED";
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2686,7 +3520,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -2699,6 +3533,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -2737,7 +3583,7 @@ export interface operations {
                     "application/json": components["schemas"]["PeriodOut"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2745,11 +3591,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2757,7 +3603,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -2773,7 +3619,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description PERIOD_LOCKED */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE, PERIOD_LOCKED */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2781,11 +3627,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "PERIOD_LOCKED";
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE" | "PERIOD_LOCKED";
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2793,7 +3639,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -2806,6 +3652,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -2845,7 +3703,7 @@ export interface operations {
                     "application/json": components["schemas"]["CommissionReport"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2853,11 +3711,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2865,7 +3723,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -2881,7 +3739,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2889,7 +3759,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -2902,6 +3772,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -2942,7 +3824,7 @@ export interface operations {
                     "application/json": components["schemas"]["CommissionLineOut"][];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -2950,11 +3832,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2962,7 +3844,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -2978,7 +3860,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2986,7 +3880,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -2999,6 +3893,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -3034,7 +3940,7 @@ export interface operations {
                     "application/json": components["schemas"]["RuleOut"][];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3042,11 +3948,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3054,7 +3960,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -3070,7 +3976,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -3078,7 +3996,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -3091,6 +4009,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -3130,7 +4060,7 @@ export interface operations {
                     "application/json": components["schemas"]["RuleOut"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3138,11 +4068,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3150,7 +4080,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -3166,7 +4096,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -3174,7 +4116,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -3187,6 +4129,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -3224,7 +4178,7 @@ export interface operations {
                     "application/json": components["schemas"]["RuleOut"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3232,11 +4186,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3244,7 +4198,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -3260,7 +4214,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -3268,7 +4234,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -3281,6 +4247,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -3323,7 +4301,7 @@ export interface operations {
                     "application/json": components["schemas"]["RateOut"][];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3331,11 +4309,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3343,7 +4321,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -3359,7 +4337,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -3367,7 +4357,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -3380,6 +4370,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -3421,7 +4423,7 @@ export interface operations {
                     "application/json": components["schemas"]["RateOut"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3429,11 +4431,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3441,7 +4443,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -3457,7 +4459,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description UNKNOWN_BRANCH, VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -3465,7 +4479,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "UNKNOWN_BRANCH" | "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -3478,6 +4492,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -3569,7 +4595,7 @@ export interface operations {
                     "application/json": components["schemas"]["InvoicePage"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3577,11 +4603,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3589,7 +4615,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -3605,7 +4631,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -3613,7 +4651,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -3626,6 +4664,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -3701,7 +4751,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ALLERGY_WARNING, BATCH_BLOCKED, BATCH_EXPIRED, DEPOSIT_EXCEEDED, DUPLICATE_THERAPY_WARNING, IDEMPOTENCY_IN_PROGRESS, KHQR_NOT_PAID, KHQR_USED, OUT_OF_STOCK, PRESCRIPTION_STATE, PROMOTION_LIMIT */
+            /** @description ALLERGY_WARNING, BATCH_BLOCKED, BATCH_EXPIRED, CART_STATE, DEPOSIT_EXCEEDED, DUPLICATE_THERAPY_WARNING, IDEMPOTENCY_IN_PROGRESS, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE, OUT_OF_STOCK, PRESCRIPTION_STATE, PROMOTION_LIMIT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -3709,7 +4759,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "ALLERGY_WARNING" | "BATCH_BLOCKED" | "BATCH_EXPIRED" | "DEPOSIT_EXCEEDED" | "DUPLICATE_THERAPY_WARNING" | "IDEMPOTENCY_IN_PROGRESS" | "KHQR_NOT_PAID" | "KHQR_USED" | "OUT_OF_STOCK" | "PRESCRIPTION_STATE" | "PROMOTION_LIMIT";
+                        code?: "ALLERGY_WARNING" | "BATCH_BLOCKED" | "BATCH_EXPIRED" | "CART_STATE" | "DEPOSIT_EXCEEDED" | "DUPLICATE_THERAPY_WARNING" | "IDEMPOTENCY_IN_PROGRESS" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE" | "OUT_OF_STOCK" | "PRESCRIPTION_STATE" | "PROMOTION_LIMIT";
                     };
                 };
             };
@@ -3734,6 +4784,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -3771,7 +4833,7 @@ export interface operations {
                     "application/json": components["schemas"]["InvoiceOut"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3779,11 +4841,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3791,7 +4853,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -3807,7 +4869,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -3815,7 +4889,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -3828,6 +4902,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -3881,7 +4967,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3889,7 +4975,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -3905,7 +4991,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ALLERGY_WARNING, BATCH_BLOCKED, BATCH_EXPIRED, DEPOSIT_EXCEEDED, DUPLICATE_THERAPY_WARNING, INVOICE_STATE, OUT_OF_STOCK, PRESCRIPTION_STATE */
+            /** @description ALLERGY_WARNING, BATCH_BLOCKED, BATCH_EXPIRED, CART_STATE, DEPOSIT_EXCEEDED, DUPLICATE_THERAPY_WARNING, INVOICE_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE, OUT_OF_STOCK, PRESCRIPTION_STATE */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -3913,11 +4999,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "ALLERGY_WARNING" | "BATCH_BLOCKED" | "BATCH_EXPIRED" | "DEPOSIT_EXCEEDED" | "DUPLICATE_THERAPY_WARNING" | "INVOICE_STATE" | "OUT_OF_STOCK" | "PRESCRIPTION_STATE";
+                        code?: "ALLERGY_WARNING" | "BATCH_BLOCKED" | "BATCH_EXPIRED" | "CART_STATE" | "DEPOSIT_EXCEEDED" | "DUPLICATE_THERAPY_WARNING" | "INVOICE_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE" | "OUT_OF_STOCK" | "PRESCRIPTION_STATE";
                     };
                 };
             };
-            /** @description CREDIT_LIMIT_EXCEEDED, RX_EXPIRED, RX_QUANTITY_EXCEEDED, UNKNOWN_MEDICINE, VALIDATION_ERROR */
+            /** @description CREDIT_LIMIT_EXCEEDED, CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_EXPIRED, RX_QUANTITY_EXCEEDED, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -3925,7 +5011,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "CREDIT_LIMIT_EXCEEDED" | "RX_EXPIRED" | "RX_QUANTITY_EXCEEDED" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR";
+                        code?: "CREDIT_LIMIT_EXCEEDED" | "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_EXPIRED" | "RX_QUANTITY_EXCEEDED" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -3938,6 +5024,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -3975,7 +5073,7 @@ export interface operations {
                     "application/json": components["schemas"]["ReturnOut"][];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -3983,11 +5081,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3995,7 +5093,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -4011,7 +5109,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4019,7 +5129,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -4032,6 +5142,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -4085,7 +5207,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4093,7 +5215,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -4109,7 +5231,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ALLERGY_WARNING, BATCH_BLOCKED, BATCH_EXPIRED, DEPOSIT_EXCEEDED, DUPLICATE_THERAPY_WARNING, INVOICE_STATE, OUT_OF_STOCK, PRESCRIPTION_STATE */
+            /** @description ALLERGY_WARNING, BATCH_BLOCKED, BATCH_EXPIRED, CART_STATE, DEPOSIT_EXCEEDED, DUPLICATE_THERAPY_WARNING, INVOICE_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE, OUT_OF_STOCK, PRESCRIPTION_STATE */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4117,11 +5239,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "ALLERGY_WARNING" | "BATCH_BLOCKED" | "BATCH_EXPIRED" | "DEPOSIT_EXCEEDED" | "DUPLICATE_THERAPY_WARNING" | "INVOICE_STATE" | "OUT_OF_STOCK" | "PRESCRIPTION_STATE";
+                        code?: "ALLERGY_WARNING" | "BATCH_BLOCKED" | "BATCH_EXPIRED" | "CART_STATE" | "DEPOSIT_EXCEEDED" | "DUPLICATE_THERAPY_WARNING" | "INVOICE_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE" | "OUT_OF_STOCK" | "PRESCRIPTION_STATE";
                     };
                 };
             };
-            /** @description CREDIT_LIMIT_EXCEEDED, CUSTOMER_REQUIRED, OPENED_PACK_RETURN, RETURN_EXCEEDS_SOLD, RX_EXPIRED, RX_QUANTITY_EXCEEDED, UNKNOWN_MEDICINE, VALIDATION_ERROR */
+            /** @description CREDIT_LIMIT_EXCEEDED, CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, KHQR_REFUND_TOO_MUCH, OPENED_PACK_RETURN, PAYMENT_SHORT, RETURN_EXCEEDS_SOLD, RX_EXPIRED, RX_QUANTITY_EXCEEDED, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4129,7 +5251,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "CREDIT_LIMIT_EXCEEDED" | "CUSTOMER_REQUIRED" | "OPENED_PACK_RETURN" | "RETURN_EXCEEDS_SOLD" | "RX_EXPIRED" | "RX_QUANTITY_EXCEEDED" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR";
+                        code?: "CREDIT_LIMIT_EXCEEDED" | "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "KHQR_REFUND_TOO_MUCH" | "OPENED_PACK_RETURN" | "PAYMENT_SHORT" | "RETURN_EXCEEDS_SOLD" | "RX_EXPIRED" | "RX_QUANTITY_EXCEEDED" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -4142,6 +5264,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -4179,7 +5313,7 @@ export interface operations {
                     "application/json": components["schemas"]["SoldBatch"][];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4187,11 +5321,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4199,7 +5333,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -4215,7 +5349,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4223,7 +5369,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -4236,6 +5382,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -4275,7 +5433,7 @@ export interface operations {
                     "application/json": components["schemas"]["KhqrOut"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4283,11 +5441,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4295,7 +5453,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -4311,7 +5469,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description CUSTOMER_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4319,7 +5489,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "CUSTOMER_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -4332,6 +5502,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -4369,7 +5551,7 @@ export interface operations {
                     "application/json": components["schemas"]["KhqrOut"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4377,11 +5559,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4389,7 +5571,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -4405,7 +5587,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4413,7 +5607,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -4426,6 +5620,252 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    cancel_api_sales_v1_payments_khqr__khqr_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                khqr_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KhqrOut"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
+                    };
+                };
+            };
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_STATE, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_STATE" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    fake_decline_api_sales_v1_payments_khqr__khqr_id__fake_decline_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                khqr_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
+                    };
+                };
+            };
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -4461,7 +5901,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4469,11 +5909,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4481,7 +5921,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -4497,7 +5937,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4505,7 +5957,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -4518,6 +5970,730 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    reconciliation_api_sales_v1_payments_khqr_reconciliation_get: {
+        parameters: {
+            query?: {
+                branch_id?: string | null;
+                date?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KhqrIssueOut"][];
+                };
+            };
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
+                    };
+                };
+            };
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    list_refunds_api_sales_v1_payments_khqr_refunds_get: {
+        parameters: {
+            query?: {
+                branch_id?: string | null;
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KhqrRefundOut"][];
+                };
+            };
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
+                    };
+                };
+            };
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    refund_api_sales_v1_payments_khqr_refunds__refund_id__refund_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                refund_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KhqrRefundIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KhqrRefundOut"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
+                    };
+                };
+            };
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, KHQR_REFUND_TOO_MUCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "KHQR_REFUND_TOO_MUCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    payment_options_api_sales_v1_payments_options_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOptions"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
+                    };
+                };
+            };
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    payway_callback_api_sales_v1_payments_payway_callback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CallbackOut"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
+                    };
+                };
+            };
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    checkout_api_sales_v1_payments_payway_checkout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutOut"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
+                    };
+                };
+            };
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -4556,7 +6732,7 @@ export interface operations {
                     "application/json": components["schemas"]["OrderOut"][];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4564,11 +6740,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4576,7 +6752,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -4592,7 +6768,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4600,7 +6788,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -4613,6 +6801,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -4652,7 +6852,7 @@ export interface operations {
                     "application/json": components["schemas"]["OrderOut"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4660,11 +6860,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4672,7 +6872,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -4688,7 +6888,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description CUSTOMER_REQUIRED, FILE_REJECTED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4696,7 +6908,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "CUSTOMER_REQUIRED" | "FILE_REJECTED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -4709,6 +6921,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -4746,7 +6970,7 @@ export interface operations {
                     "application/json": components["schemas"]["OrderOut"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4754,11 +6978,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4766,7 +6990,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -4782,7 +7006,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4790,7 +7026,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -4803,6 +7039,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -4844,7 +7092,7 @@ export interface operations {
                     "application/json": components["schemas"]["OrderOut"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4852,11 +7100,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4864,7 +7112,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -4880,7 +7128,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ORDER_STATE */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_STATE, KHQR_USED, ORDER_STATE */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4888,11 +7136,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "ORDER_STATE";
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_STATE" | "KHQR_USED" | "ORDER_STATE";
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4900,7 +7148,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -4913,6 +7161,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -4950,7 +7210,7 @@ export interface operations {
                     "application/json": components["schemas"]["OrderOut"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -4958,11 +7218,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -4970,7 +7230,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -4986,7 +7246,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ORDER_STATE */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4994,11 +7254,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "ORDER_STATE";
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -5006,7 +7266,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -5019,6 +7279,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -5072,7 +7344,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5080,7 +7352,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -5096,7 +7368,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ALLERGY_WARNING, BATCH_BLOCKED, BATCH_EXPIRED, DEPOSIT_EXCEEDED, DUPLICATE_THERAPY_WARNING, ORDER_STATE, OUT_OF_STOCK, PRESCRIPTION_STATE */
+            /** @description ALLERGY_WARNING, BATCH_BLOCKED, BATCH_EXPIRED, CART_STATE, DEPOSIT_EXCEEDED, DUPLICATE_THERAPY_WARNING, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE, OUT_OF_STOCK, PRESCRIPTION_STATE */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5104,11 +7376,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "ALLERGY_WARNING" | "BATCH_BLOCKED" | "BATCH_EXPIRED" | "DEPOSIT_EXCEEDED" | "DUPLICATE_THERAPY_WARNING" | "ORDER_STATE" | "OUT_OF_STOCK" | "PRESCRIPTION_STATE";
+                        code?: "ALLERGY_WARNING" | "BATCH_BLOCKED" | "BATCH_EXPIRED" | "CART_STATE" | "DEPOSIT_EXCEEDED" | "DUPLICATE_THERAPY_WARNING" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE" | "OUT_OF_STOCK" | "PRESCRIPTION_STATE";
                     };
                 };
             };
-            /** @description CREDIT_LIMIT_EXCEEDED, EXCHANGE_RATE_MISSING, RX_EXPIRED, RX_QUANTITY_EXCEEDED, VALIDATION_ERROR */
+            /** @description CREDIT_LIMIT_EXCEEDED, CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_EXPIRED, RX_QUANTITY_EXCEEDED, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -5116,7 +7388,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "CREDIT_LIMIT_EXCEEDED" | "EXCHANGE_RATE_MISSING" | "RX_EXPIRED" | "RX_QUANTITY_EXCEEDED" | "VALIDATION_ERROR";
+                        code?: "CREDIT_LIMIT_EXCEEDED" | "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_EXPIRED" | "RX_QUANTITY_EXCEEDED" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -5129,6 +7401,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -5206,7 +7490,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description ALLERGY_WARNING, BATCH_BLOCKED, BATCH_EXPIRED, DEPOSIT_EXCEEDED, DUPLICATE_THERAPY_WARNING, IDEMPOTENCY_IN_PROGRESS, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE, OUT_OF_STOCK, PRESCRIPTION_STATE, PROMOTION_LIMIT */
+            /** @description ALLERGY_WARNING, BATCH_BLOCKED, BATCH_EXPIRED, CART_STATE, DEPOSIT_EXCEEDED, DUPLICATE_THERAPY_WARNING, IDEMPOTENCY_IN_PROGRESS, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE, OUT_OF_STOCK, PRESCRIPTION_STATE, PROMOTION_LIMIT */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -5214,7 +7498,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "ALLERGY_WARNING" | "BATCH_BLOCKED" | "BATCH_EXPIRED" | "DEPOSIT_EXCEEDED" | "DUPLICATE_THERAPY_WARNING" | "IDEMPOTENCY_IN_PROGRESS" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE" | "OUT_OF_STOCK" | "PRESCRIPTION_STATE" | "PROMOTION_LIMIT";
+                        code?: "ALLERGY_WARNING" | "BATCH_BLOCKED" | "BATCH_EXPIRED" | "CART_STATE" | "DEPOSIT_EXCEEDED" | "DUPLICATE_THERAPY_WARNING" | "IDEMPOTENCY_IN_PROGRESS" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE" | "OUT_OF_STOCK" | "PRESCRIPTION_STATE" | "PROMOTION_LIMIT";
                     };
                 };
             };
@@ -5239,6 +7523,136 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
+                    };
+                };
+            };
+            /** @description TEMPORARILY_UNAVAILABLE */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "TEMPORARILY_UNAVAILABLE";
+                    };
+                };
+            };
+        };
+    };
+    ready_api_sales_v1_sale_orders__order_id__ready_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderOut"];
+                };
+            };
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
+                    };
+                };
+            };
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
+                    };
+                };
+            };
+            /** @description NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "NOT_FOUND";
+                    };
+                };
+            };
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
+                    };
+                };
+            };
+            /** @description RATE_LIMITED */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -5277,7 +7691,7 @@ export interface operations {
                     "application/json": components["schemas"]["TemplateOut"][];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5285,11 +7699,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5297,7 +7711,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -5313,7 +7727,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -5321,7 +7747,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -5334,6 +7760,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -5373,7 +7811,7 @@ export interface operations {
                     "application/json": components["schemas"]["TemplateOut"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5381,11 +7819,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description BRANCH_FORBIDDEN, FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5393,7 +7831,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "BRANCH_FORBIDDEN" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -5409,7 +7847,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description CUSTOMER_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -5417,7 +7867,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "CUSTOMER_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -5430,6 +7880,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -5471,7 +7933,7 @@ export interface operations {
                     "application/json": components["schemas"]["TemplateOut"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5479,11 +7941,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5491,7 +7953,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -5507,7 +7969,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description UNKNOWN_MEDICINE, VALIDATION_ERROR */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -5515,7 +7989,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "UNKNOWN_MEDICINE" | "VALIDATION_ERROR";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -5528,6 +8002,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };
@@ -5567,7 +8053,7 @@ export interface operations {
                     "application/json": components["schemas"]["LoadedTemplate"];
                 };
             };
-            /** @description NOT_AUTHENTICATED */
+            /** @description NOT_AUTHENTICATED, PIN_INVALID, PIN_REQUIRED */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -5575,11 +8061,11 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "NOT_AUTHENTICATED";
+                        code?: "NOT_AUTHENTICATED" | "PIN_INVALID" | "PIN_REQUIRED";
                     };
                 };
             };
-            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED */
+            /** @description BRANCH_FORBIDDEN, DISCOUNT_APPROVAL_REQUIRED, FORBIDDEN, MFA_SETUP_REQUIRED, PHARMACIST_REQUIRED */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5587,7 +8073,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED";
+                        code?: "BRANCH_FORBIDDEN" | "DISCOUNT_APPROVAL_REQUIRED" | "FORBIDDEN" | "MFA_SETUP_REQUIRED" | "PHARMACIST_REQUIRED";
                     };
                 };
             };
@@ -5603,7 +8089,19 @@ export interface operations {
                     };
                 };
             };
-            /** @description FILE_REJECTED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
+            /** @description CART_STATE, KHQR_NOT_PAID, KHQR_USED, ORDER_STATE */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "CART_STATE" | "KHQR_NOT_PAID" | "KHQR_USED" | "ORDER_STATE";
+                    };
+                };
+            };
+            /** @description CUSTOMER_REQUIRED, EXCHANGE_RATE_MISSING, FILE_REJECTED, KHQR_MISMATCH, PAYMENT_SHORT, RX_REQUIRED, UNKNOWN_BRANCH, UNKNOWN_MEDICINE, VALIDATION_ERROR, WITNESS_INVALID, WITNESS_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -5611,7 +8109,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
-                        code?: "FILE_REJECTED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
+                        code?: "CUSTOMER_REQUIRED" | "EXCHANGE_RATE_MISSING" | "FILE_REJECTED" | "KHQR_MISMATCH" | "PAYMENT_SHORT" | "RX_REQUIRED" | "UNKNOWN_BRANCH" | "UNKNOWN_MEDICINE" | "VALIDATION_ERROR" | "WITNESS_INVALID" | "WITNESS_REQUIRED";
                     };
                 };
             };
@@ -5624,6 +8122,18 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"] & {
                         /** @enum {unknown} */
                         code?: "RATE_LIMITED";
+                    };
+                };
+            };
+            /** @description PAYWAY_REJECTED */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"] & {
+                        /** @enum {unknown} */
+                        code?: "PAYWAY_REJECTED";
                     };
                 };
             };

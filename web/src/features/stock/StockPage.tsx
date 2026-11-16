@@ -40,7 +40,7 @@ export default function StockPage() {
         <div className="flex flex-col gap-2">
           {search}
           {rows?.map((r) => (
-            <div key={r.branch_id + r.medicine_id} className="flex flex-col gap-1.5 rounded-xl border border-neutral-200 bg-white p-3">
+            <div key={r.branch_id + r.medicine_id} className="flex flex-col gap-1.5 rounded-xl border border-neutral-200 bg-surface p-3">
               <div className="flex items-start justify-between gap-2"><b className="text-[14px]">{name(r)}</b><Qty value={r.qty_on_hand} unit={r.base_unit} className="text-[16px] font-semibold" /></div>
               <div className="flex flex-wrap items-center gap-1.5">{r.controlled_schedule && <SafetyBadge kind="controlled" />}{status(r)}<span className="ml-auto text-[12px] text-neutral-500">{r.batches.length} {t('onHand.batches')}</span></div>
             </div>

@@ -133,12 +133,13 @@ async def compensate(
     return [p for p in problems if p]
 
 
-async def khqr_refunds(session: AsyncSession, inv: Invoice, reason: str) -> None:
-    """KHQR money of a sale that did not complete (or was cancelled): refunded by hand."""
+async def khqr_refunds(session: AsyncSession, inv: Invoice, reason: str, source: str = "failed_sale") -> None:
+    """KHQR money of a sale that did not complete (or was cancelled): a refund due (the refund button)."""
     for pay in [p for p in inv.payments if p.khqr_id]:
         row = await session.get(KhqrPayment, pay.khqr_id, with_for_update=True)
         if row is not None and row.status == "used":
-            khqr.needs_refund(session, row, reason)
+            khqr.needs_refund(session, row, reason, source=source,
+                              ref=f"{'cancel' if source == 'invoice_cancel' else 'invoice'}:{inv.id}")  # fmt: skip
 
 
 async def _fail(
@@ -204,7 +205,8 @@ async def create_invoice(
         sale_order_id=order.id if order else None,
         change_usd=s.change_usd, khr_per_usd=rate.khr_per_usd if rate else None, total_khr=s.total_khr,
         change_in=data.get("change_in") or "USD_KHR", change_given_usd=s.change_given_usd,
-        change_given_khr=s.change_given_khr, change_rounding_khr=s.change_rounding_khr, version=1,
+        change_given_khr=s.change_given_khr, change_rounding_khr=s.change_rounding_khr,
+        payment_rounding_khr=s.payment_rounding_khr, version=1,
         lines=[InvoiceLine(
             line_no=x.line_no, medicine_id=x.pack.product_id, pack_unit_id=x.pack.id, sku=x.pack.product.sku,
             name=x.pack.product.display_name, name_km=x.pack.product.name_km, pack_unit=x.pack.name, qty=x.qty,
@@ -218,7 +220,8 @@ async def create_invoice(
         ) for x in lines],
         payments=[InvoicePayment(seq=i, method=p.method, currency=p.currency, amount=p.amount, amount_usd=u,
                                  deposit_id=raw.get("deposit_id") if p.method == "deposit" else None,
-                                 khqr_id=raw.get("khqr_id") if p.method == "KHQR" else None)
+                                 khqr_id=raw.get("khqr_id") if p.method in ("KHQR", "PAYWAY") else None,
+                                 reference=(raw.get("reference") or "").strip() or None)
                   for i, ((p, u), raw) in enumerate(zip(s.payments, data["payments"], strict=True), start=1)],
     )  # fmt: skip
     session.add(inv)

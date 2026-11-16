@@ -28,6 +28,7 @@ from .conftest import (
     PREFIX,
     SERVICE_TOKEN,
     add_product,
+    audits,
     create_supplier,
     outbox,
     receive,
@@ -207,3 +208,40 @@ async def test_reorder_list_creates_a_request_once(client) -> None:
     second = await client.post("/internal/v1/purchase-requests", json=body, headers=headers)
     assert first.status_code == 200 and first.json() == second.json()
     assert (await client.get(f"{PREFIX}/purchase-requests", headers=ASKER)).json()[0]["source_ref"] == "reorder:abc"
+
+
+async def test_request_value_from_the_last_receipt_and_decided_on_telegram(client) -> None:
+    """T2: the request event carries an estimated value (last receipt cost per base; null when never received),
+    and notification decides it as the user who tapped (/internal/v1/purchase-requests/{id}/decide)."""
+    from .conftest import create_po
+
+    never = await add_product("NEW1")
+    pr = await ask(client, never, 50)
+    created = [p for t, p in await outbox() if t == "purchase_request.created"][-1]
+    assert (created["value"], created["has_controlled"], created["requested_by"]) == (None, False, ASKER["X-User-Id"])
+    s = await create_supplier(client)
+    para = await add_product("PARA500")
+    po = await create_po(client, s, [(para, "box", 10, "4.25")], send=True)
+    r = await receive(client, po, [{"po_line_id": po["lines"][0]["id"], "lot_no": "A1", "expiry_date": "2028-03-31",
+                                    "qty": 10}])  # fmt: skip
+    assert r.status_code == 201, r.text
+    pr = await ask(client, para, 200)
+    assert [p for t, p in await outbox() if t == "purchase_request.created"][-1]["value"] == "8.50"  # 200 × 0.0425
+    internal = {"X-Service-Token": SERVICE_TOKEN, "X-Service-Name": "notification"}
+    actor = {"user_id": APPROVER["X-User-Id"], "name": "Dara", "role": "branch_manager", "branch_ids": [str(PP1)],
+             "permissions": ["purchasing.request_approve"]}  # fmt: skip
+    url = f"/internal/v1/purchase-requests/{pr['id']}/decide"
+    r = await client.post(url, json={"decision": "reject", "actor": actor}, headers=internal)
+    assert r.status_code == 200 and r.json()["status"] == "rejected"
+    decided = [p for t, p in await outbox() if t == "purchase_request.rejected"][-1]
+    assert (decided["via"], decided["decided_by"]) == ("telegram", APPROVER["X-User-Id"])
+    log = (await audits())[-1]
+    assert log["after"] == {"number": pr["number"], "reason": "Rejected on Telegram", "via": "telegram"}
+    again = await client.post(url, json={"decision": "approve", "actor": actor}, headers=internal)
+    assert again.status_code == 409
+    ctl = await add_product("DIAZ5", controlled="IV")
+    pr = await ask(client, ctl, 5)
+    assert [p for t, p in await outbox() if t == "purchase_request.created"][-1]["has_controlled"] is True
+    r = await client.post(f"/internal/v1/purchase-requests/{pr['id']}/decide", json={"decision": "approve", "actor": actor},
+                          headers=internal)  # fmt: skip
+    assert r.status_code == 403

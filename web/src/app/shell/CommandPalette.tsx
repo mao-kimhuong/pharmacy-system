@@ -82,8 +82,8 @@ export function CommandPalette({ open, onClose, initial = '' }: { open: boolean;
   };
   let lastSection = '';
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-neutral-900/35 p-4 pt-[12vh]" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div role="dialog" aria-modal="true" aria-label={t('search')} className="w-full max-w-[560px] overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-menu">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-scrim/35 p-4 pt-[12vh]" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div role="dialog" aria-modal="true" aria-label={t('search')} className="w-full max-w-[560px] overflow-hidden rounded-2xl border border-neutral-200 bg-surface shadow-menu">
         <div className="flex items-center gap-2 border-b border-neutral-100 px-4 py-3.5 text-[15px]">
           <span aria-hidden>⌕</span>
           <input

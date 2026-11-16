@@ -29,17 +29,32 @@ class TelegramChat(Base):
 
 class Message(IdMixin, Base):
     """queued → sent | failed | skipped (no bot token / no chat). dedupe_key makes a
-    second run of a job (or a replayed event) add nothing."""
+    second run of a job (or a replayed event) add nothing.
+
+    T2: chat_role (owner | branch | customer | staff | supplier | reply) decides which
+    kinds may go there; customer and supplier rows show only `summary` in the log and
+    their text is blanked once sent or failed. `document` = a PDF rendered at send time
+    ({type, id, lang}); `method` send | edit (edit_message_id) ; `tg_message_id` = what
+    Telegram gave back (approval messages are edited later)."""
 
     __tablename__ = "messages"
-    __table_args__ = (Index("ix_messages_due", "status", "next_attempt_at"),)
+    __table_args__ = (Index("ix_messages_due", "status", "next_attempt_at"),
+                      Index("ix_messages_subject", "chat_role", "subject_id", "kind", "created_at"))  # fmt: skip
 
     dedupe_key: Mapped[str] = mapped_column(String(160), unique=True)
-    target: Mapped[str] = mapped_column(String(40), index=True)
+    target: Mapped[str] = mapped_column(String(60), index=True)
     branch_id: Mapped[UUID | None] = mapped_column(Uuid, index=True)
     chat_id: Mapped[str | None] = mapped_column(String(40))
     kind: Mapped[str] = mapped_column(String(30))
     text: Mapped[str] = mapped_column(Text)
+    chat_role: Mapped[str] = mapped_column(String(10), default="branch", server_default="branch")
+    subject_id: Mapped[UUID | None] = mapped_column(Uuid)
+    summary: Mapped[str] = mapped_column(String(200), default="", server_default="")
+    document: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    reply_markup: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    method: Mapped[str] = mapped_column(String(8), default="send", server_default="send")
+    edit_message_id: Mapped[str | None] = mapped_column(String(20))
+    tg_message_id: Mapped[str | None] = mapped_column(String(20))
     status: Mapped[str] = mapped_column(String(10), default="queued")
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     next_attempt_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
@@ -56,6 +71,9 @@ class AlertSettings(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     large_discount_pct: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("20"))
     large_discount_usd: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("10"))
+    # T2: Telegram approval buttons only up to this value (USD); above it "open in the app"
+    telegram_approval_max_usd: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("100"),
+                                                               server_default="100")  # fmt: skip
     updated_by: Mapped[UUID | None] = mapped_column(Uuid)
 
 

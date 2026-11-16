@@ -133,6 +133,7 @@ class SaleOrder(IdMixin, TimestampMixin, Base):
     ordered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     cancel_reason: Mapped[str | None] = mapped_column(String(255))
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ready_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # T2: ready for pickup
     version: Mapped[int] = mapped_column(Integer, default=1)
 
     lines: Mapped[list["SaleOrderLine"]] = relationship(lazy="selectin", order_by="SaleOrderLine.line_no")

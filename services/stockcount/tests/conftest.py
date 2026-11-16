@@ -8,6 +8,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from uuid import UUID, uuid4
 
+from pharmacy_shared.redis import connect as connect_redis
 from pharmacy_shared.testing import TEST_REDIS_URL, recreate_database, test_database_url
 
 SERVICE_TOKEN = "test-service-token-0123456789abcdef"
@@ -25,7 +26,6 @@ import httpx  # noqa: E402
 import pytest  # noqa: E402
 from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
-from redis.asyncio import Redis  # noqa: E402
 from sqlalchemy import select, text  # noqa: E402
 
 import inventory_service.main as inventory_main  # noqa: E402
@@ -77,7 +77,7 @@ async def clean(monkeypatch) -> AsyncIterator[None]:
             "TRUNCATE reservation_lines, reservations, quarantine_entries, movements, stock, batches, stock_ins,"
             " product_pack_units, products, known_branches, known_suppliers, processed_messages, outbox, shrinkages,"
             " shelf_locations, branch_settings, doc_sequences CASCADE"))  # fmt: skip
-    redis = Redis.from_url(TEST_REDIS_URL)
+    redis = connect_redis(TEST_REDIS_URL)
     await redis.flushdb()
     await redis.aclose()
     AUTH.tokens.clear()

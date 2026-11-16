@@ -1,6 +1,6 @@
 SERVICES := auth branch catalog inventory stockcount prescription controlled sales customers purchasing reports notification document ai
 
-.PHONY: help env up down logs ps owner smoke test test-docker test-db test-db-down lint migrate revision resync backfill seed-demo bench-reports openapi api-types web-install web-dev web-test web-e2e web-test-docker
+.PHONY: help env up down logs ps owner smoke payway-check test test-docker test-db test-db-down lint migrate revision resync backfill seed-demo seed-realistic seed-reset bench-reports openapi api-types web-install web-dev web-test web-e2e web-test-docker
 
 help:
 	@echo "make env       copy .env.example to .env (first time)"
@@ -58,6 +58,41 @@ resync:
 backfill:
 	docker compose exec reports python -m reports_service.cli backfill
 
+# PayWay settings + a check-transaction of a made-up tran_id (must answer 6 = not found); QR=1 also makes a
+# 100 KHR sandbox QR. A one-off container: the running stack is not touched. Prints no secret.
+payway-check:
+	docker compose run --rm --no-deps --build sales python -m sales_service.cli payway-check $(if $(QR),--qr)
+
+# Realistic demo data (development only): 3 branches, staff, ~155 products, 90 days of trade, made through the
+# services' APIs. Safe to repeat. COMPOSE can point at another stack (e.g. COMPOSE="docker compose -p demo").
+COMPOSE ?= docker compose
+SEED_OWNER_PHONE ?= 012000111
+SEED_OWNER_PASSWORD ?= Demo-Owner-2026!
+# Each stack (compose project) has its own output folder: two stacks never share logins or progress.
+SEED_PROJECT = $(shell $(COMPOSE) config --format json 2>/dev/null | python3 -c 'import json,sys;print(json.load(sys.stdin)["name"])')
+SEED_OUT = $(CURDIR)/seed-output/$(SEED_PROJECT)
+SEED_RUN = $(COMPOSE) run --rm --no-deps -T -e SEED_DAYS -e SEED_MIN -e SEED_MAX -e SEED_OWNER_TOTP \
+	-e SEED_OWNER_PHONE=$(SEED_OWNER_PHONE) -e SEED_OWNER_PASSWORD='$(SEED_OWNER_PASSWORD)' \
+	-v "$(CURDIR)/scripts/seed_realistic:/seed:ro" -v "$(SEED_OUT):/out" -w /seed sales python
+
+seed-realistic:
+	@test -n "$(SEED_PROJECT)" || { echo "seed-realistic: no compose project (is the stack defined?)"; exit 1; }
+	@mkdir -p "$(SEED_OUT)"
+	@echo "seeding compose project '$(SEED_PROJECT)' (output in seed-output/$(SEED_PROJECT)/)"
+	@start=$$(date +%s); \
+	$(COMPOSE) exec -T -e OWNER_PASSWORD='$(SEED_OWNER_PASSWORD)' auth python -m auth_service.cli create-owner \
+	  --name "Owner Demo" --phone $(SEED_OWNER_PHONE) 2>/dev/null || echo "(an owner exists: using SEED_OWNER_PHONE)"; \
+	$(KEEP_AWAKE) $(SEED_RUN) main.py && \
+	$(COMPOSE) exec -T reports python -m reports_service.cli backfill > /dev/null && echo "reports rebuilt from the outboxes" && \
+	$(COMPOSE) exec -T controlled python -m controlled_service.cli check && \
+	$(SEED_RUN) main.py verify && \
+	echo "seed-realistic took $$(( ($$(date +%s) - start) / 60 )) min $$(( ($$(date +%s) - start) % 60 )) s; logins: seed-output/$(SEED_PROJECT)/logins.md"
+
+seed-reset:
+	$(COMPOSE) down -v
+	$(COMPOSE) up -d --build --wait
+	$(MAKE) seed-realistic COMPOSE="$(COMPOSE)"
+
 seed-demo:
 	docker compose exec reports python -m reports_service.cli seed-demo
 
@@ -73,12 +108,16 @@ test-db:
 test-db-down:
 	docker compose -f docker-compose.test.yml down
 
+# Long runs keep a Mac awake: when it sleeps, the Docker VM clock drifts and every 2FA login
+# then fails (INVALID_MFA_CODE). caffeinate only exists on macOS; elsewhere this is empty.
+KEEP_AWAKE := $(shell command -v caffeinate >/dev/null 2>&1 && echo caffeinate -dims)
+
 test: test-db
-	./scripts/test-all.sh
+	$(KEEP_AWAKE) ./scripts/test-all.sh
 
 # Same suite in a container (with Pango + Khmer font, so label tests run too).
 test-docker: test-db
-	docker compose -f docker-compose.test.yml --profile runner run --rm --build tests
+	$(KEEP_AWAKE) docker compose -f docker-compose.test.yml --profile runner run --rm --build tests
 
 lint:
 	ruff check .
@@ -106,10 +145,10 @@ web-test:
 	cd web && $(WEB_ENV) npm run typecheck && $(WEB_ENV) npm run lint && $(WEB_ENV) npm test && $(WEB_ENV) npx vite build && $(WEB_ENV) npm run size
 
 web-e2e:
-	cd web && $(WEB_ENV) BASE_URL=$${BASE_URL:-http://localhost} npx playwright test
+	cd web && $(WEB_ENV) BASE_URL=$${BASE_URL:-http://localhost} $(KEEP_AWAKE) npx playwright test
 
 web-test-docker:
-	docker run --rm -v "$(CURDIR)":/repo:ro -e CI=1 node:24-alpine sh -c "\
+	$(KEEP_AWAKE) docker run --rm -v "$(CURDIR)":/repo:ro -e CI=1 node:24-alpine sh -c "\
 	  mkdir -p /x/web /x/docs && cp -r /repo/docs/design /x/docs/ && \
 	  tar -C /repo/web --exclude=./node_modules --exclude=./dist --exclude=./coverage -cf - . | tar -C /x/web -xf - && \
 	  cd /x/web && npm ci --no-audit --no-fund && npm run typecheck && npm run lint && npm test && npx vite build && npm run size"

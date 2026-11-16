@@ -1,8 +1,8 @@
 # Screen list (generated from docs/design/project)
 
 Every frame of the handoff: file, frame id, name (Group / Screen / Device / Language), roles and the API tag the
-designer wrote. The API tags are the designer's guesses at design time; the real endpoints per screen are in
-`docs/plans/frontend-plan.md`. Status per screen (desktop / mobile / KM / EN): `project/ui-audit.md`.
+designer wrote. The API tags are the designer's guesses at design time; the real endpoint per screen is the one its
+page in `web/src/features/` calls. Status per screen (desktop / mobile / KM / EN): `project/ui-audit.md`.
 
 | File | Frame | Name | Roles | Design API tag |
 |---|---|---|---|---|

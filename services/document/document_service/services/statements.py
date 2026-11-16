@@ -14,11 +14,13 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pharmacy_shared import clock
 from pharmacy_shared.auth import CurrentUser
 from pharmacy_shared.errors import AppError, ErrorCode
 from pharmacy_shared.internal import InternalClient
 
 from ..models import SupplierReturnCopy
+from . import telegram_link
 from .pdf import FONTS, e, html_to_pdf
 from .stored import upsert_versioned
 
@@ -93,7 +95,7 @@ async def render_return(session: AsyncSession, actor: CurrentUser, return_id: UU
     return row.number, await html_to_pdf(return_html(row.data, lang, prices))
 
 
-def statement_html(st: dict[str, Any], lang: str) -> str:
+def statement_html(st: dict[str, Any], lang: str, tg_url: str | None = None) -> str:
     t = T[lang]
     rows = "".join(
         f"<tr><td>{e(x.get('on') or x.get('date') or '')}</td><td>{e(x.get('document_no') or x.get('number') or '')}</td>"
@@ -109,11 +111,14 @@ def statement_html(st: dict[str, Any], lang: str) -> str:
       <table><thead><tr><th>{t["date"]}</th><th>{t["doc"]}</th><th></th><th class="r">{t["debit"]}</th>
         <th class="r">{t["credit"]}</th><th class="r">{t["balance"]}</th></tr></thead><tbody>{rows}</tbody></table>
       <p style="text-align:right">{t["closing"]}: <b>{e(st.get("closing_balance"))}</b> USD</p>
+      {telegram_link.block(tg_url, lang, 26)}
     </body></html>"""
 
 
 async def render_statement(customers: InternalClient, actor: CurrentUser, customer_id: UUID,
-                           date_from: date | None, date_to: date | None, lang: str) -> tuple[str, bytes]:  # fmt: skip
+                           date_from: date | None, date_to: date | None, lang: str,
+                           link_for: telegram_link.LinkFor | None = None) -> tuple[str, bytes]:  # fmt: skip
     params = {k: v.isoformat() for k, v in (("date_from", date_from), ("date_to", date_to)) if v}
     st = await customers.get(f"/customers/{customer_id}/statement", params, actor=actor)
-    return f"statement-{st.get('customer') or customer_id}", await html_to_pdf(statement_html(st, lang))
+    tg_url = await link_for(str(customer_id), f"statement:{customer_id}:{clock.today()}", "statement") if link_for else None
+    return f"statement-{st.get('customer') or customer_id}", await html_to_pdf(statement_html(st, lang, tg_url))

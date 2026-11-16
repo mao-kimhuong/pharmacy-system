@@ -1,10 +1,10 @@
 import httpx
 import pytest
 from fastapi import FastAPI
-from redis.asyncio import Redis
 
 from pharmacy_shared.rate_limit import RateLimitMiddleware
 from pharmacy_shared.redis import RedisProvider
+from pharmacy_shared.redis import connect as connect_redis
 from pharmacy_shared.testing import TEST_REDIS_URL
 
 NOW = 1_800_000_010.0  # 10 seconds into a minute
@@ -39,7 +39,7 @@ def make_app(redis_url: str = TEST_REDIS_URL) -> FastAPI:
 
 @pytest.fixture(autouse=True)
 async def clean_redis():
-    client = Redis.from_url(TEST_REDIS_URL)
+    client = connect_redis(TEST_REDIS_URL)
     await client.flushdb()
     yield
     await client.flushdb()

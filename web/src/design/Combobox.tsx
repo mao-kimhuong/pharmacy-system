@@ -97,7 +97,7 @@ export function Combobox<T>({
         <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-neutral-500">{res.isFetching ? <Spinner className="size-3.5" /> : '▾'}</span>
       </div>
       {listShown && (
-        <div id={listId} role="listbox" className="absolute z-30 mt-1 flex max-h-72 w-full flex-col overflow-y-auto rounded-lg border border-neutral-200 bg-white p-1 shadow-menu">
+        <div id={listId} role="listbox" className="absolute z-30 mt-1 flex max-h-72 w-full flex-col overflow-y-auto rounded-lg border border-neutral-200 bg-surface p-1 shadow-menu">
           {items.map((it, i) => (
             <div
               key={itemKey(it)}

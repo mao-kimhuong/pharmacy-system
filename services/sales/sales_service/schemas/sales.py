@@ -67,7 +67,7 @@ class LineIn(BaseModel):
 class PaymentIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    method: Literal["cash", "card", "ABA", "KHQR", "credit", "deposit"]
+    method: Literal["cash", "card", "ABA", "KHQR", "PAYWAY", "credit", "deposit"]
     currency: Literal["USD", "KHR"] = "USD"
     amount: Amount = Field(description="In the currency; riel in whole hundreds")
     deposit_id: UUID | None = Field(
@@ -76,6 +76,8 @@ class PaymentIn(BaseModel):
     khqr_id: UUID | None = Field(
         default=None, description="method KHQR: the paid dynamic KHQR (POST /payments/khqr), used once"
     )
+    reference: str | None = Field(default=None, max_length=40, pattern=r"^[\w ./#:-]*$",
+                                  description="Bank transfer (ABA) / card terminal: the transfer or slip reference")
 
 
 class InvoiceCreate(BaseModel):
@@ -165,6 +167,7 @@ class InvoicePaymentOut(BaseModel):
     amount: Decimal
     amount_usd: Decimal
     deposit_id: UUID | None = None
+    reference: str | None = None
 
 
 class InvoiceOut(BaseModel):
@@ -191,6 +194,7 @@ class InvoiceOut(BaseModel):
     change_given_usd: Decimal
     change_given_khr: int
     change_rounding_khr: Decimal
+    payment_rounding_khr: Decimal = Field(description="Riel due (rounded to 100 riel) − exact riel when riel paid it exactly")
     returned_total: Decimal
     failure_code: str | None
     failure_reason: str | None
@@ -226,7 +230,8 @@ class ReturnCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     lines: list[ReturnLineIn] = Field(min_length=1, max_length=200)
-    refund_method: Literal["cash", "credit_note"]
+    refund_method: Literal["cash", "credit_note", "khqr"] = Field(
+        description="khqr: back to the customer's KHQR payment of this invoice (a refund due: the refund button)")
     to: Literal["stock", "quarantine"] = "stock"
     reason: str = Field(min_length=1, max_length=255)
 

@@ -95,6 +95,11 @@ export default function OrderDetailPage() {
   const pdf = usePdf();
   const [dlg, setDlg] = useState<'' | 'confirm' | 'invoice' | 'cancel' | 'close'>('');
   const q = useQuery({ queryKey: ['sales', 'order', id], queryFn: () => call(api.sales.GET('/api/sales/v1/sale-orders/{order_id}', { params: { path: { order_id: id } } })) });
+  const toast = useToast();
+  const ready = useMutation({
+    mutationFn: () => call(api.sales.POST('/api/sales/v1/sale-orders/{order_id}/ready', { params: { path: { order_id: id } } })),
+    onSuccess: (r) => { qc.setQueryData(['sales', 'order', id], r); toast.success(t('orders.readyDone')); },
+  });
   const o = q.data;
   const names = useCustomerNames([o?.customer_id]);
   if (q.error) return <QueryState error={q.error} onRetry={() => void q.refetch()} />;
@@ -106,12 +111,14 @@ export default function OrderDetailPage() {
         actions={<>
           <Button onClick={() => pdf.open({ type: 'sale_order', sale_order_id: o.id }, o.number, `${o.number}.pdf`)}>{t('orders.print')}</Button>
           {o.status === 'quote' && <Button variant="primary" onClick={() => setDlg('confirm')}>{t('orders.confirm')}</Button>}
+          {open && <Button loading={ready.isPending} onClick={() => ready.mutate()} title={t('orders.readyHint')}>{t('orders.ready')}</Button>}
           {open && user.has('pos.sell') && <Button variant="primary" onClick={() => setDlg('invoice')}>{t('orders.invoice')}</Button>}
           {open && <Button onClick={() => setDlg('close')}>{t('orders.close')}</Button>}
           {(o.status === 'quote' || open) && <Button variant="danger-outline" onClick={() => setDlg('cancel')}>{t('orders.cancel')}</Button>}
         </>}>
         <StatusPill tone={toneOf(o.status)}>{t(`status.${o.status}`, { defaultValue: o.status })}</StatusPill>
       </PageHeader>
+      <ApiErrorAlert error={ready.error} />
       <div className="grid gap-4 desktop:grid-cols-[2fr_1fr]">
         <Card title={t('invoice.lines')} padded={false}>
           <DataTable className="rounded-none border-0" rows={o.lines} rowKey={(l) => l.id} minWidth={600} columns={[
@@ -131,6 +138,7 @@ export default function OrderDetailPage() {
             { label: t('common:label.total'), value: <Usd value={o.total} strong /> },
             { label: t('orders.deposit'), value: <Usd value={o.deposit_usd} /> },
             ...(o.reserve_until && !o.reservation_released_at ? [{ label: t('orders.reserve'), value: t('orders.reservedUntil', { date: dateTime(o.reserve_until) }) }] : []),
+            ...(o.ready_at ? [{ label: t('orders.readyAt'), value: dateTime(o.ready_at) }] : []),
             ...(o.note ? [{ label: t('common:label.notes'), value: o.note }] : []),
             ...(o.cancel_reason ? [{ label: t('common:label.reason'), value: o.cancel_reason }] : []),
           ]} />

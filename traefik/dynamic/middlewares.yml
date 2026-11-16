@@ -59,6 +59,16 @@ http:
         period: 1m
         burst: 200
 
+    # Static web app files (nginx, cached by the browser). A service worker install or
+    # update fetches the whole precache (~150 files) at once, and a branch's tills share
+    # one IP behind its router: the flood limit's burst of 200 would 429 the second till
+    # and its update would fail (it keeps the old bundle). The API keeps ratelimit-flood.
+    ratelimit-static:
+      rateLimit:
+        average: 6000
+        period: 1m
+        burst: 1500
+
     request-size-limit:
       buffering:
         maxRequestBodyBytes: 10485760   # 10 MB

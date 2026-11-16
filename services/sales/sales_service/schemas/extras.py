@@ -233,6 +233,7 @@ class OrderOut(BaseModel):
     discount: Decimal
     total: Decimal
     cancel_reason: str | None
+    ready_at: datetime | None = None
     lines: list[OrderLineOut]
     created_at: datetime
 

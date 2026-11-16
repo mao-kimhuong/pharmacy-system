@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api, call } from '@/api/client';
-import { Alert, ApiErrorAlert, Button, DataTable, Dialog, Field, Input, PageHeader, ReasonDialog, StatusPill } from '@/design';
+import { Alert, ApiErrorAlert, Button, Checkbox, DataTable, Dialog, Field, Input, PageHeader, ReasonDialog, StatusPill } from '@/design';
 import { pct } from '@/lib/format';
 
-interface Row { id: string; name_en: string; name_km: string; is_active: boolean; default_discount_pct?: string }
+interface Row { id: string; name_en: string; name_km: string; is_active: boolean; default_discount_pct?: string; is_clinic?: boolean }
 
 export function GroupsPage({ kind }: { kind: 'customer' | 'supplier' }) {
   const { t } = useTranslation(['contacts', 'common', 'nav', 'sales']);
@@ -28,7 +28,7 @@ export function GroupsPage({ kind }: { kind: 'customer' | 'supplier' }) {
       const e = edit!;
       const base = { name_en: e.name_en ?? '', name_km: e.name_km ?? '' };
       if (cust) {
-        const body = { ...base, default_discount_pct: e.default_discount_pct || '0' };
+        const body = { ...base, default_discount_pct: e.default_discount_pct || '0', is_clinic: !!e.is_clinic };
         return e.id ? call(api.customers.PATCH('/api/customers/v1/customer-groups/{group_id}', { params: { path: { group_id: e.id } }, body })) : call(api.customers.POST('/api/customers/v1/customer-groups', { body }));
       }
       return e.id ? call(api.purchasing.PATCH('/api/purchasing/v1/supplier-groups/{group_id}', { params: { path: { group_id: e.id } }, body: base })) : call(api.purchasing.POST('/api/purchasing/v1/supplier-groups', { body: base }));
@@ -47,7 +47,8 @@ export function GroupsPage({ kind }: { kind: 'customer' | 'supplier' }) {
       <DataTable rows={q.data} loading={q.isLoading} error={q.error} onRetry={() => void q.refetch()} rowKey={(r) => r.id} columns={[
         { key: 'en', header: t('common:label.nameEn'), cell: (r) => r.name_en },
         { key: 'km', header: t('common:label.nameKm'), cell: (r) => <span className="km">{r.name_km || '—'}</span> },
-        ...(cust ? [{ key: 'd', header: t('groups.discount'), align: 'right' as const, cell: (r: Row) => pct(r.default_discount_pct) }] : []),
+        ...(cust ? [{ key: 'd', header: t('groups.discount'), align: 'right' as const, cell: (r: Row) => pct(r.default_discount_pct) },
+          { key: 'c', header: t('groups.clinic'), cell: (r: Row) => (r.is_clinic ? '✓' : '') }] : []),
         { key: 's', header: t('common:label.status'), cell: (r) => <StatusPill tone={r.is_active ? 'success' : 'neutral'}>{r.is_active ? t('sales:status.active') : t('sales:status.inactive')}</StatusPill> },
         { key: 'a', header: '', align: 'right', cell: (r) => (
           <span className="flex justify-end gap-1"><Button size="sm" onClick={() => setEdit(r)}>{t('common:action.edit')}</Button>
@@ -60,6 +61,7 @@ export function GroupsPage({ kind }: { kind: 'customer' | 'supplier' }) {
           <Field label={t('common:label.nameEn')} required>{(id) => <Input id={id} autoFocus value={edit.name_en ?? ''} onChange={(e) => setEdit({ ...edit, name_en: e.target.value })} />}</Field>
           <Field label={t('common:label.nameKm')}>{(id) => <Input id={id} className="km" value={edit.name_km ?? ''} onChange={(e) => setEdit({ ...edit, name_km: e.target.value })} />}</Field>
           {cust && <Field label={t('groups.discount')}>{(id) => <Input id={id} suffix="%" inputMode="decimal" value={edit.default_discount_pct ?? ''} onChange={(e) => setEdit({ ...edit, default_discount_pct: e.target.value.replace(/[^\d.]/g, '') })} />}</Field>}
+          {cust && <Checkbox label={t('groups.clinic')} checked={!!edit.is_clinic} onChange={(e) => setEdit({ ...edit, is_clinic: e.target.checked })} />}
           <ApiErrorAlert error={save.error} />
         </div>}
       </Dialog>

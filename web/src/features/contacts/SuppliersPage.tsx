@@ -13,6 +13,7 @@ import { Alert, ApiErrorAlert, BranchTag, Button, Card, Checkbox, DataTable, Def
 import { date, dateTime } from '@/lib/format';
 import { PayDialog } from '../purchase/PaymentsPage';
 import { toneOf, usePaging } from '../shared/hooks';
+import { SupplierTelegram } from './SupplierTelegram';
 
 type Supplier = PurchasingS['SupplierOut'];
 
@@ -116,6 +117,7 @@ export function SupplierDetailPage() {
         ]} />
         {bal.data && bal.data.branches.length > 1 && <div className="mt-3 flex flex-wrap gap-3 text-[12px]">{bal.data.branches.map((b) => <span key={b.branch_id} className="flex items-center gap-1"><BranchTag code={byId(b.branch_id)?.code ?? '?'} /><Usd value={b.owed} /></span>)}</div>}
       </Card>
+      <SupplierTelegram supplierId={s.id} />
       <Alert tone="info">{t('suppliers.hidden')}</Alert>
       <Tabs value={tab} onChange={setTab} tabs={[{ value: 'bills', label: t('suppliers.bills') }, ...(seeMoney ? [{ value: 'statement' as const, label: t('detail.statement') }] : []), { value: 'payments', label: t('detail.payments') }, { value: 'orders', label: t('suppliers.orders') }, { value: 'returns', label: t('suppliers.returns') }]} />
       {tab === 'bills' && <DataTable rows={bills.data?.items} loading={bills.isLoading} error={bills.error} rowKey={(r) => r.id} columns={[

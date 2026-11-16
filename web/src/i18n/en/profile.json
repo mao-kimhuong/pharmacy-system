@@ -25,7 +25,27 @@
     "on": "On",
     "off": "Off",
     "turnOn": "Turn on",
-    "required": "Required for owner and branch manager"
+    "required": "Required for your role",
+    "turnOff": "Turn off",
+    "turnOffTitle": "Turn off two-factor login",
+    "turnOffBody": "Your password and a code or backup code are needed. Your other sessions end and the owner is told.",
+    "turnedOff": "Two-factor login is off",
+    "reset": "Reset 2FA",
+    "resetTitle": "New two-factor key",
+    "resetBody": "Your current key keeps working until a code from the new key is confirmed.",
+    "resetScan": "Scan the new key, then enter a code from it. Your other sessions end and you get 10 new backup codes.",
+    "wrongPassword": "Wrong password.",
+    "wrongCode": "The code is wrong or has expired."
+  },
+  "tg": {
+    "linked": "Linked since {{when}}",
+    "notLinked": "Not linked",
+    "link": "Link my Telegram",
+    "unlink": "Unlink",
+    "open": "Open this on your phone and press Start (once, until {{when}}):",
+    "hint": "Link your Telegram to use the bot's commands.",
+    "approveHint": "Link your Telegram to approve requests with the buttons in your branch's chat, and to use the bot's commands.",
+    "notConfigured": "The Telegram bot is not set up on this server."
   },
   "sessions": {
     "title": "Signed-in devices",
@@ -36,5 +56,6 @@
     "revokeTitle": "Sign this device out?",
     "revokeBody": "It is signed out at once and must sign in again.",
     "unknown": "Unknown device"
-  }
+  },
+  "security": "Security"
 }

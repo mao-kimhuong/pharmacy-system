@@ -20,12 +20,13 @@ from pharmacy_shared import copies
 from pharmacy_shared.copies import BRANCH_EVENTS
 
 from ..config import get_settings
-from ..models import AlertSettings, KnownBranch, Staff, StockAlert
-from . import texts
+from ..models import AlertSettings, FeatureCopy, KnownBranch, Staff, StockAlert
+from . import approvals, customers, ops, suppliers, texts
 from .telegram import queue
 
 ROUTING_KEYS = ("branch.*", "user.*", "stock.low", "batch.expiring", "register.discrepancy", "register.chain_broken",
-                "invoice.created", "khqr.needs_refund", "batch.recalled")  # fmt: skip
+                "invoice.created", "khqr.needs_refund", "khqr.review", "khqr.refunded", "khqr.reconciled",
+                "batch.recalled", "feature.changed", "purchase_order.sent", *customers.ROUTING_KEYS, *approvals.ROUTING_KEYS)  # fmt: skip
 OWNER = "owner"
 
 
@@ -60,6 +61,10 @@ async def handle_event(session: AsyncSession, event_type: str, p: dict[str, Any]
         text = texts.locked(who.name if who else "A user", "PIN" if event_type == "user.pin_locked" else "account")
         branch = p.get("branch_id") or ((who.branch_ids or [None])[0] if who else None)
         await _both(session, f"{event_type}:{message_id}", "lockout", branch, text, text)
+    elif event_type in ("user.2fa_disabled", "user.2fa_reset"):
+        who = await _staff(session, p.get("user_id"))
+        text = texts.two_factor(who.name if who else "A user", event_type == "user.2fa_disabled", str(p.get("by")))
+        await queue(session, get_settings(), key=f"{event_type}:{message_id}", target=OWNER, kind="security", text=text)
     elif event_type in ("stock.low", "batch.expiring"):
         ref = p.get("batch_id") if event_type == "batch.expiring" else p.get("medicine_id")
         await session.execute(insert(StockAlert).values(
@@ -75,12 +80,30 @@ async def handle_event(session: AsyncSession, event_type: str, p: dict[str, Any]
         await _both(session, f"chain:{message_id}", "controlled", p["branch_id"], text, text)
     elif event_type == "khqr.needs_refund":
         text = texts.khqr_refund(await _branch(session, p["branch_id"]), p)
-        await _both(session, f"khqr:{p['khqr_id']}", "khqr_refund", p["branch_id"], text, text)
+        await _both(session, f"khqr:{p.get('refund_id') or p['khqr_id']}", "khqr_refund", p["branch_id"], text, text)
+    elif event_type == "khqr.review":
+        text = texts.khqr_review(await _branch(session, p["branch_id"]), p)
+        await _both(session, f"khqr_review:{p['khqr_id']}", "khqr_refund", p["branch_id"], text, text)
+    elif event_type == "khqr.refunded":
+        text = texts.khqr_refunded(await _branch(session, p["branch_id"]), p)
+        await _both(session, f"khqr_refunded:{p['refund_id']}", "khqr_refund", p["branch_id"], text, text)
+    elif event_type == "khqr.reconciled":
+        text = texts.khqr_reconciled(await _branch(session, p["branch_id"]), p)
+        await _both(session, f"khqr_check:{p['branch_id']}:{p['date']}", "khqr_refund", p["branch_id"], text, text)
     elif event_type == "batch.recalled":
         text = texts.recall(await _branch(session, p["branch_id"]), p)
         await _both(session, f"recall:{p['recall_id']}:{p['branch_id']}", "recall", p["branch_id"], text, text)
     elif event_type == "invoice.created":
         await money_alerts(session, p)
+        await customers.handle(session, get_settings(), event_type, p)
+        await ops.on_invoice(session, p)
+    elif event_type == "purchase_order.sent":
+        await suppliers.on_po_sent(session, get_settings(), p)
+    elif event_type == "feature.changed":
+        await session.execute(insert(FeatureCopy).values(key=p["key"], enabled=bool(p["enabled"])).on_conflict_do_update(
+            index_elements=["key"], set_={"enabled": bool(p["enabled"])}))  # fmt: skip
+    elif not await approvals.handle(session, get_settings(), event_type, p):
+        await customers.handle(session, get_settings(), event_type, p)
 
 
 async def money_alerts(session: AsyncSession, inv: dict[str, Any]) -> None:

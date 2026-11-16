@@ -28,7 +28,7 @@ export function ReceiveForm({ tr, onDone }: { tr: InventoryS['TransferOut']; onD
   return (
     <div className="flex flex-col gap-3">
       {tr.picks.map((p) => (
-        <div key={p.id} className="flex flex-col gap-2 rounded-xl border border-neutral-200 bg-white p-3">
+        <div key={p.id} className="flex flex-col gap-2 rounded-xl border border-neutral-200 bg-surface p-3">
           <div className="flex justify-between gap-2"><b>{names(med(p.line_no))}</b><span className="text-[12px] text-neutral-500"><span className="font-mono">{p.lot_no}</span> · {date(p.expiry_date)} · {p.qty_base}</span></div>
           <div className="grid grid-cols-3 gap-2">
             <Field label={t('tr.received')}>{(id) => <Input id={id} fieldSize="lg" inputMode="numeric" value={v[p.id]?.got ?? ''} onChange={(e) => setV({ ...v, [p.id]: { ...v[p.id], got: e.target.value.replace(/\D/g, '') } })} />}</Field>

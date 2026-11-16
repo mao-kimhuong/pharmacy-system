@@ -3,6 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 // Runs against a running stack (make up). BASE_URL may point at a throwaway stack.
 export default defineConfig({
   testDir: './e2e',
+  testMatch: /\.spec\.ts$/, // e2e/lib/*.test.ts are Vitest unit tests
   timeout: 90_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,

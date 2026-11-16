@@ -6,11 +6,11 @@ import pytest
 from fastapi import Depends, FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from redis.asyncio import Redis
 
 from pharmacy_shared.errors import register_error_handlers
 from pharmacy_shared.idempotency import IdempotencyMiddleware, require_idempotency_key
 from pharmacy_shared.redis import RedisProvider
+from pharmacy_shared.redis import connect as connect_redis
 from pharmacy_shared.testing import TEST_REDIS_URL
 
 USER = {"X-User-Id": "11111111-1111-1111-1111-111111111111"}
@@ -46,7 +46,7 @@ def make_app(redis_url: str = TEST_REDIS_URL) -> tuple[FastAPI, dict[str, int]]:
 
 @pytest.fixture(autouse=True)
 async def clean_redis():
-    client = Redis.from_url(TEST_REDIS_URL)
+    client = connect_redis(TEST_REDIS_URL)
     await client.flushdb()
     yield
     await client.flushdb()
@@ -95,7 +95,7 @@ async def test_key_still_running_returns_409() -> None:
     app, calls = make_app()
     body = json.dumps({"amount": 5}).encode()
     fp = hashlib.sha256(b"POST /sales\n" + body).hexdigest()
-    redis = Redis.from_url(TEST_REDIS_URL)
+    redis = connect_redis(TEST_REDIS_URL)
     await redis.set(
         f"idem:test:{USER['X-User-Id']}:sale-0003-abcd", json.dumps({"state": "running", "fp": fp})
     )

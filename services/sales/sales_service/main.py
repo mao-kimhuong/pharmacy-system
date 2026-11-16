@@ -58,13 +58,19 @@ async def khqr_poll(stop) -> None:  # noqa: ANN001
             pass
 
 
+async def khqr_reconcile(stop) -> None:  # noqa: ANN001
+    from .services.khqr import run_reconcile_scheduler
+
+    await run_reconcile_scheduler(db, stop)
+
+
 background = []
 if settings.event_consumer_enabled:
     background.append(consumer.run)
 if settings.recovery_enabled:
     background.append(recovery_task)
 if settings.jobs_enabled:
-    background += [cart_expiry, order_expiry, khqr_poll]
+    background += [cart_expiry, order_expiry, khqr_poll, khqr_reconcile]
 
 app = create_service_app(
     settings,

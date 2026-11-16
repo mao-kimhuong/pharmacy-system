@@ -120,3 +120,9 @@ class AuditPage(BaseModel):
     total: int
     page: int
     size: int
+
+
+class ResetTwoFactorRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    pin_token: str | None = Field(default=None, max_length=200, description="/pin/verify, action auth.mfa_reset")

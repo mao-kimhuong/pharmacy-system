@@ -8,6 +8,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from uuid import UUID, uuid4
 
+from pharmacy_shared.redis import connect as connect_redis
 from pharmacy_shared.testing import TEST_REDIS_URL, recreate_database, test_database_url
 
 TEST_DB = "test_reports"
@@ -19,7 +20,6 @@ import httpx  # noqa: E402
 import pytest  # noqa: E402
 from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
-from redis.asyncio import Redis  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 
 from pharmacy_shared import clock  # noqa: E402
@@ -53,7 +53,7 @@ async def clean(monkeypatch) -> AsyncIterator[None]:
     tables = ", ".join(t.name for t in Base.metadata.sorted_tables if t.name != "alembic_version")
     async with db.engine.begin() as conn:
         await conn.execute(text(f"TRUNCATE {tables} CASCADE"))  # noqa: S608 – own table names
-    redis = Redis.from_url(TEST_REDIS_URL)
+    redis = connect_redis(TEST_REDIS_URL)
     await redis.flushdb()
     await redis.aclose()
     for bid, code in ((PP1, "PP1"), (PP2, "PP2")):

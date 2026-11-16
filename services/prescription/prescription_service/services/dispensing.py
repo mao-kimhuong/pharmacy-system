@@ -24,6 +24,7 @@ Invoice events (invoice.created / .cancelled / .returned):
 """
 
 import logging
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -33,9 +34,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pharmacy_shared import clock
 from pharmacy_shared.errors import AppError, ErrorCode
 from pharmacy_shared.internal import InternalCaller
+from pharmacy_shared.outbox import add_event
 
-from ..models import OPEN, Prescription, Product, RxHold, RxItem
-from . import patients, prescriptions, safety
+from ..models import OPEN, OutboxEvent, Prescription, Product, RxHold, RxItem
+from . import patients, prescriptions, safety, supply
 
 log = logging.getLogger(__name__)
 
@@ -170,7 +172,7 @@ async def apply_invoice(session: AsyncSession, event_type: str, payload: dict[st
     invoice_id = UUID(str(payload["invoice_id"]))
     version = int(payload.get("version") or 0)
     cancelled = payload.get("status") == "cancelled" or event_type == "invoice.cancelled"
-    changed, touched = 0, set()
+    changed, touched, supplied = 0, set(), []
     for line in payload.get("lines") or []:
         if not line.get("rx_item_id"):
             continue
@@ -191,11 +193,21 @@ async def apply_invoice(session: AsyncSession, event_type: str, payload: dict[st
         hold.dispensed_base = target
         hold.version_seen = version
         touched.add(item.prescription_id)
+        supplied.append((item, target, line.get("name") or ""))
         changed += 1
+    rxs = {}
     for rx_id in touched:
         rx = (await session.execute(select(Prescription).where(Prescription.id == rx_id).with_for_update(
             of=Prescription).execution_options(populate_existing=True))).scalar_one()  # fmt: skip
         prescriptions.refresh_status(rx)
         rx.version += 1
+        rxs[rx_id] = rx
         await prescriptions.publish(session, rx, "prescription.dispensed")
+    sold_on = clock.today()
+    if payload.get("completed_at"):
+        sold_on = datetime.fromisoformat(payload["completed_at"]).astimezone(clock.TIMEZONE).date()
+    for item, qty, name in supplied:  # T2: refill reminders (notification) – qty 0 = nothing supplied any more
+        ev = supply.supply_event(item, rxs[item.prescription_id], payload, qty, sold_on, name)
+        if ev:
+            add_event(session, OutboxEvent, "rx.supply", ev)
     return changed

@@ -43,7 +43,7 @@ export default function UserLogPage() {
   const { t, i18n } = useTranslation(['settings', 'common', 'nav']);
   const paging = usePaging(50);
   const branches = useBranchesQuery();
-  const users = useQuery({ queryKey: ['auth', 'users', 'all'], staleTime: 5 * 60_000, queryFn: () => call(api.auth.GET('/api/auth/v1/users', { params: { query: { size: 200 } } })) });
+  const users = useQuery({ queryKey: ['auth', 'users', 'all'], staleTime: 5 * 60_000, queryFn: () => call(api.auth.GET('/api/auth/v1/users', { params: { query: { size: 100 } } })) });
   const [from, setFrom] = useState(addDays(todayIso(), -7));
   const [to, setTo] = useState(todayIso());
   const [actor, setActor] = useState('');

@@ -41,6 +41,7 @@ from ..models import (
     PurchaseOrder,
     PurchaseRequest,
     PurchaseRequestLine,
+    ReceiptLine,
 )
 from . import orders
 from .common import audit, branch_for, clean, not_found, pack_unit_for, products_by_id
@@ -79,9 +80,25 @@ def payload(r: PurchaseRequest) -> dict[str, Any]:
     }  # fmt: skip
 
 
-def _event(session: AsyncSession, r: PurchaseRequest, name: str) -> None:
+def _event(session: AsyncSession, r: PurchaseRequest, name: str, **extra: Any) -> None:
     r.version += 1
-    add_event(session, OutboxEvent, name, payload(r))
+    add_event(session, OutboxEvent, name, {**payload(r), **extra})
+
+
+async def _estimate(session: AsyncSession, r: PurchaseRequest, products: dict[UUID, Any]) -> dict[str, Any]:
+    """T2 (Telegram approval limit): qty × the last receipt cost per base of each medicine; null when one was never
+    received (then the request is approved in the app only). Plus whether a controlled medicine is on it."""
+    total, known = Decimal("0.00"), True
+    for x in r.lines:
+        cost = (await session.execute(select(ReceiptLine.cost_per_base).where(ReceiptLine.medicine_id == x.medicine_id)
+                                      .order_by(ReceiptLine.id.desc()).limit(1))).scalar_one_or_none()  # fmt: skip
+        if cost is None:
+            known = False
+        else:
+            total += Decimal(cost) * x.qty_base
+    controlled = any(getattr(products.get(x.medicine_id), "controlled_schedule", None) for x in r.lines)
+    return {"value": str(total.quantize(Decimal("0.01"))) if known else None, "has_controlled": controlled,
+            "requested_by": str(r.requested_by) if r.requested_by else None}  # fmt: skip
 
 
 async def _updated(session: AsyncSession, requests: set[PurchaseRequest] | list[PurchaseRequest]) -> None:
@@ -136,7 +153,7 @@ async def _build(session: AsyncSession, branch: KnownBranch, data: dict[str, Any
     r.number = await next_number(session, DocSequence, branch.id, branch.code, "PR")
     session.add(r)
     await session.flush()
-    _event(session, r, "purchase_request.created")
+    _event(session, r, "purchase_request.created", **await _estimate(session, r, products))
     return r
 
 
@@ -166,7 +183,7 @@ async def create_internal(
 
 
 async def decide(session: AsyncSession, actor: CurrentUser, request_id: UUID, action: str,
-                 reason: str | None = None) -> PurchaseRequest:  # fmt: skip
+                 reason: str | None = None, via: str | None = None) -> PurchaseRequest:  # fmt: skip
     r = await get_request(session, actor, request_id, lock=True)
     if action == "cancel":
         actor.require("purchasing.request")
@@ -174,6 +191,10 @@ async def decide(session: AsyncSession, actor: CurrentUser, request_id: UUID, ac
         actor.require("purchasing.request_approve")
     if r.status != "submitted":
         raise _state(f"This request is {r.status}", r.status)
+    if via:  # T2: Telegram never decides for controlled medicines
+        products = await products_by_id(session, {x.medicine_id for x in r.lines})
+        if any(getattr(products.get(x.medicine_id), "controlled_schedule", None) for x in r.lines):
+            raise AppError(ErrorCode.FORBIDDEN, "Controlled medicines: decide in the app", status_code=403)
     status = {"approve": "approved", "reject": "rejected", "cancel": "cancelled"}[action]
     if status != "approved" and not clean(reason):
         raise AppError(ErrorCode.VALIDATION_ERROR, "Give the reason", status_code=422)
@@ -185,9 +206,9 @@ async def decide(session: AsyncSession, actor: CurrentUser, request_id: UUID, ac
     )
     for line in r.lines:
         line.status = status
-    _event(session, r, f"purchase_request.{status}")
+    _event(session, r, f"purchase_request.{status}", decided_by=str(actor.id), via=via or "app")
     audit(session, actor, f"purchase_request.{status}", "purchase_request", r.id, branch_id=r.branch_id,
-          after={"number": r.number, "reason": r.decision_reason})  # fmt: skip
+          after={"number": r.number, "reason": r.decision_reason, **({"via": via} if via else {})})  # fmt: skip
     await session.commit()
     return r
 

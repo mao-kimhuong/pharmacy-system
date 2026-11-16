@@ -125,6 +125,7 @@ export function OrderDetailPage() {
             { label: t('common:label.branch'), value: <BranchTag code={byId(po.branch_id)?.code ?? '?'} /> },
             { label: t('common:label.supplier'), value: po.supplier.name },
             { label: t('po.expected'), value: date(po.expected_on) },
+            ...(po.supplier_confirmed_at ? [{ label: t('po.supplierConfirmed'), value: `${po.supplier_confirmed_by ?? ''} · ${dateTime(po.supplier_confirmed_at)}` }] : []),
             { label: t('common:label.notes'), value: po.note || '—' },
             ...(po.cancel_reason ? [{ label: t('common:label.reason'), value: po.cancel_reason }] : []),
           ]} />

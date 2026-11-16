@@ -7,7 +7,7 @@ import { api, call } from '@/api/client';
 import type { AuthS } from '@/api/types';
 import { branchName, useBranchesQuery } from '@/app/branch';
 import { useUser } from '@/app/auth';
-import { ApiErrorAlert, BranchTag, Button, Checkbox, ConfirmDialog, DataTable, Dialog, Field, Input, MenuItem, MultiSelect, PageHeader, Popover, ReasonDialog, Select, StatusPill, Toolbar, useDebounced, useToast } from '@/design';
+import { ApiErrorAlert, BranchTag, Button, Checkbox, ConfirmDialog, DataTable, Dialog, Field, Input, MenuItem, MultiSelect, PageHeader, PinDialog, Popover, ReasonDialog, Select, StatusPill, Toolbar, useDebounced, useToast } from '@/design';
 import { usePaging } from '../shared/hooks';
 
 type User = AuthS['UserOut'];
@@ -94,7 +94,9 @@ export default function UsersPage() {
   const [form, setForm] = useState<User | 'new' | null>(null);
   const [deact, setDeact] = useState<User | null>(null);
   const [pw, setPw] = useState<User | null>(null);
-  const [confirm, setConfirm] = useState<{ user: User; kind: '2fa' | 'pin' } | null>(null);
+  const [confirm, setConfirm] = useState<User | null>(null);
+  const [reset, setReset] = useState<User | null>(null);
+  const [resetError, setResetError] = useState<unknown>(null);
   const dq = useDebounced(q.trim());
   const query = { q: dq || undefined, role: role || undefined, branch_id: branch || undefined, is_active: status === '' ? undefined : status === 'active', page: paging.page, size: paging.size };
   const list = useQuery({ queryKey: ['auth', 'users', query], queryFn: () => call(api.auth.GET('/api/auth/v1/users', { params: { query } })) });
@@ -107,6 +109,7 @@ export default function UsersPage() {
   return (
     <div className="flex flex-col gap-4 p-5 tablet:px-7">
       <PageHeader crumb={t('nav:group.settings')} title={t('users.title')} actions={<Button variant="primary" onClick={() => setForm('new')}>+ {t('users.new')}</Button>} />
+      <ApiErrorAlert error={resetError} />
       <Toolbar>
         <Input aria-label={t('common:action.search')} placeholder={t('common:action.search')} className="w-60" value={q} onChange={(e) => { setQ(e.target.value); paging.reset(); }} />
         <Select aria-label={t('common:label.role')} className="w-44" value={role} onChange={(e) => { setRole(e.target.value); paging.reset(); }}>
@@ -140,8 +143,8 @@ export default function UsersPage() {
                 trigger={({ toggle, props }) => <Button size="sm" aria-label={`${t('common:action.more')} · ${r.name}`} onClick={toggle} {...props}>⋯</Button>}>
                 {(close) => <>
                   <MenuItem onClick={() => { close(); setPw(r); }}>{t('users.resetPassword')}</MenuItem>
-                  <MenuItem onClick={() => { close(); setConfirm({ user: r, kind: '2fa' }); }}>{t('users.reset2fa')}</MenuItem>
-                  <MenuItem onClick={() => { close(); setConfirm({ user: r, kind: 'pin' }); }}>{t('users.clearPin')}</MenuItem>
+                  {me.isOwner && r.id !== me.id && r.totp_enabled && <MenuItem onClick={() => { close(); setReset(r); }}>{t('users.reset2fa')}</MenuItem>}
+                  <MenuItem onClick={() => { close(); setConfirm(r); }}>{t('users.clearPin')}</MenuItem>
                   {r.id !== me.id && (r.is_active
                     ? <MenuItem danger onClick={() => { close(); setDeact(r); }}>{t('common:action.deactivate')}</MenuItem>
                     : <MenuItem onClick={() => { close(); activate.mutate(r.id); }}>{t('common:action.activate')}</MenuItem>)}
@@ -153,15 +156,20 @@ export default function UsersPage() {
       {form && <UserForm initial={form === 'new' ? null : form} onClose={() => setForm(null)} />}
       {pw && <ResetPassword user={pw} onClose={() => setPw(null)} />}
       <ConfirmDialog open={!!confirm} onClose={() => setConfirm(null)}
-        title={`${confirm?.kind === '2fa' ? t('users.reset2fa') : t('users.clearPin')} · ${confirm?.user.name ?? ''}`}
-        body={confirm?.kind === '2fa' ? t('users.reset2faBody') : t('users.clearPinBody')}
-        confirmLabel={t('common:action.confirm')}
+        title={`${t('users.clearPin')} · ${confirm?.name ?? ''}`} body={t('users.clearPinBody')} confirmLabel={t('common:action.confirm')}
         onConfirm={async () => {
-          const path = { user_id: confirm!.user.id };
-          if (confirm!.kind === '2fa') await call(api.auth.POST('/api/auth/v1/users/{user_id}/2fa/reset', { params: { path } }));
-          else await call(api.auth.DELETE('/api/auth/v1/users/{user_id}/pin', { params: { path } }));
+          await call(api.auth.DELETE('/api/auth/v1/users/{user_id}/pin', { params: { path: { user_id: confirm!.id } } }));
           toast.success(t('users.done'));
           await refresh();
+        }} />
+      <PinDialog open={!!reset} action="auth.mfa_reset" title={`${t('users.reset2fa')} · ${reset?.name ?? ''}`} context={t('users.reset2faBody')} onClose={() => setReset(null)}
+        onToken={(pin) => {
+          const user = reset!;
+          setReset(null);
+          setResetError(null);
+          void call(api.auth.POST('/api/auth/v1/users/{user_id}/2fa/reset', { params: { path: { user_id: user.id } }, body: { pin_token: pin.pin_token } }))
+            .then(async () => { toast.success(t('users.done')); await refresh(); })
+            .catch(setResetError);
         }} />
       <ReasonDialog open={!!deact} onClose={() => setDeact(null)} title={t('common:confirm.deactivateTitle', { name: deact?.name })} body={t('common:confirm.deactivateBody')} confirmLabel={t('common:action.deactivate')}
         onConfirm={async (reason) => {

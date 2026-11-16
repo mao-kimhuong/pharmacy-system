@@ -12,6 +12,7 @@ from sqlalchemy import (
     ForeignKey,
     Identity,
     Index,
+    Integer,
     Numeric,
     String,
     Text,
@@ -44,12 +45,15 @@ class CustomerGroup(IdMixin, TimestampMixin, Base):
     name_en: Mapped[str] = mapped_column(String(120))
     name_km: Mapped[str] = mapped_column(String(120), default="", server_default="")
     default_discount_pct: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("0"))
+    # T2: clinics get order status and invoices on Telegram (a flag, not a name to match)
+    is_clinic: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     created_by: Mapped[UUID | None] = mapped_column(Uuid)
 
     def safe_fields(self) -> dict[str, Any]:
         return {"name_en": self.name_en, "name_km": self.name_km,
-                "default_discount_pct": str(self.default_discount_pct), "is_active": self.is_active}  # fmt: skip
+                "default_discount_pct": str(self.default_discount_pct), "is_clinic": self.is_clinic,
+                "is_active": self.is_active}  # fmt: skip
 
 
 class Customer(IdMixin, TimestampMixin, Base):
@@ -66,6 +70,9 @@ class Customer(IdMixin, TimestampMixin, Base):
     group_id: Mapped[UUID | None] = mapped_column(ForeignKey("customer_groups.id"), index=True)
     credit_limit: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
     note: Mapped[str] = mapped_column(Text, default="", server_default="")
+    # T2: language of the customer's Telegram messages; a credit invoice is due this many days after the sale
+    preferred_lang: Mapped[str] = mapped_column(String(2), default="km", server_default="km")
+    credit_terms_days: Mapped[int] = mapped_column(Integer, default=30, server_default="30")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     created_by: Mapped[UUID | None] = mapped_column(Uuid)
 
@@ -75,7 +82,8 @@ class Customer(IdMixin, TimestampMixin, Base):
         return {
             "phone": self.phone, "name": self.name, "name_km": self.name_km,
             "group": self.group.name_en if self.group else None, "credit_limit": str(self.credit_limit),
-            "note": self.note, "is_active": self.is_active,
+            "note": self.note, "preferred_lang": self.preferred_lang, "credit_terms_days": self.credit_terms_days,
+            "is_active": self.is_active,
         }  # fmt: skip
 
 

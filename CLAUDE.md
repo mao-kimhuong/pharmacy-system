@@ -51,6 +51,9 @@ Traefik v3.6. Python 3.12. Lint with ruff.
 - Write the event to the outbox in the same transaction as the change.
 
 ## Commands
+- Shell commands for Claude: no shell variables and no `$(…)` (they trigger a permission prompt). Use plain paths, or
+  separate steps (list the files first, then read the one you need by its full path). Read files with the Read and Grep
+  tools, not cat / grep / sed in Bash.
 - `make env` then `make up` – start everything at http://localhost
 - `make test` – starts the test Postgres + Redis (docker-compose.test.yml), then ruff + pytest everywhere
   (picks python3.13/3.12/python3 ≥ 3.12; recreates an older .venv)
@@ -64,6 +67,8 @@ Traefik v3.6. Python 3.12. Lint with ruff.
 - `make revision s=<service> m="message"` then `make migrate s=<service>`
 - `docker compose exec controlled python -m controlled_service.cli open-balances` – once after installing S5:
   controlled stock from before the register gets "opening" entries (`check` runs the 00:20 register check now)
+- `docker compose exec auth python -m auth_service.cli reset-2fa --phone 012…` – last resort when an owner lost phone and
+  backup codes (User Log + Telegram alert)
 - `python -m sales_service.cli recover` – finish sales/returns left half-way (also runs every minute)
 - `make resync` – re-send staff, branches, branch settings, products, customers, open POs and commission lines as events (needed
   once when a service starts listening after the data exists: RabbitMQ drops events for queues that did not exist yet)
@@ -71,8 +76,23 @@ Traefik v3.6. Python 3.12. Lint with ruff.
 - `make openapi` – every service's OpenAPI document to `openapi/*.json`
 - `make api-types` (openapi → `web/src/api/gen`), `make web-dev` (Vite :5173, /api → http://localhost), `make web-test`
   (typecheck, lint, Vitest, build, bundle budget), `make web-e2e` (Playwright, `BASE_URL`), `make web-test-docker`
+- Long runs on a Mac: `make test`, `test-docker`, `web-e2e` and `web-test-docker` run under `caffeinate -dims` (empty
+  where caffeinate does not exist); run anything else long the same way (`caffeinate -dims …`). A sleeping Mac lets the
+  Docker VM clock drift and every 2FA login then fails with INVALID_MFA_CODE. The e2e setup checks the stack's clock first
+  (`web/e2e/lib/clock.ts`, > 15 s off → a clear error); resync with `docker run --rm --privileged alpine hwclock -s` or by
+  restarting Docker Desktop, then run again.
 - `make seed-demo` / `make bench-reports` – a year of demo data in the reports (APP_ENV=development, DEMO branches only) and
   the timing of every report (target < 2 s)
+- `make seed-realistic` – a realistic Cambodian pharmacy for demos (APP_ENV=development only): 3 branches (PP1 Toul Kork,
+  PP2 BKK1, SR1 Siem Reap), owner + 15 staff with PINs (owner/managers with 2FA), ~160 products, suppliers, customers,
+  patients, doctors, stock by PO/receiving (SR1 by Initialize) and 90 days of trade, ALL through the services' APIs
+  (`scripts/seed_realistic/`, run in a one-off sales container: login → /verify headers → the service, as Traefik does),
+  then backfill + register check. Safe to repeat (seed-output/<project>/state.json; Idempotency-Keys are stable). Logins:
+  `seed-output/<compose project>/logins.md` (git-ignored; one folder per stack). `make seed-reset` = down -v + up + seed. SEED_DAYS / SEED_MIN / SEED_MAX.
+- **Dev clock (seed only):** `pharmacy_shared.clock` – `X-Dev-Clock: <ISO time>` + a valid `X-Service-Token` makes a request
+  run at that time (`now()`, `today()`, server-default timestamps via a before-insert hook, forwarded on internal calls,
+  `occurred_at` in User Log events). The middleware exists only when APP_ENV=development and ENVIRONMENT≠production
+  (`shared/tests/test_dev_clock.py`); never rely on it in code.
 
 ## How things work (from S0)
 - **Who is calling:** `user: CurrentUser = Depends(current_user)`; then `user.require_branch(branch_id)`.
@@ -81,6 +101,15 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   refresh token only as cookie `pharmacy_refresh` (httpOnly, Secure, SameSite=Strict, path `/api/auth/v1/refresh`, 7 days),
   never in the body; `/refresh` with no body reads the cookie; `/logout` clears it and ends the session by the token's `sid`.
   Other clients (smoke, scripts) keep the token in the body (`tests/test_refresh_cookie.py`).
+- **2FA management (auth):** `services/two_factor.py`. Any user turns it on from the profile. `POST /me/2fa/disable` and
+  `POST /2fa/backup-codes` need the password + a code or backup code, under login's lockout (wrong ones count, a locked
+  account is refused; Traefik router `auth-mfa` has the login limit). Roles in `roles_requiring_2fa` get
+  MFA_REQUIRED_FOR_ROLE (`/me` `mfa_required_for_role`) and take a new key in two steps: `POST /me/2fa/reset` (key waits in
+  `totp_pending_secret_enc`, the old one keeps working) → `/me/2fa/reset/confirm` (10 new backup codes). `POST
+  /users/{id}/2fa/reset`: owner only, `pin_token` (action `auth.mfa_reset`; PIN actions have no digits). Last resort on the
+  server: `python -m auth_service.cli reset-2fa --phone …`. Off or reset: other sessions end (all of them for the owner's
+  and the server's reset), User Log `user.2fa_disabled` / `user.2fa_reset`, same-named event → owner's Telegram (name and
+  action only).
 - **Permissions (from S1a):** guard a route with `user: CurrentUser = Depends(requires("pos.sell"))`,
   or check inside with `user.require("sales.cancel")` / `user.has(...)`. Keys live in
   `services/auth/auth_service/permissions.py` (CATALOG + default role grants + MENU); add new
@@ -218,7 +247,10 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   hundreds, converted at the invoice rate (half up, to the cent). Card/ABA/KHQR/credit may not
   overpay: change only from cash, given as USD, KHR or USD_KHR (default: dollars in USD, cents in
   riel), riel rounded to 100 half up; `change_rounding_khr` (exact − handed over) makes the drawer
-  reconcile. Rules and examples: `sales_service/services/money.py` + `tests/test_money.py`.
+  reconcile. Riel is compared in riel: the part USD payments leave is due as riel at the invoice's rate, rounded to
+  100 (an all-riel sale: total_khr); riel paid = due settles it exactly (2.70 USD → 11 100 riel even though 11 100 / 4100
+  = 2.71), `payment_rounding_khr` keeps riel due − exact riel; non-cash riel above the due is refused, more cash riel gives
+  change. Rules and examples: `sales_service/services/money.py` + `tests/test_money.py`.
 - **Receipts (document, from S3):** `POST /api/documents/v1/render {"type": "receipt_80mm" |
   "invoice_a4", "invoice_id"}` (pos.sell or sales.view, own branches) from the copy of `invoice.*`
   events (waits up to 5 s → DOCUMENT_NOT_READY). 80 mm page cut to the content's length (laid out,
@@ -300,7 +332,7 @@ Traefik v3.6. Python 3.12. Lint with ruff.
 
 - **Scheduled jobs:** all in Asia/Phnom_Penh time (`clock.TIMEZONE`), each once at start-up too, one replica
   at a time (advisory lock): inventory expiry 00:05, prescription expiry 00:10, register check 00:20,
-  re-order lists + alerts 00:30, sales: suspended carts expire 00:01, order reservations every 10 min; notification:
+  re-order lists + alerts 00:30, sales: suspended carts expire 00:01, order reservations every 10 min, KHQR check 00:40; notification:
   stock digest 07:30, daily Telegram summary 20:00 (both also catch up at start-up), the sender every 10 s.
 - **Transfers (inventory, from S6):** request (`transfers.request`, destination) → approve / reject
   (`transfers.approve`, source) → transfer `PP1-TR-…`: approved → picked → dispatched → received → closed, or
@@ -343,6 +375,9 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   `discount_approval_token` = `/pin/witness` (action `sales.discount`) of another user: manager or owner, and
   only the owner above a manager's own cap (DISCOUNT_APPROVAL_REQUIRED). After the reservation, net < batch
   cost → BELOW_COST unless `sales.below_cost` (owner by default).
+- **Promotion rules (S7 + fixes):** empty `branch_ids` = every branch, owner only; others list their own branches and get
+  BRANCH_FORBIDDEN on a promotion reaching other branches. `_bad` errors carry `details.field` + `details.reason` (the web
+  app translates the reason; `web/src/api/fieldErrors.ts` puts any API error next to its field).
 - **Hampers (from S7):** a catalog medicine with `kind="hamper"` + `hamper_components` (`catalog.hampers`,
   `/hampers`); Rx-only if a component is; no pack units added, components cannot be deactivated while used.
   No stock of its own: inventory expands a hamper line into its components (FEFO, all or nothing); POs,
@@ -412,6 +447,65 @@ Traefik v3.6. Python 3.12. Lint with ruff.
   (`invoice_payments.khqr_id` unique, row locked) → `used`. A failed or cancelled sale → `needs_refund` +
   `khqr.needs_refund` (Telegram alert); refunds by hand. `KHQR_PROVIDER=fake|bakong` (production refuses fake; fake:
   `/internal/v1/khqr/fake/{id}/pay`, and `POST /payments/khqr/{id}/fake-pay` for the owner outside production).
+- **ABA PayWay (KHQR, after S8b):** `KHQR_PROVIDER=payway` – `sales_service/services/payway.py` (QR API, check-transaction-2,
+  close-transaction, refund; HMAC-SHA512 hashes; refund `merchant_auth` RSA PKCS#1 v1.5 in 117-byte chunks with ABA's public
+  key; `status.code` compared as text, "0" = "00"; a base URL with a path is cut before "/api/"). Settings PAYWAY_BASE_URL,
+  PAYWAY_MERCHANT_ID, PAYWAY_API_KEY (ABA's "Public Key" = the HMAC secret), PAYWAY_CALLBACK_URL; the RSA files are compose
+  secrets (`/run/secrets/payway_rsa_*.pem`, host files named by PAYWAY_RSA_*_KEY_SOURCE, default `infra/payway/not-set.pem`
+  so `up` works without them); the private key is mounted but never read. Start-up names a missing setting, never a value.
+  Never print, log or commit their values (`scripts/payway_setup.py` moves them from a credentials file into .env/secrets
+  without printing). Public callback `POST /payments/payway/callback` (router `sales-payway-callback`) only triggers a
+  check. Paid = status 0 AND amount + currency match, else `review`; cancel `POST /payments/khqr/{id}/cancel`; late payment
+  on an expired/cancelled QR → `needs_refund`. Refunds: `khqr_refunds` once per payment + source (failed sale, invoice
+  cancel, return `refund_method: "khqr"`, late payment, review) → `POST /payments/khqr/refunds/{id}/refund` (`sales.khqr_refund`
+  = owner + branch manager, own branch, PIN action `sales.khqr_refund`, never automatic; a lost answer stays `requested`
+  and the next try asks PayWay first; Bakong: `by_hand`). Daily check 00:40 → `khqr_reconcile_issues` + Telegram.
+  Web: Sales → KHQR Refunds (`/sales/khqr-refunds`), the invoice offers a due refund. `make payway-check [QR=1]` (QR=1:
+  sandbox only, a 100 KHR QR); `python -m sales_service.cli khqr-reconcile [--date]`. Riel is compared in riel
+  (money.settle): what USD payments leave is due as riel at the invoice's rate, rounded to 100 (all-riel = total_khr);
+  riel = due settles exactly and `payment_rounding_khr` keeps the difference; a riel KHQR/ABA/card may not exceed it.
+- **PayWay checkout at the till (Purchase):** `POST /payments/payway/checkout` (pos.sell, Idempotency-Key) → a
+  `khqr_payments` row with `kind="checkout"` (own `tran_id` per attempt) + the signed multipart form (hash in
+  `docs/payway/purchase.md`'s order, `payway.purchase_form`; `return_url` = our callback, base64; `continue_success_url`
+  / `cancel_url` = `PAYWAY_WEB_URL/pos/payway-return`). The POS opens a window on the click and posts the form there (CSP
+  `form-action` allows ABA's two checkout hosts); status, callback (trigger only), cancel/close, review, late payment,
+  refunds and the daily check are the KHQR ones. Sale method `PAYWAY` + `khqr_id` (a QR and a checkout are not
+  interchangeable: KHQR_MISMATCH). Opt-in sandbox test: `PAYWAY_SANDBOX_TEST=1` (signed form → 302 to "PayWay -
+  Checkout"; a changed hash → 403 code 1).
+- **Telegram T2 (notification):** one bot; chat roles owner / branch (`telegram_chats`) and customer / staff / supplier
+  (`telegram_links`, `services/links.py`); `telegram.ROLE_KINDS` says which message kinds each role may get (NotAllowed
+  otherwise). `queue(..., target="customer:<id>" | "staff:<id>" | "supplier:<id>" | "chat:<id>", summary=, document=,
+  reply_markup=, method="edit")`; customer / supplier rows show only `summary` in the log (text blanked once final);
+  customer messages wait 21:00–07:00 (`quiet_until`). PDFs: `document={type, id, lang}` rendered at send time by
+  document `/internal/v1/render`. Updates: `services/bot.py` (`handle_update`, once per update_id; webhook with
+  `X-Telegram-Bot-Api-Secret-Token`, or `TELEGRAM_MODE=polling`); later phases plug in via `bot.HOOKS`. Link tokens:
+  HMAC (`TELEGRAM_LINK_SECRET`, else from SERVICE_TOKEN), SHA-256 stored, once, 7 days (staff 15 min); printed customer
+  tokens need the customer's own Telegram phone to match. Consent per topic (`customer_consents`, User Log); customer
+  texts only from allow-listed values (`customer_texts.py`, privacy scan test). Customer copies from `customer.*` /
+  `customer_group.*` (`preferred_lang`, `is_clinic`), refill timing from prescription `rx.supply` (`units_per_dose` ×
+  `doses_per_day`, else duration), `sale_order.ready` (sales `POST /sale-orders/{id}/ready`, `remaining_usd`), overdue from
+  customers' `credit_terms_days` (`/internal/v1/customers/{id}/credit` → `overdue`, `oldest_due_on`).
+- **Telegram approvals (T2 phase 2):** `notification_service/services/approvals.py` (`approvals` table, one per kind + ref).
+  A tap (`ap:<id>:a|r`, `staff_bot.Hooks`) → linked staff user → auth `/internal/v1/users/{id}/access` (now, not a copy) →
+  the owning service's `/internal/v1/<thing>/{id}/decide` with `pharmacy_shared.approvals.DecideIn` (`acting_user()`,
+  the service's own approve / reject with `via="telegram"` → User Log `via`). New decide endpoints: inventory shrinkages
+  + transfer-requests, stockcount counts (new internal router), purchasing purchase-requests, sales discount-approvals
+  (`services/discount_approvals.py`; the till's token "tg:<id>" goes through `cart.approve_discount`). Events now carry
+  what the buttons need: `transfer_request.created` value / has_controlled / requested_by, `purchase_request.created`
+  value (last receipt cost, null if never received) / has_controlled, `count.submitted` needs_owner / needs_pin,
+  decided events `decided_by` + `via`.
+- **Bot commands (T2 phase 3):** `staff_bot.Hooks.command` → `Scope` (auth access now + where: private / owner chat /
+  branch chat) → reports `/internal/v1/bot/{day|top|cash|debtors|expiring|stock}` (`services/bot.py`, `branch_ids`
+  comma list or none = all, `profit`, `names`). Branch chats: that branch, no cost, no names; names only in private.
+  Rate limit: command_reply messages per chat in the last minute (`commands_per_minute`).
+- **Operations alerts (T2 phase 4):** `notification_service/services/ops.py`, minute job (advisory lock): heartbeats
+  (POS `usePos` posts `/heartbeat` every minute, `device_id` in localStorage) vs branch `opening_hours` (copy in
+  `branch_prefs`), late opening from `branch_days` (invoice.created), fridge sensors (`sensor_devices` /
+  `sensor_readings`, feature copy from `feature.changed`; public `/sensors/readings` with a device Bearer token).
+  Set-up guide `docs/sensors.md`.
+- **Supplier chats (T2 phase 5):** `services/suppliers.py`: `purchase_order.sent` → PDF + button `po:<id>` to every
+  `supplier` link; the tap → purchasing `/internal/v1/purchase-orders/{id}/supplier-confirm` (once), caption edited
+  (`method="caption"`).
 - **Supplier returns (purchasing, from S8b):** `PP1-SRN-…` draft → credited | refunded, or cancelled (only a draft,
   reason); `purchasing.return`. Submit (Idempotency-Key): inventory `/internal/v1/movements/supplier-return` (movement
   type `supplier_return`, once per line, the batch must be the supplier's; controlled: PIN + witness, action
@@ -463,8 +557,10 @@ API matches the spec, migration included, tests pass (`make test` and `make test
   upgrade" test DB errors (seen in catalog and sales tests): set `ssl=disable` explicitly for local and test DB
   connections (SSL stays configurable for production) and make the test DB fixture retry its first connect.
 - [ ] S10 AI – DeepSeek phase A
+- [x] T2 Telegram – [x] 1 customers (link, consent, receipts, reminders, balance, promotions) · [x] 2 approval buttons ·
+  [x] 3 bot commands · [x] 4 operations alerts (heartbeat, opening, fridge sensors) · [x] 5 partners (suppliers, clinics)
 
-Front end (`web/`, plan: `docs/plans/frontend-plan.md`, design handoff: `docs/design/`, how it works: `web/README.md`).
+Front end (`web/`, design handoff: `docs/design/`, how it works: `web/README.md`).
 Decided: F-sprints hide designed details the API lacks (choice A alternative); refresh token in the httpOnly cookie
 (B); offline POS needs S9 backend work first (C); e2e against `BASE_URL` (D); openapi-typescript + openapi-fetch (E);
 dev-only `/dev/design` (F). The `web` service is Traefik `PathPrefix(/)` priority 1 (static nginx, its own CSP).
@@ -473,6 +569,14 @@ POS (`web/src/features/pos`): the cart holds only choices; prices, totals and ch
 Rx warnings come back under one code for the cart: actions follow `details.warnings[].kind` (allergy → override
 reason, duplicate_therapy → acknowledge). The checkout Idempotency-Key follows the exact request body (a retry
 replays; any change makes a new key). The scan box frees itself on Enter (scanners send the next code at once).
+Payment (`web/src/features/pos`): tiles Cash · KHQR · Card / Wallet · Bank transfer · Pay later (`PaymentTiles.tsx`, ≥ 88 px,
+KM + EN label, 1–5 outside number fields / Alt+1–5 anywhere, selected = border + ✓, disabled tiles say why). Each tile adds a
+row for what the payments already added leave (`cart.remainingAfterOthers`, not the preview); cash takes the rest. Bank
+transfer (`ABA`) and a terminal card (`card`, when PayWay is not set up: `GET /payments/options`) carry a `reference`. KHQR and
+Card / Wallet share `PaymentModal` (amount USD + KHR, reference, countdown, waiting → paid auto-closes; declined (PayWay code 3,
+`provider_status`) / expired / cancelled with Try again / Choose another method; closing while waiting asks, then cancels).
+Card / Wallet posts the signed PayWay form into an iframe in the modal (CSP `frame-src` = ABA's two checkout hosts; their page
+allows framing) with "Continue in PayWay" as the fallback window. Development: owner test buttons `fake-pay` / `fake-decline`.
 - [x] F0 Design system + app shell + auth + shared states
 - [x] F1 POS – all 9 flows on `/carts/preview`, POS lite, POS back office
 - [x] F2 Prescriptions + controlled drugs

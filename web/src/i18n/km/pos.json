@@ -61,11 +61,12 @@
   "pay": {
     "method": {
       "cash": "សាច់ប្រាក់",
-      "card": "កាត",
-      "ABA": "ABA",
+      "card": "កាត (ម៉ាស៊ីន)",
+      "ABA": "ផ្ទេរធនាគារ",
       "KHQR": "KHQR",
       "credit": "ជំពាក់",
-      "deposit": "ប្រាក់កក់"
+      "deposit": "ប្រាក់កក់",
+      "PAYWAY": "កាត / កាបូប (PayWay)"
     },
     "tendered": "ប្រាក់ទទួល",
     "usd": "ដុល្លារ",
@@ -81,7 +82,10 @@
     "lines": "ការទូទាត់",
     "amount": "ចំនួនទឹកប្រាក់",
     "riel100": "រៀលជាលេខរយគត់",
-    "overpay": "មានតែសាច់ប្រាក់ទេដែលអាចលើសសរុប"
+    "overpay": "មានតែសាច់ប្រាក់ទេដែលអាចលើសសរុប",
+    "remaining": "នៅសល់ {{amount}}",
+    "covered": "បានគ្រប់ចំនួន",
+    "total": "សរុប"
   },
   "khqr": {
     "title": "ស្កេនដើម្បីបង់ដោយ KHQR",
@@ -91,7 +95,13 @@
     "expires": "ផុតកំណត់ {{time}}",
     "fakePay": "សម្គាល់ថាបានបង់ (សាកល្បង)",
     "again": "កូដថ្មី",
-    "currency": "រូបិយប័ណ្ណ"
+    "currency": "រូបិយប័ណ្ណ",
+    "cancelled": "បានលុបចោល",
+    "review": "បានបង់ចំនួនខុស៖ មិនទទួលយក",
+    "openAba": "បើកក្នុង ABA Mobile",
+    "show": "បង្ហាញ QR",
+    "payKm": "សូមស្កេនដើម្បីបង់ {{amount}}",
+    "payEn": "Scan to pay {{amount}}"
   },
   "complete": {
     "title": "លក់រួចរាល់",
@@ -129,6 +139,14 @@
     "lots": "ឡូត៍",
     "exp": "ផុត {{date}}"
   },
+  "tg": {
+    "hint": "គ្មានអ្នកគ្រប់គ្រងនៅបញ្ជរ? សួរតាម Telegram៖ ពួកគេចុច អនុម័ត ក្នុងការជជែក (សម្រាប់កន្ត្រកនេះ ១០ នាទី)។",
+    "ask": "សួរតាម Telegram",
+    "waiting": "កំពុងរង់ចាំអ្នកគ្រប់គ្រងតាម Telegram… {{left}}",
+    "approved": "បានអនុម័តតាម Telegram",
+    "rejected": "បានបដិសេធតាម Telegram",
+    "expired": "គ្មានចម្លើយទាន់ពេល៖ សួរម្តងទៀត"
+  },
   "find": {
     "pin": "បញ្ចូល PIN",
     "approval": "សុំការអនុម័ត",
@@ -164,5 +182,107 @@
   },
   "below": "លក់ក្រោមថ្លៃដើម",
   "handoff": "ផ្ញើទៅឱសថការី (ផ្អាក)",
-  "pickBranch": "ជ្រើសសាខាដើម្បីលក់"
+  "pickBranch": "ជ្រើសសាខាដើម្បីលក់",
+  "payway": {
+    "title": "ការទូទាត់ ABA PayWay",
+    "open": "បើក PayWay",
+    "method": "វិធីទូទាត់",
+    "hint": "PayWay នឹងបើកក្នុងបង្អួចថ្មី៖ អតិថិជនបង់នៅទីនោះដោយកាត ABA PAY KHQR ឬកាបូបអេឡិចត្រូនិក។ សូមទុកប្រអប់នេះបើក។",
+    "waiting": "កំពុងរង់ចាំអតិថិជនបង់ក្នុងបង្អួច PayWay",
+    "reopen": "បើកបង្អួច PayWay ម្តងទៀត",
+    "options": {
+      "any": "ណាមួយ (អតិថិជនជ្រើសរើស)",
+      "cards": "កាត (Visa / Mastercard)",
+      "abapay_khqr": "ABA PAY / KHQR",
+      "alipay": "Alipay",
+      "wechat": "WeChat Pay",
+      "google_pay": "Google Pay"
+    },
+    "returnDone": "បានផ្ញើការទូទាត់",
+    "returnCancel": "បានលុបចោលការទូទាត់",
+    "returnBody": "អ្នកអាចបិទបង្អួចនេះ ហើយត្រឡប់ទៅបញ្ជរឱសថស្ថានវិញ។",
+    "continue": "បន្តក្នុង PayWay",
+    "notLoading": "មិនបង្ហាញ? បន្តក្នុង PayWay",
+    "frame": "ទំព័របង់ប្រាក់ ABA PayWay",
+    "fakeDecline": "បដិសេធ (សាកល្បង)",
+    "testNote": "អ្នកផ្តល់សាកល្បង៖ គ្មានទំព័រ PayWay ទេ។ ប្រើ សម្គាល់ថាបានបង់ ឬ បដិសេធ (សាកល្បង)។"
+  },
+  "tiles": {
+    "label": "វិធីបង់ប្រាក់",
+    "cash": {
+      "km": "សាច់ប្រាក់",
+      "en": "Cash"
+    },
+    "KHQR": {
+      "km": "KHQR",
+      "en": "KHQR"
+    },
+    "card": {
+      "km": "កាត / កាបូប",
+      "en": "Card / Wallet"
+    },
+    "ABA": {
+      "km": "ផ្ទេរធនាគារ",
+      "en": "Bank transfer"
+    },
+    "credit": {
+      "km": "បង់ពេលក្រោយ",
+      "en": "Pay later"
+    },
+    "why": {
+      "nothingDue": "គ្មានអ្វីត្រូវបង់ទៀតទេ",
+      "customer": "ជ្រើសអតិថិជនជាមុន",
+      "limit": "ឥណទាននៅសល់ {{amount}}"
+    }
+  },
+  "modal": {
+    "other": "ជ្រើសវិធីផ្សេង",
+    "retry": "ព្យាយាមម្តងទៀត",
+    "cancel": "លុបចោលការបង់",
+    "ref": "លេខយោង {{ref}}",
+    "confirmTitle": "លុបចោលការបង់នេះ?",
+    "confirmBody": "អតិថិជននឹងមិនអាចបង់តាមការព្យាយាមនេះទៀតទេ។ ប្រាក់ដែលនៅតែមកដល់នឹងត្រូវសងវិញ។",
+    "state": {
+      "start": "ថ្មី",
+      "pending": "កំពុងរង់ចាំការបង់",
+      "declined": "ត្រូវបានបដិសេធ",
+      "paid": "បានបង់",
+      "expired": "ផុតកំណត់",
+      "cancelled": "បានលុបចោល",
+      "review": "ចំនួនខុស"
+    },
+    "msg": {
+      "declined": {
+        "km": "ការបង់ត្រូវបានបដិសេធ។ អតិថិជនអាចព្យាយាមម្តងទៀត ឬជ្រើសវិធីផ្សេង។",
+        "en": "The payment was declined. The customer can try again or choose another method."
+      },
+      "expired": {
+        "km": "ពេលវេលាបង់ប្រាក់បានផុតកំណត់។",
+        "en": "The payment time ran out."
+      },
+      "cancelled": {
+        "km": "ការបង់ប្រាក់នេះត្រូវបានលុបចោល។",
+        "en": "This payment was cancelled."
+      },
+      "review": {
+        "km": "បានបង់ចំនួនខុស៖ មិនទទួលយកទេ អ្នកគ្រប់គ្រងនឹងសងប្រាក់វិញ។",
+        "en": "A different amount was paid: not taken, a manager will refund it."
+      }
+    }
+  },
+  "refDialog": {
+    "add": "បន្ថែមការបង់",
+    "amount": "ចំនួន (USD)",
+    "bad": "តែអក្សរ លេខ និង . / # : - (យ៉ាងច្រើន 40)",
+    "ABA": {
+      "title": "ផ្ទេរធនាគារ",
+      "ref": "លេខយោងការផ្ទេរ",
+      "hint": "ពីបង្កាន់ដៃផ្ទេរប្រាក់របស់អតិថិជន"
+    },
+    "card": {
+      "title": "កាតតាមម៉ាស៊ីន",
+      "ref": "លេខយោងវិក្កយបត្រម៉ាស៊ីន",
+      "hint": "PayWay មិនទាន់រៀបចំ៖ បង់កាតតាមម៉ាស៊ីនធនាគារ"
+    }
+  }
 }

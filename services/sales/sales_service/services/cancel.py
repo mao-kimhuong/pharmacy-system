@@ -48,7 +48,7 @@ async def cancel_steps(
                                      {"reason": f"{inv.number} cancelled: {inv.cancel_reason}"[:255]},
                                      actor=actor, branch_id=inv.branch_id)  # fmt: skip
     inv.status = "cancelled"
-    await khqr_refunds(session, inv, f"Sale {inv.number} cancelled")  # the money went to the bank: back by hand
+    await khqr_refunds(session, inv, f"Sale {inv.number} cancelled", "invoice_cancel")  # back by the refund button
     inv.version += 1
     await promotions.set_status(session, inv.id, "released")
     await commission.take_back(session, inv, "cancel")

@@ -50,6 +50,7 @@ async def set_chat(session: AsyncSession, user: CurrentUser, target: str, data: 
                  entity_id=target, actor=user, branch_id=branch, before=before,
                  after={"chat_id": chat.chat_id, "is_active": chat.is_active})  # fmt: skip
     await session.commit()
+    await session.refresh(chat)  # updated_at is set by the database: load it here, not lazily in the response
     return chat
 
 
@@ -95,9 +96,11 @@ async def set_settings(session: AsyncSession, user: CurrentUser, data: dict[str,
     if not user.is_owner:
         raise AppError(ErrorCode.FORBIDDEN, "Only the owner sets the alert thresholds", status_code=403)
     row = await get_settings_row(session)
-    before = {"large_discount_pct": str(row.large_discount_pct), "large_discount_usd": str(row.large_discount_usd)}
+    before = {"large_discount_pct": str(row.large_discount_pct), "large_discount_usd": str(row.large_discount_usd),
+              "telegram_approval_max_usd": str(row.telegram_approval_max_usd)}  # fmt: skip
     row.large_discount_pct, row.large_discount_usd, row.updated_by = (data["large_discount_pct"],
                                                                       data["large_discount_usd"], user.id)  # fmt: skip
+    row.telegram_approval_max_usd = data.get("telegram_approval_max_usd", row.telegram_approval_max_usd)
     record_audit(session, OutboxEvent, service="notification", action="alert_settings.updated", entity_type="settings",
                  entity_id="1", actor=user, before=before,
                  after={k: str(v) for k, v in data.items()})  # fmt: skip

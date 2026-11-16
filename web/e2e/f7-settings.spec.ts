@@ -119,20 +119,22 @@ test.describe('F7 users and settings', () => {
     await two.close();
   });
 
-  test('new backup codes need the password', async ({ as }) => {
+  test('new backup codes need the password and a code', async ({ as }) => {
     const page = await as('owner');
     await page.goto('/profile');
     await page.getByRole('button', { name: 'New backup codes' }).click();
     const dlg = page.getByRole('dialog');
     await dlg.getByLabel(/Password/).fill('not-the-password');
+    await expect(dlg.getByRole('button', { name: 'Continue' })).toBeDisabled(); // no code yet
+    await dlg.getByLabel('Digit 1').fill('000000');
     await dlg.getByRole('button', { name: 'Continue' }).click();
-    await expect(dlg.getByRole('alert')).toBeVisible();
+    await expect(dlg.getByText('Wrong password.')).toBeVisible();
   });
   test('telegram: a branch chat is saved; without a bot token the test says so', async ({ as, seed }) => {
     const page = await as('owner');
     await page.goto('/settings/telegram');
     const card = page.locator('div').filter({ hasText: new RegExp(`^${seed.branchCode} · `) }).first();
-    await card.getByLabel('Chat ID').fill('-1001234567890');
+    await card.getByLabel('Chat ID').fill(`-100${String(Date.now()).slice(-10)}`); // new each run: the same id leaves Save disabled
     await card.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText('Settings saved')).toBeVisible();
     await card.getByRole('button', { name: 'Send test' }).click();

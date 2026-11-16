@@ -39,7 +39,8 @@
       "partially_received": "Partly received",
       "received": "Received",
       "cancelled": "Cancelled"
-    }
+    },
+    "supplierConfirmed": "Supplier confirmed"
   },
   "receive": {
     "title": "Receiving goods",

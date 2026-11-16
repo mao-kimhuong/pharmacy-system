@@ -1,4 +1,4 @@
-import { addDays, date, dateTime, daysUntil, khmerDigits, khr, roundRiel, todayIso, usd, usdToKhr } from './format';
+import { addDays, date, dateTime, daysUntil, fromPhnomPenhInput, khmerDigits, khr, phnomPenhInput, roundRiel, todayIso, usd, usdToKhr } from './format';
 
 describe('money', () => {
   it('formats USD with 2 decimals and a real minus sign', () => {
@@ -33,5 +33,18 @@ describe('dates in Asia/Phnom_Penh', () => {
   });
   it('writes Khmer digits for counts', () => {
     expect(khmerDigits('1–8 of 428')).toBe('១–៨ of ៤២៨');
+  });
+});
+
+describe('Phnom Penh date-time inputs', () => {
+  it('round-trips the time the user typed', () => {
+    const iso = fromPhnomPenhInput('2026-12-01T09:30');
+    expect(iso).toBe('2026-12-01T02:30:00.000Z');
+    expect(phnomPenhInput(iso)).toBe('2026-12-01T09:30');
+  });
+  it('reads any offset and empty values', () => {
+    expect(phnomPenhInput('2026-12-01T09:30:00+07:00')).toBe('2026-12-01T09:30');
+    expect(phnomPenhInput(null)).toBe('');
+    expect(fromPhnomPenhInput('')).toBeNull();
   });
 });

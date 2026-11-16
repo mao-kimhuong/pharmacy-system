@@ -850,6 +850,11 @@ export interface components {
              * @example 1 tablet
              */
             dosage?: string;
+            /**
+             * Doses Per Day
+             * @description Doses a day, e.g. 3; 0.5 = every other day
+             */
+            doses_per_day?: number | string | null;
             /** Duration Days */
             duration_days?: number | null;
             /**
@@ -874,6 +879,11 @@ export interface components {
              * @default 0
              */
             repeats_allowed?: number;
+            /**
+             * Units Per Dose
+             * @description Base units per dose (refill reminders)
+             */
+            units_per_dose?: number | string | null;
         };
         /** RxItemOut */
         RxItemOut: {
@@ -883,6 +893,8 @@ export interface components {
             dispensed_base: number;
             /** Dosage */
             dosage: string;
+            /** Doses Per Day */
+            doses_per_day?: string | null;
             /** Duration Days */
             duration_days: number | null;
             /** Frequency */
@@ -909,6 +921,8 @@ export interface components {
             repeats_allowed: number;
             /** Repeats Used */
             repeats_used: number;
+            /** Units Per Dose */
+            units_per_dose?: string | null;
         };
         /** RxOut */
         RxOut: {

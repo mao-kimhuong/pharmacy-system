@@ -2,7 +2,7 @@
 // reason (sales.cancel; earlier days need sales.cancel_any — the API decides), return (sales.return).
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useParams, useSearchParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { api, call } from '@/api/client';
 import { useUser } from '@/app/auth';
@@ -26,6 +26,14 @@ export default function InvoiceDetailPage() {
   const q = useQuery({ queryKey: ['sales', 'invoice', id], queryFn: () => call(api.sales.GET('/api/sales/v1/invoices/{invoice_id}', { params: { path: { invoice_id: id } } })) });
   const returns = useQuery({ queryKey: ['sales', 'returns', id], enabled: !!q.data, queryFn: () => call(api.sales.GET('/api/sales/v1/invoices/{invoice_id}/returns', { params: { path: { invoice_id: id } } })) });
   const inv = q.data;
+  const paidByKhqr = !!inv?.payments.some((p) => p.method === 'KHQR' || p.method === 'PAYWAY');
+  // a cancel or a return "back to the KHQR" leaves a refund due: offer it here to who may give it
+  const khqrDue = useQuery({
+    queryKey: ['sales', 'khqr-refunds', 'invoice', id],
+    enabled: paidByKhqr && user.has('sales.khqr_refund') && (inv?.status === 'cancelled' || Number(inv?.returned_total) > 0),
+    queryFn: () => call(api.sales.GET('/api/sales/v1/payments/khqr/refunds', { params: { query: { branch_id: inv!.branch_id } } })),
+    select: (rows) => rows.filter((r) => r.payment.invoice_id === id && r.status !== 'refunded'),
+  });
   const customer = useCustomerNames([inv?.customer_id]);
   if (q.error) return <QueryState error={q.error} onRetry={() => void q.refetch()} />;
   if (!inv) return <SkeletonRows />;
@@ -50,6 +58,11 @@ export default function InvoiceDetailPage() {
       </PageHeader>
       {inv.failure_reason && <Alert tone="danger">{t('invoice.failure', { reason: inv.failure_reason })}</Alert>}
       {inv.cancel_reason && <Alert tone="warning" title={t('status.cancelled')}>{inv.cancel_reason} · {dateTime(inv.cancelled_at)}</Alert>}
+      {!!khqrDue.data?.length && (
+        <Alert tone="info" title={t('khqrRefunds.dueOnInvoice', { count: khqrDue.data.length })}>
+          <Link className="font-medium text-primary underline" to="/sales/khqr-refunds">{t('khqrRefunds.goRefund')}</Link>
+        </Alert>
+      )}
       <div className="grid gap-4 desktop:grid-cols-[2fr_1fr]">
         <Card title={t('invoice.lines')} padded={false}>
           <DataTable className="rounded-none border-0" rows={inv.lines} rowKey={(l) => l.id} minWidth={640}

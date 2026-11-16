@@ -14,7 +14,8 @@ import { uploadAttachment } from './attachments';
 
 type Patient = PrescriptionS['PatientSummary'];
 type Doctor = PrescriptionS['DoctorOut'];
-interface Item { key: number; medicine: Medicine; qty_base: string; dosage: string; frequency: string; duration_days: string; repeats_allowed: string }
+interface Item { key: number; medicine: Medicine; qty_base: string; dosage: string; frequency: string; duration_days: string; repeats_allowed: string; units_per_dose: string; doses_per_day: string }
+const decimal = (s: string) => s.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
 
 export default function NewRxPage() {
   const { t, i18n } = useTranslation(['rx', 'common', 'nav']);
@@ -42,7 +43,8 @@ export default function NewRxPage() {
     mutationFn: async (activate: boolean) => {
       const rx = await call(api.prescription.POST('/api/prescription/v1/prescriptions', { body: {
         branch_id: oneBranch!.id, patient_id: patient!.id, doctor_id: doctor!.id, rx_no: rxNo, issued_on: issued, valid_until: valid || null,
-        items: items.map((i) => ({ medicine_id: i.medicine.id, qty_base: Number(i.qty_base), dosage: i.dosage, frequency: i.frequency, duration_days: Number(i.duration_days) || null, repeats_allowed: Number(i.repeats_allowed) || 0 })),
+        items: items.map((i) => ({ medicine_id: i.medicine.id, qty_base: Number(i.qty_base), dosage: i.dosage, frequency: i.frequency, duration_days: Number(i.duration_days) || null, repeats_allowed: Number(i.repeats_allowed) || 0,
+          units_per_dose: Number(i.units_per_dose) > 0 ? i.units_per_dose : null, doses_per_day: Number(i.doses_per_day) > 0 ? i.doses_per_day : null })),
       } }));
       for (const f of files) await uploadAttachment(rx.id, f);
       if (activate) await call(api.prescription.POST('/api/prescription/v1/prescriptions/{rx_id}/activate', { params: { path: { rx_id: rx.id } } }));
@@ -76,18 +78,21 @@ export default function NewRxPage() {
       <Card title={t('rx.items')}>
         <div className="flex flex-col gap-2">
           {items.map((i) => (
-            <div key={i.key} className="grid grid-cols-2 items-end gap-2 tablet:grid-cols-[2fr_1fr_1fr_1fr_80px_80px_auto]">
+            <div key={i.key} className="grid grid-cols-2 items-end gap-2 tablet:grid-cols-[2fr_1fr_1fr_1fr_80px_80px_80px_80px_auto]">
               <div className="col-span-2 flex flex-col tablet:col-span-1"><span className="text-[13px] font-medium">{medName(i.medicine)}</span><span className="text-[12px] text-neutral-500">{i.medicine.sku} · {i.medicine.base_unit}</span></div>
               <Field label={`${t('rx.qtyBase')}`}>{(id) => <Input id={id} inputMode="numeric" value={i.qty_base} onChange={(e) => set(i.key, { qty_base: e.target.value.replace(/\D/g, '') })} />}</Field>
               <Field label={t('rx.dosage')}>{(id) => <Input id={id} value={i.dosage} onChange={(e) => set(i.key, { dosage: e.target.value })} />}</Field>
               <Field label={t('rx.frequency')}>{(id) => <Input id={id} value={i.frequency} onChange={(e) => set(i.key, { frequency: e.target.value })} />}</Field>
+              <Field label={t('rx.perDose')}>{(id) => <Input id={id} inputMode="decimal" value={i.units_per_dose} onChange={(e) => set(i.key, { units_per_dose: decimal(e.target.value) })} />}</Field>
+              <Field label={t('rx.perDay')}>{(id) => <Input id={id} inputMode="decimal" value={i.doses_per_day} onChange={(e) => set(i.key, { doses_per_day: decimal(e.target.value) })} />}</Field>
               <Field label={t('rx.duration')}>{(id) => <Input id={id} inputMode="numeric" value={i.duration_days} onChange={(e) => set(i.key, { duration_days: e.target.value.replace(/\D/g, '') })} />}</Field>
               <Field label={t('rx.repeats')}>{(id) => <Input id={id} inputMode="numeric" value={i.repeats_allowed} onChange={(e) => set(i.key, { repeats_allowed: e.target.value.replace(/\D/g, '') })} />}</Field>
               <Button variant="ghost" aria-label={t('common:action.remove')} onClick={() => setItems(items.filter((x) => x.key !== i.key))}>✕</Button>
             </div>
           ))}
           <MedicinePicker value={null} clearOnPick placeholder={t('rx.addItem')} filter={(m) => m.kind !== 'hamper'}
-            onChange={(m) => m && setItems([...items, { key: Date.now(), medicine: m, qty_base: '', dosage: '', frequency: '', duration_days: '', repeats_allowed: '0' }])} />
+            onChange={(m) => m && setItems([...items, { key: Date.now(), medicine: m, qty_base: '', dosage: '', frequency: '', duration_days: '', repeats_allowed: '0', units_per_dose: '', doses_per_day: '' }])} />
+          {items.length > 0 && <span className="text-[12px] text-neutral-500">{t('rx.doseHint')}</span>}
         </div>
       </Card>
       <Card title={t('rx.attachments')}>

@@ -143,6 +143,10 @@ async def approve_discount(session: AsyncSession, actor: CurrentUser, auth: Inte
                        f"{'the owner' if roles == ('owner',) else 'a manager'} confirms with their PIN",
                        status_code=403, details={"cap": caps.get(actor.role, 0), "asked": str(worst),
                                                  "approver_roles": list(roles)})  # fmt: skip
+    if token.startswith("tg:"):  # T2: approved on Telegram (discount_approvals.py)
+        from .discount_approvals import use
+
+        return await use(session, actor, token, branch_id, lines)
     approver = await consume_witness(auth, token, "sales.discount", actor=actor, branch_id=branch_id, roles=roles,
                                      permission="sales.discount")  # fmt: skip
     return approver.user_id

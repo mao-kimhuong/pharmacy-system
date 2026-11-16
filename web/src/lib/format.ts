@@ -112,3 +112,14 @@ export function initials(name: string): string {
   const w = name.trim().split(/\s+/);
   return ((w[0]?.[0] ?? '') + (w.length > 1 ? w[w.length - 1][0] : '')).toUpperCase();
 }
+
+/** An instant as the value of <input type="datetime-local"> in Phnom Penh time, whatever the device's zone. */
+export function phnomPenhInput(iso: string | null | undefined): string {
+  if (!iso) return '';
+  return new Date(new Date(iso).getTime() + 7 * 3_600_000).toISOString().slice(0, 16);
+}
+
+/** The value of <input type="datetime-local">, read as Phnom Penh time. */
+export function fromPhnomPenhInput(v: string): string | null {
+  return v ? new Date(`${v}:00+07:00`).toISOString() : null;
+}

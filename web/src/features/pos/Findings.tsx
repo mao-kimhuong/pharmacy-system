@@ -5,11 +5,11 @@ import { cx } from '@/design';
 import type { Finding } from './hooks';
 
 const TONE = {
-  hard_stop: { box: 'bg-danger-bg text-[#7A1610]', icon: 'bg-danger', glyph: '✕' },
-  requirement: { box: 'bg-[#ECEAFB] text-[#262A7A]', icon: 'bg-safety-rx', glyph: '℞' },
-  warning: { box: 'bg-warning-bg text-[#5C3B00]', icon: 'bg-warning', glyph: '!' },
-  info: { box: 'bg-info-bg text-[#173F6E]', icon: 'bg-info', glyph: 'i' },
-  ok: { box: 'bg-success-bg text-[#164E2E]', icon: 'bg-success', glyph: '✓' },
+  hard_stop: { box: 'bg-danger-bg text-danger-fg', icon: 'bg-danger', glyph: '✕' },
+  requirement: { box: 'bg-rxsoft text-rxsoft-fg', icon: 'bg-safety-rx', glyph: '℞' },
+  warning: { box: 'bg-warning-bg text-warning-fg', icon: 'bg-warning', glyph: '!' },
+  info: { box: 'bg-info-bg text-info-fg', icon: 'bg-info', glyph: 'i' },
+  ok: { box: 'bg-success-bg text-success-fg', icon: 'bg-success', glyph: '✓' },
 } as const;
 
 export interface FindingAction {

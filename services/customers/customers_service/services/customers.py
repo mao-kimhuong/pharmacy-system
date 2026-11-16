@@ -37,7 +37,8 @@ def customer_payload(c: Customer) -> dict[str, Any]:
     return {
         "customer_id": str(c.id), "phone": c.phone, "name": c.name, "name_km": c.name_km,
         "group_id": str(c.group_id) if c.group_id else None, "credit_limit": str(c.credit_limit),
-        "is_active": c.is_active,
+        "preferred_lang": c.preferred_lang,
+        "credit_terms_days": c.credit_terms_days, "is_active": c.is_active,
     }  # fmt: skip
 
 
@@ -90,7 +91,7 @@ async def create_group(session: AsyncSession, actor: CurrentUser, data: dict[str
     await _check_group_name(session, data["name_en"], None)
     g = CustomerGroup(name_en=clean(data["name_en"]), name_km=clean(data.get("name_km")),
                       default_discount_pct=_money(data.get("default_discount_pct")),
-                      created_by=actor.id)  # fmt: skip
+                      is_clinic=bool(data.get("is_clinic")), created_by=actor.id)  # fmt: skip
     session.add(g)
     await session.flush()
     _group_event(session, "customer_group.created", g)
@@ -111,6 +112,8 @@ async def update_group(
         g.name_km = clean(data["name_km"])
     if data.get("default_discount_pct") is not None:
         g.default_discount_pct = _money(data["default_discount_pct"])
+    if data.get("is_clinic") is not None:
+        g.is_clinic = data["is_clinic"]
     if g.safe_fields() != before:
         _group_event(session, "customer_group.updated", g)
         old, new = changes(before, g.safe_fields())
@@ -188,7 +191,8 @@ async def create_customer(session: AsyncSession, actor: CurrentUser, data: dict[
     if limit > 0:
         actor.require(CREDIT_PERMISSION)
     c = Customer(phone=phone, name=clean(data["name"]), name_km=clean(data.get("name_km")),
-                 credit_limit=limit, note=clean(data.get("note")), created_by=actor.id)  # fmt: skip
+                 credit_limit=limit, note=clean(data.get("note")), preferred_lang=data.get("preferred_lang") or "km",
+                 credit_terms_days=data.get("credit_terms_days", 30), created_by=actor.id)  # fmt: skip
     c.group = await _group_for(session, data.get("group_id"))
     session.add(c)
     await session.flush()
@@ -210,6 +214,9 @@ async def update_customer(
     for f in ("name", "name_km", "note"):
         if data.get(f) is not None:
             setattr(c, f, clean(data[f]))
+    for f in ("preferred_lang", "credit_terms_days"):
+        if data.get(f) is not None:
+            setattr(c, f, data[f])
     if "group_id" in data:
         c.group = await _group_for(session, data["group_id"])
     if data.get("credit_limit") is not None:

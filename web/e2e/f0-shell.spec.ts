@@ -50,9 +50,9 @@ test.describe('F0 shell and auth', () => {
 
   test('2FA with a backup code instead of the app code', async ({ browser, seed }) => {
     const m = seed.accounts.manager;
-    // new backup codes through the API (needs the password)
+    // new backup codes through the API (needs the password and a code)
     const { http } = await apiLogin(m.phone, m.password, m.totp);
-    const r = await http.post<{ codes: string[] }>('/api/auth/v1/2fa/backup-codes', { password: m.password });
+    const r = await http.post<{ codes: string[] }>('/api/auth/v1/2fa/backup-codes', { password: m.password, code: await totpCode(m.totp!) });
     expect(r.status).toBe(200);
     const ctx = await freshContext(browser);
     const page = await ctx.newPage();

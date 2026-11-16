@@ -32,9 +32,9 @@ from ..schemas.extras import (
     TemplateOut,
     TemplateUpdate,
 )
-from ..schemas.preview import CartPreviewIn, CartPreviewOut
+from ..schemas.preview import CartPreviewIn, CartPreviewOut, DiscountApprovalOut
 from ..schemas.sales import InvoiceOut
-from ..services import carts, commission, orders, templates
+from ..services import carts, commission, discount_approvals, orders, templates
 from ..services.cart import price_cart
 from ..services.clients import Clients, get_clients
 from ..services.common import branch_for
@@ -56,6 +56,29 @@ async def cart_preview(
     batches FEFO would take, every hard stop, requirement and warning (English and
     Khmer), KHR total. The same checks as POST /invoices; nothing is saved or held."""
     return await preview(session, user, clients, body.model_dump())
+
+
+def _approval_out(a) -> dict:  # noqa: ANN001
+    return {**{k: getattr(a, k) for k in ("id", "status", "worst_pct", "cap_pct", "discount_usd", "needs_owner",
+                                          "expires_at", "decided_at")},
+            "token": f"{discount_approvals.PREFIX}{a.id}" if a.status == "approved" else None}  # fmt: skip
+
+
+@router.post("/carts/discount-approvals", response_model=DiscountApprovalOut, status_code=201, tags=["carts"])
+async def ask_discount_approval(
+    body: CartPreviewIn, user: CurrentUser = Depends(requires("pos.sell")),
+    session: AsyncSession = Depends(db.session), clients: Clients = Depends(get_clients),
+) -> dict:  # fmt: skip
+    """T2: ask a manager / the owner on Telegram for a discount above your cap (instead of their PIN at the till).
+    Only when a discount is above your cap (else 422 VALIDATION_ERROR, reason within_cap). Pending for 10 minutes."""
+    return _approval_out(await discount_approvals.request(session, user, clients, body.model_dump()))
+
+
+@router.get("/carts/discount-approvals/{approval_id}", response_model=DiscountApprovalOut, tags=["carts"])
+async def discount_approval(approval_id: UUID, user: CurrentUser = Depends(requires("pos.sell")),
+                            session: AsyncSession = Depends(db.session)) -> dict:  # fmt: skip
+    """The till polls this; approved → `token` for the sale's discount_approval_token."""
+    return _approval_out(await discount_approvals.get(session, user, approval_id))
 
 
 @router.post("/carts/price", response_model=PricedCart, tags=["carts"], deprecated=True)
@@ -199,6 +222,15 @@ async def close(
     clients: Clients = Depends(get_clients),
 ) -> SaleOrder:  # fmt: skip
     return await orders.close(session, user, clients, order_id)
+
+
+@router.post("/sale-orders/{order_id}/ready", response_model=OrderOut, tags=["sale orders"])
+async def ready(
+    order_id: UUID, user: CurrentUser = Depends(order_perm), session: AsyncSession = Depends(db.session),
+) -> SaleOrder:  # fmt: skip
+    """Ready for pickup (ordered / partly fulfilled): the customer gets a Telegram message with what is
+    left to pay (if linked and they allow order messages). Again later: a new message."""
+    return await orders.mark_ready(session, user, order_id)
 
 
 @router.post("/commission/rules", response_model=RuleOut, status_code=201, tags=["commission"])

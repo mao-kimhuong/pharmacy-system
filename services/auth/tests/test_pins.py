@@ -144,3 +144,27 @@ async def test_a_later_default_is_given_once_and_a_removal_stays() -> None:
                                                      RolePermission.permission_key == "controlled.adjust"))  # fmt: skip
     await sync_catalog()
     assert not await has()
+
+
+async def test_user_access_for_telegram_taps(client, monkeypatch) -> None:
+    """T2: notification checks a Telegram tap against the user's access right now (/internal/v1/users/{id}/access)."""
+    from uuid import uuid4
+
+    from auth_service.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "service_token", TOKEN)
+    await add_branch(B1)
+    user = await pharmacist("012555666", role="branch_manager")
+    headers = {"X-Service-Token": TOKEN, "X-Service-Name": "notification"}
+    r = await client.get(f"/internal/v1/users/{user.id}/access", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert (body["role"], body["is_active"], body["branch_ids"], body["name"]) == ("branch_manager", True, [str(B1)],
+                                                                                   "P 012555666")  # fmt: skip
+    assert "notifications.approve_via_telegram" in body["permissions"]  # new keys reach the built-in manager role
+    assert (await client.get(f"/internal/v1/users/{user.id}/access")).status_code == 401
+    assert (await client.get(f"/internal/v1/users/{uuid4()}/access", headers=headers)).status_code == 404
+    async with db.sessionmaker() as s, s.begin():
+        (await s.get(type(user), user.id)).is_active = False
+    r = (await client.get(f"/internal/v1/users/{user.id}/access", headers=headers)).json()
+    assert r["is_active"] is False and r["permissions"] == []

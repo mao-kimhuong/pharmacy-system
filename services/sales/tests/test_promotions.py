@@ -154,3 +154,84 @@ async def test_manual_discount_cap_and_approval(client) -> None:
     owner = AUTH.issue(str(uuid4()), "sales.discount", "witness", branches=(), permissions=("*",), role="owner")
     r = await sell(client, big, [pay("5.60")], MANAGER, discount_approval_token=owner)
     assert r.status_code == 201, r.text
+
+
+# ---------------------------------------------------------------- T2: the discount approved on Telegram
+
+
+async def ask_telegram(client, lines: list[dict], headers=None):  # noqa: ANN001, ANN201
+    from .conftest import PREFIX
+
+    return await client.post(f"{PREFIX}/carts/discount-approvals", json={"branch_id": str(PP1), "lines": lines},
+                             headers=headers or CASHIER)  # fmt: skip
+
+
+async def tg_decide(client, approval_id: str, actor: dict, decision: str = "approve"):  # noqa: ANN001, ANN201
+    from .conftest import SERVICE_TOKEN
+
+    return await client.post(f"/internal/v1/discount-approvals/{approval_id}/decide",
+                             json={"decision": decision, "actor": actor},
+                             headers={"X-Service-Token": SERVICE_TOKEN, "X-Service-Name": "notification"})  # fmt: skip
+
+
+def access(role: str = "branch_manager", perms: tuple[str, ...] = ("sales.discount",), user_id: str | None = None) -> dict:
+    return {"user_id": user_id or str(uuid4()), "name": "Dara", "role": role, "branch_ids": [str(PP1)],
+            "permissions": list(perms)}  # fmt: skip
+
+
+async def test_discount_approved_on_telegram_is_used_once_for_exactly_that_cart(client) -> None:
+    from .conftest import PREFIX, outbox
+
+    para = await stocked()
+    await set_rate(client)
+    r = await ask_telegram(client, [line(para, "box", 1, discount_pct="5")])
+    assert r.status_code == 422 and r.json()["details"]["reason"] == "within_cap"
+    over = [line(para, "box", 1, discount_pct="15")]
+    a = (await ask_telegram(client, over)).json()
+    assert (a["status"], a["worst_pct"], a["cap_pct"], a["discount_usd"], a["needs_owner"], a["token"]) == (
+        "pending", "15.00", "5.00", "1.20", False, None)  # fmt: skip
+    asked = [p for t, p in await outbox() if t == "discount_approval.requested"][-1]
+    assert asked["approval_id"] == a["id"] and asked["total_usd"] == "6.80"
+    seller = access("cashier", ("pos.sell",), CASHIER["X-User-Id"])
+    assert (await tg_decide(client, a["id"], {**seller, "role": "branch_manager",
+                                              "permissions": ["sales.discount"]})).status_code == 403  # self  # fmt: skip
+    assert (await tg_decide(client, a["id"], access("pharmacist"))).status_code == 403
+    manager = access()
+    assert (await tg_decide(client, a["id"], manager)).json() == {"status": "approved"}
+    assert (await tg_decide(client, a["id"], access("owner", ("*",)), "reject")).status_code == 409  # only the first
+    got = (await client.get(f"{PREFIX}/carts/discount-approvals/{a['id']}", headers=CASHIER)).json()
+    assert got["status"] == "approved" and got["token"] == f"tg:{a['id']}"
+    other_cart = [line(para, "box", 1, discount_pct="16")]
+    r = await sell(client, other_cart, [pay("6.72")], discount_approval_token=got["token"])
+    assert r.status_code == 403 and r.json()["details"]["reason"] == "telegram_approval_invalid"
+    other_seller = user("cashier", "pos.sell,sales.view")
+    r = await sell(client, over, [pay("6.80")], other_seller, discount_approval_token=got["token"])
+    assert r.status_code == 403
+    r = await sell(client, over, [pay("6.80")], discount_approval_token=got["token"])
+    assert r.status_code == 201, r.text
+    assert r.json()["lines"][0]["manual_discount_by"] == manager["user_id"]
+    r = await sell(client, over, [pay("6.80")], discount_approval_token=got["token"])
+    assert r.status_code == 403  # used
+    decided = [p for t, p in await outbox() if t == "discount_approval.decided"][-1]
+    assert (decided["status"], decided["via"], decided["approver_id"]) == ("approved", "telegram", manager["user_id"])
+
+
+async def test_telegram_discount_owner_only_rejected_and_expired(client, monkeypatch) -> None:
+    from datetime import timedelta
+
+    from pharmacy_shared import clock
+
+    para = await stocked()
+    await set_rate(client)
+    big = [line(para, "box", 1, discount_pct="30")]  # above the managers' 20 %: the owner
+    a = (await ask_telegram(client, big)).json()
+    assert a["needs_owner"] is True
+    assert (await tg_decide(client, a["id"], access())).status_code == 403
+    assert (await tg_decide(client, a["id"], access("owner", ("*",)), "reject")).json() == {"status": "rejected"}
+    r = await sell(client, big, [pay("5.60")], discount_approval_token=f"tg:{a['id']}")
+    assert r.status_code == 403
+    late = (await ask_telegram(client, [line(para, "box", 1, discount_pct="15")])).json()
+    now = clock.now()
+    monkeypatch.setattr(clock, "now", lambda: now + timedelta(minutes=11))
+    r = await tg_decide(client, late["id"], access())
+    assert r.status_code == 409 and "waited too long" in r.json()["message"]

@@ -17,8 +17,10 @@ test.describe('F4 purchase + transfer', () => {
     await dlg.getByPlaceholder('Scan or search medicine…').fill(d.meds.para.sku);
     await mgr.getByRole('listbox').getByRole('option').first().click();
     await dlg.getByPlaceholder('Qty (base unit)').fill('200');
+    const created = mgr.waitForResponse((r) => r.url().endsWith('/purchase-requests') && r.request().method() === 'POST');
     await dlg.getByRole('button', { name: 'Submit' }).click();
-    await mgr.getByRole('row').filter({ hasText: 'Submitted' }).first().click();
+    const { number } = (await (await created).json()) as { number: string };
+    await mgr.getByRole('row').filter({ hasText: number }).click(); // other tests leave requests too
     await mgr.getByRole('button', { name: 'Approve', exact: true }).click();
     await expect(mgr.getByText('Approve first, then route the lines')).toBeVisible();
     await mgr.getByRole('dialog').getByRole('row').nth(1).getByRole('checkbox').check();

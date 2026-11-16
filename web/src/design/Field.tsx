@@ -8,7 +8,7 @@ export const sized = (base: string, className?: string) => (className && /(^|\s)
 
 export const controlClass = (invalid?: boolean, size: 'md' | 'lg' = 'md') =>
   cx(
-    'w-full rounded-md border bg-white px-3 text-[14px] text-neutral-900 placeholder:text-neutral-400',
+    'w-full rounded-md border bg-surface px-3 text-[14px] text-neutral-900 placeholder:text-neutral-400',
     'focus:border-primary-600 focus:shadow-focus focus:outline-none',
     'disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-400',
     size === 'lg' ? 'h-control-lg rounded-lg text-[16px]' : 'h-control pointer-coarse:h-11 pointer-coarse:text-[16px]',
@@ -148,7 +148,7 @@ export function Switch({
         onClick={() => onChange(!checked)}
         className={cx('relative h-5 w-9 rounded-full transition-colors', checked ? 'bg-primary-600' : 'bg-neutral-300')}
       >
-        <span className={cx('absolute top-0.5 size-4 rounded-full bg-white shadow transition-all', checked ? 'left-[18px]' : 'left-0.5')} />
+        <span className={cx('absolute top-0.5 size-4 rounded-full bg-surface shadow transition-all', checked ? 'left-[18px]' : 'left-0.5')} />
       </button>
       {label}
     </label>
@@ -169,20 +169,22 @@ export function Segmented<T extends string | number>({
   value, options, onChange, size = 'md', className, ariaLabel,
 }: {
   value: T;
-  options: { value: T; label: ReactNode; className?: string }[];
+  options: { value: T; label: ReactNode; className?: string; title?: string }[];
   onChange: (v: T) => void;
   size?: 'sm' | 'md';
   className?: string;
   ariaLabel?: string;
 }) {
   return (
-    <div role="radiogroup" aria-label={ariaLabel} className={cx('inline-flex overflow-hidden rounded-md border border-neutral-300 bg-white', className)}>
+    <div role="radiogroup" aria-label={ariaLabel} className={cx('inline-flex overflow-hidden rounded-md border border-neutral-300 bg-surface', className)}>
       {options.map((o, i) => (
         <button
           key={String(o.value)}
           type="button"
           role="radio"
           aria-checked={o.value === value}
+          title={o.title}
+          aria-label={o.title}
           onClick={() => onChange(o.value)}
           className={cx(
             'font-medium pointer-coarse:min-h-11',

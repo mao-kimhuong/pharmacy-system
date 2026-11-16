@@ -46,6 +46,14 @@ def test_login_steps_share_the_strict_rate_limit() -> None:
     assert "ratelimit-login" in _router_for("/api/auth/v1/login/2fa")[1]["middlewares"]
 
 
+@pytest.mark.parametrize(
+    "path", ["/api/auth/v1/me/2fa/disable", "/api/auth/v1/me/2fa/reset", "/api/auth/v1/me/2fa/reset/confirm", "/api/auth/v1/2fa/backup-codes"]
+)
+def test_two_factor_checks_are_protected_and_limited_like_login(path: str) -> None:
+    middlewares = _router_for(path)[1]["middlewares"]
+    assert "auth-forward" in middlewares and "ratelimit-login" in middlewares
+
+
 def test_everything_else_in_auth_is_protected() -> None:
     assert "auth-forward" in _router_for("/api/auth/v1/me")[1]["middlewares"]
 
@@ -63,3 +71,35 @@ def test_web_app_is_public_static_files() -> None:
     name, router = _router_for("/pos")
     assert name == "web"
     assert "auth-forward" not in router["middlewares"]
+
+
+def test_web_app_files_have_their_own_larger_limit() -> None:
+    # A service worker install fetches every precached file at once; several tills share one IP.
+    middlewares = _router_for("/assets/index.js")[1]["middlewares"]
+    assert "ratelimit-static" in middlewares and "ratelimit-flood" not in middlewares
+    text = (COMPOSE.parent / "traefik" / "dynamic" / "middlewares.yml").read_text()
+    burst = int(re.search(r"ratelimit-static:\s+rateLimit:(?:\s+\w+: \S+)*?\s+burst: (\d+)", text)[1])
+    assert burst >= 1000
+
+
+def test_payway_callback_is_public_but_limited_and_nothing_else_in_sales_is() -> None:
+    # PayWay cannot log in: its pushback must skip auth-forward (the route trusts nothing in it)
+    name, router = _router_for("/api/sales/v1/payments/payway/callback")
+    assert name == "sales-payway-callback"
+    assert "auth-forward" not in router["middlewares"] and "ratelimit-per-ip" in router["middlewares"]
+    for path in ("/api/sales/v1/payments/payway/callbackX", "/api/sales/v1/payments/khqr/refunds"):
+        assert "auth-forward" in _router_for(path)[1]["middlewares"]
+
+
+def test_telegram_webhook_is_public_but_limited_and_nothing_else_in_notification_is() -> None:
+    # Telegram cannot log in: the service checks X-Telegram-Bot-Api-Secret-Token itself
+    name, router = _router_for("/api/notifications/v1/telegram/webhook")
+    assert name == "notification-telegram"
+    assert "auth-forward" not in router["middlewares"] and "ratelimit-per-ip" in router["middlewares"]
+    name, router = _router_for("/api/notifications/v1/sensors/readings")  # fridge sensors: their own token
+    assert name == "notification-sensors" and "auth-forward" not in router["middlewares"]
+    assert "ratelimit-per-ip" in router["middlewares"]
+    for path in ("/api/notifications/v1/telegram/webhookX", "/api/notifications/v1/campaigns",
+                 "/api/notifications/v1/customers/x/telegram", "/api/notifications/v1/sensors",
+                 "/api/notifications/v1/heartbeat"):  # fmt: skip
+        assert "auth-forward" in _router_for(path)[1]["middlewares"]

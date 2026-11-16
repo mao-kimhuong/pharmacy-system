@@ -18,7 +18,7 @@ export function PageHeader({ crumb, title, actions, children }: { crumb?: ReactN
 
 export function Card({ children, className, title, actions, padded = true }: { children: ReactNode; className?: string; title?: ReactNode; actions?: ReactNode; padded?: boolean }) {
   return (
-    <section className={cx('rounded-xl border border-neutral-200 bg-white', className)}>
+    <section className={cx('rounded-xl border border-neutral-200 bg-surface', className)}>
       {(title || actions) && (
         <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-5 py-3.5">
           <h2 className="m-0 text-[15px] font-semibold">{title}</h2>
@@ -39,7 +39,7 @@ export function KpiTile({ label, value, sub, scope, deltas, className }: {
   deltas?: { value: string; tone: 'up' | 'down' | 'flat'; label: ReactNode }[]; className?: string;
 }) {
   return (
-    <div className={cx('flex flex-col gap-1.5 rounded-xl border border-neutral-200 bg-white px-5 py-4', className)}>
+    <div className={cx('flex flex-col gap-1.5 rounded-xl border border-neutral-200 bg-surface px-5 py-4', className)}>
       <div className="flex items-center justify-between gap-2">
         <span className="text-[13px] font-medium text-neutral-700">{label}</span>
         {scope && <span className="font-mono text-[11px] text-neutral-500">{scope}</span>}
@@ -93,7 +93,7 @@ export function Stepper({ steps, current }: { steps: { label: ReactNode; sub?: R
           <li key={i} className="flex flex-1 flex-col gap-2" aria-current={on ? 'step' : undefined}>
             <div className="flex items-center">
               <span className={cx('flex size-7 flex-none items-center justify-center rounded-full border-2 text-[12px] font-semibold',
-                done ? 'border-primary-600 bg-primary-600 text-white' : on ? 'border-primary-600 bg-white text-primary-600' : 'border-neutral-300 bg-white text-neutral-500')}>
+                done ? 'border-primary-600 bg-primary-600 text-white' : on ? 'border-primary-600 bg-surface text-primary-600' : 'border-neutral-300 bg-surface text-neutral-500')}>
                 {done ? '✓' : i + 1}
               </span>
               {i < steps.length - 1 && <span className={cx('mx-2 h-0.5 flex-1', done ? 'bg-primary-600' : 'bg-neutral-200')} />}

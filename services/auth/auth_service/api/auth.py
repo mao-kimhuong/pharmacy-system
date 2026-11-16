@@ -13,7 +13,6 @@ from ..models import User
 from ..permissions import menu_for
 from ..schemas.auth import (
     BackupCodesOut,
-    BackupCodesRequest,
     ChangePasswordRequest,
     Login2faRequest,
     LoginRequest,
@@ -25,6 +24,8 @@ from ..schemas.auth import (
     SetPinRequest,
     TokenResponse,
     TwoFactorEnableRequest,
+    TwoFactorProof,
+    TwoFactorResetConfirm,
     TwoFactorSetupResponse,
 )
 from ..services import auth as auth_service
@@ -32,8 +33,6 @@ from ..services import backup_codes, two_factor
 from ..services import my_sessions as sessions_service
 from ..services import users as users_service
 from ..services.access import load_permissions, mfa_setup_required
-from ..services.audit import write_audit
-from ..services.passwords import verify_password
 from ..services.tokens import AccessClaims, decode_access_token
 
 router = APIRouter(tags=["auth"])
@@ -63,6 +62,7 @@ def me_response(user: User, permissions: list[str], settings: Settings) -> MeRes
     out.permissions = permissions
     out.menu = [MenuItemOut(**item) for item in menu_for(set(permissions))]
     out.mfa_setup_required = mfa_setup_required(user, settings)
+    out.mfa_required_for_role = user.role in settings.roles_requiring_2fa
     return out
 
 
@@ -227,6 +227,7 @@ async def setup_2fa(
 async def enable_2fa(
     body: TwoFactorEnableRequest,
     request: Request,
+    response: Response,
     claims: AccessClaims = Depends(bearer_claims),
     session: AsyncSession = Depends(db.session),
     redis: Redis = Depends(get_redis),
@@ -237,28 +238,53 @@ async def enable_2fa(
     tokens = await two_factor.enable(session, redis, settings, claims, body.code, client_info(request))
     codes = await backup_codes.regenerate(session, tokens.user)
     await session.commit()
-    out = token_response(tokens, settings)
+    out = token_response(tokens, settings, request, response)
     out.backup_codes = codes
     return out
 
 
 @router.post("/2fa/backup-codes", response_model=BackupCodesOut, tags=["2fa"])
 async def new_backup_codes(
-    body: BackupCodesRequest, request: Request, claims: AccessClaims = Depends(bearer_claims),
-    session: AsyncSession = Depends(db.session),
+    body: TwoFactorProof, request: Request, claims: AccessClaims = Depends(bearer_claims),
+    session: AsyncSession = Depends(db.session), settings: Settings = Depends(get_settings),
 ) -> BackupCodesOut:  # fmt: skip
-    """A new set of 10 backup codes (your password; the old set stops working). Shown only now."""
-    user = await session.get(User, claims.user_id, with_for_update=True)
-    if user is None or not user.is_active or not verify_password(user.password_hash, body.password):
-        raise AppError(ErrorCode.INVALID_CREDENTIALS, "Wrong password", status_code=401)
-    if not user.totp_enabled:
-        raise AppError(ErrorCode.VALIDATION_ERROR, "Turn two-factor login on first", status_code=409)
-    codes = await backup_codes.regenerate(session, user)
-    write_audit(session, action="user.backup_codes_regenerated", entity_type="user", entity_id=user.id,
-                actor_id=user.id, actor_role=user.role, branch_id=user.branch_ids[0] if user.branch_ids else None,
-                after={"codes": len(codes)}, ip=client_info(request).ip, only_changes=False)  # fmt: skip
-    await session.commit()
-    return BackupCodesOut(codes=codes)
+    """A new set of 10 backup codes (password + code; the old set stops working). Shown only now."""
+    return BackupCodesOut(codes=await two_factor.new_backup_codes(
+        session, settings, claims, body.password, body.code, body.backup_code, client_info(request)))  # fmt: skip
+
+
+@router.post("/me/2fa/disable", status_code=204, tags=["2fa"])
+async def disable_2fa(
+    body: TwoFactorProof, request: Request, claims: AccessClaims = Depends(bearer_claims),
+    session: AsyncSession = Depends(db.session), redis: Redis = Depends(get_redis),
+    settings: Settings = Depends(get_settings),
+) -> Response:  # fmt: skip
+    """Turn 2FA off (password + code or backup code). Refused for roles that must use it. Your other sessions end."""
+    await two_factor.disable(session, redis, settings, claims, body.password, body.code, body.backup_code,
+                             client_info(request))  # fmt: skip
+    return Response(status_code=204)
+
+
+@router.post("/me/2fa/reset", response_model=TwoFactorSetupResponse, tags=["2fa"])
+async def reset_my_2fa(
+    body: TwoFactorProof, request: Request, claims: AccessClaims = Depends(bearer_claims),
+    session: AsyncSession = Depends(db.session), settings: Settings = Depends(get_settings),
+) -> TwoFactorSetupResponse:  # fmt: skip
+    """A new key, step 1 (password + code or backup code). The old key works until /me/2fa/reset/confirm."""
+    info = await two_factor.start_reset(session, settings, claims, body.password, body.code, body.backup_code,
+                                        client_info(request))  # fmt: skip
+    return TwoFactorSetupResponse(secret=info.secret, otpauth_uri=info.otpauth_uri, qr_svg=info.qr_svg)
+
+
+@router.post("/me/2fa/reset/confirm", response_model=BackupCodesOut, tags=["2fa"])
+async def confirm_my_2fa_reset(
+    body: TwoFactorResetConfirm, request: Request, claims: AccessClaims = Depends(bearer_claims),
+    session: AsyncSession = Depends(db.session), redis: Redis = Depends(get_redis),
+    settings: Settings = Depends(get_settings),
+) -> BackupCodesOut:  # fmt: skip
+    """Step 2: a code from the new key makes it live. 10 new backup codes, shown only now; other sessions end."""
+    return BackupCodesOut(codes=await two_factor.confirm_reset(session, redis, settings, claims, body.code,
+                                                               client_info(request)))  # fmt: skip
 
 
 @router.get("/me/sessions", response_model=list[SessionOut])

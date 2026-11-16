@@ -24,7 +24,7 @@ from pharmacy_shared.db import IdMixin, TimestampMixin
 from .base import Base
 
 INVOICE_STATUSES = ("pending", "completed", "failed", "cancelling", "cancelled", "needs_attention")
-PAY_METHODS = ("cash", "card", "ABA", "KHQR", "credit", "deposit")
+PAY_METHODS = ("cash", "card", "ABA", "KHQR", "PAYWAY", "credit", "deposit")
 
 
 class ExchangeRate(IdMixin, Base):
@@ -83,6 +83,8 @@ class Invoice(IdMixin, TimestampMixin, Base):
     change_given_khr: Mapped[int] = mapped_column(Integer, default=0)
     # exact change in riel minus what was handed over (+ = the drawer keeps it)
     change_rounding_khr: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"))
+    # riel due (rounded to 100) − the exact riel, when riel paid the sale exactly (+ = received more); money.py
+    payment_rounding_khr: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"), server_default="0")
     returned_total: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
     # saga
     sale_order_id: Mapped[UUID | None] = mapped_column(Uuid, index=True)  # S7: invoiced from an order
@@ -196,7 +198,7 @@ class InvoicePayment(IdMixin, Base):
     __tablename__ = "invoice_payments"
     __table_args__ = (
         CheckConstraint(
-            "method IN ('cash', 'card', 'ABA', 'KHQR', 'credit', 'deposit')",
+            "method IN ('cash', 'card', 'ABA', 'KHQR', 'PAYWAY', 'credit', 'deposit')",
             name="ck_invoice_payments_method",
         ),
         CheckConstraint("currency IN ('USD', 'KHR')", name="ck_invoice_payments_currency"),
@@ -210,7 +212,8 @@ class InvoicePayment(IdMixin, Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(16, 2))  # in `currency` (riel: whole hundreds)
     amount_usd: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     deposit_id: Mapped[UUID | None] = mapped_column(Uuid)  # method "deposit": a sale order's deposit
-    khqr_id: Mapped[UUID | None] = mapped_column(Uuid, unique=True)  # method "KHQR": the paid QR, used once
+    khqr_id: Mapped[UUID | None] = mapped_column(Uuid, unique=True)  # KHQR / PAYWAY: the paid QR or checkout, used once
+    reference: Mapped[str | None] = mapped_column(String(40))  # bank transfer / card terminal reference
 
 
 class SaleReturn(IdMixin, Base):
@@ -220,7 +223,7 @@ class SaleReturn(IdMixin, Base):
     __tablename__ = "sale_returns"
     __mapper_args__ = {"eager_defaults": True}
     __table_args__ = (
-        CheckConstraint("refund_method IN ('cash', 'credit_note')", name="ck_returns_refund"),
+        CheckConstraint("refund_method IN ('cash', 'credit_note', 'khqr')", name="ck_returns_refund"),
         CheckConstraint(
             "status IN ('pending', 'completed', 'failed', 'needs_attention')", name="ck_returns_status"
         ),

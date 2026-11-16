@@ -8,7 +8,7 @@ import type { SalesS } from '@/api/types';
 import { useUser } from '@/app/auth';
 import { useBranch } from '@/app/branch';
 import type { PinToken } from '@/design';
-import { cartReducer, defaultPack, emptyCart, emptyTender, toLinesIn, toPayments, type CartLine, type CartState, type RxLink, type ChangeIn, type PaymentIn, type Tender } from './cart';
+import { cartReducer, defaultPack, emptyCart, emptyTender, remainingAfterOthers, toLinesIn, toPayments, type CartLine, type CartState, type RxLink, type ChangeIn, type PaymentIn, type Tender } from './cart';
 import { useMedicines, usePreview, useRate, useRequestKey, toCartMedicine, type Finding } from './hooks';
 
 export interface PosLoad {
@@ -16,6 +16,31 @@ export interface PosLoad {
   lines: { medicine_id: string; pack_unit_id?: string; qty: number; rx?: RxLink }[];
   customer?: { id: string; name: string; phone: string } | null;
   resumed?: { number: string; changes: unknown[] } | null;
+}
+
+/** A random id per browser (one per till), kept in localStorage when it can be. */
+export function deviceId(): string {
+  try {
+    const known = localStorage.getItem('pos-device-id');
+    if (known) return known;
+    const made = `till-${crypto.randomUUID().slice(0, 12)}`;
+    localStorage.setItem('pos-device-id', made);
+    return made;
+  } catch {
+    return 'till-nostorage';
+  }
+}
+
+/** T2: the POS tells the server it is alive every minute (offline alert after 10 minutes in opening hours). */
+function useHeartbeat(branchId: string | undefined) {
+  useEffect(() => {
+    if (!branchId) return;
+    const id = deviceId();
+    const beat = () => { void api.notifications.POST('/api/notifications/v1/heartbeat', { body: { branch_id: branchId, device_id: id } }).catch(() => undefined); };
+    beat();
+    const timer = window.setInterval(beat, 60_000);
+    return () => window.clearInterval(timer);
+  }, [branchId]);
 }
 
 /** A PIN / approval token is good for 2 minutes and for one sale. */
@@ -39,6 +64,7 @@ export function usePos() {
   const [done, setDone] = useState<SalesS['InvoiceOut'] | null>(null);
   const [pending, setPending] = useState<PosLoad | null>(null);
   const rate = useRate(branchId);
+  useHeartbeat(branchId);
 
   // lines handed over by the back office (resume, template, order): load their medicines first
   useEffect(() => {
@@ -109,9 +135,7 @@ export function usePos() {
   }, [complete]);
 
   const addOther = (method: PaymentIn['method'], extra: Partial<PaymentIn> = {}) => {
-    const total = Number(p?.total ?? 0);
-    const paid = Number(p?.payment?.paid ?? 0) + Number(p?.payment?.credit ?? 0);
-    const due = Math.max(0, total - (mode === 'pay' ? paid : 0));
+    const due = remainingAfterOthers(Number(p?.total ?? 0), tender, rate.data?.khr_per_usd ?? null);
     if (due <= 0 && !extra.amount) return;
     setTender((t) => ({ ...t, others: [...t.others, { method, currency: 'USD', amount: due.toFixed(2), ...extra }] }));
     setMode('pay');

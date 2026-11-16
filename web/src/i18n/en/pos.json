@@ -61,11 +61,12 @@
   "pay": {
     "method": {
       "cash": "Cash",
-      "card": "Card",
-      "ABA": "ABA",
+      "card": "Card (terminal)",
+      "ABA": "Bank transfer",
       "KHQR": "KHQR",
       "credit": "Credit",
-      "deposit": "Deposit"
+      "deposit": "Deposit",
+      "PAYWAY": "Card / Wallet (PayWay)"
     },
     "tendered": "Cash received",
     "usd": "USD",
@@ -81,7 +82,10 @@
     "lines": "Payments",
     "amount": "Amount",
     "riel100": "Riel in whole hundreds",
-    "overpay": "Only cash can be more than the total"
+    "overpay": "Only cash can be more than the total",
+    "remaining": "Remaining {{amount}}",
+    "covered": "Fully covered",
+    "total": "Total"
   },
   "khqr": {
     "title": "Scan to pay with KHQR",
@@ -91,7 +95,13 @@
     "expires": "Expires {{time}}",
     "fakePay": "Mark paid (test)",
     "again": "New code",
-    "currency": "Currency"
+    "currency": "Currency",
+    "cancelled": "Cancelled",
+    "review": "Paid a different amount: not taken",
+    "openAba": "Open in ABA Mobile",
+    "show": "Show QR",
+    "payKm": "សូមស្កេនដើម្បីបង់ {{amount}}",
+    "payEn": "Scan to pay {{amount}}"
   },
   "complete": {
     "title": "Sale complete",
@@ -129,6 +139,14 @@
     "lots": "Lots",
     "exp": "Exp {{date}}"
   },
+  "tg": {
+    "hint": "No manager at the till? Ask on Telegram: they tap Approve in their chat (this cart only, 10 minutes).",
+    "ask": "Ask on Telegram",
+    "waiting": "Waiting for a manager on Telegram… {{left}}",
+    "approved": "Approved on Telegram",
+    "rejected": "Rejected on Telegram",
+    "expired": "No answer in time: ask again"
+  },
   "find": {
     "pin": "Enter PIN",
     "approval": "Ask for approval",
@@ -164,5 +182,107 @@
   },
   "below": "Sale below cost",
   "handoff": "Hand to pharmacist (suspend)",
-  "pickBranch": "Choose a branch to sell from"
+  "pickBranch": "Choose a branch to sell from",
+  "payway": {
+    "title": "ABA PayWay checkout",
+    "open": "Open PayWay",
+    "method": "Method",
+    "hint": "PayWay opens in a new window: the customer pays there by card, ABA PAY, KHQR or a wallet. Keep this dialog open.",
+    "waiting": "Waiting for the customer to pay in the PayWay window",
+    "reopen": "Open the PayWay window again",
+    "options": {
+      "any": "Any (the customer chooses)",
+      "cards": "Card (Visa / Mastercard)",
+      "abapay_khqr": "ABA PAY / KHQR",
+      "alipay": "Alipay",
+      "wechat": "WeChat Pay",
+      "google_pay": "Google Pay"
+    },
+    "returnDone": "Payment sent",
+    "returnCancel": "Payment cancelled",
+    "returnBody": "You can close this window and go back to the pharmacy counter.",
+    "continue": "Continue in PayWay",
+    "notLoading": "Not loading? Continue in PayWay",
+    "frame": "ABA PayWay checkout",
+    "fakeDecline": "Decline (test)",
+    "testNote": "Test provider: no PayWay page. Use Mark paid (test) or Decline (test)."
+  },
+  "tiles": {
+    "label": "Payment method",
+    "cash": {
+      "km": "សាច់ប្រាក់",
+      "en": "Cash"
+    },
+    "KHQR": {
+      "km": "KHQR",
+      "en": "KHQR"
+    },
+    "card": {
+      "km": "កាត / កាបូប",
+      "en": "Card / Wallet"
+    },
+    "ABA": {
+      "km": "ផ្ទេរធនាគារ",
+      "en": "Bank transfer"
+    },
+    "credit": {
+      "km": "បង់ពេលក្រោយ",
+      "en": "Pay later"
+    },
+    "why": {
+      "nothingDue": "Nothing left to pay",
+      "customer": "Choose a customer first",
+      "limit": "Credit left {{amount}}"
+    }
+  },
+  "modal": {
+    "other": "Choose another method",
+    "retry": "Try again",
+    "cancel": "Cancel payment",
+    "ref": "Ref {{ref}}",
+    "confirmTitle": "Cancel this payment?",
+    "confirmBody": "The customer will not be able to pay this attempt any more. A payment that still arrives is refunded.",
+    "state": {
+      "start": "New",
+      "pending": "Waiting for payment",
+      "declined": "Declined",
+      "paid": "Paid",
+      "expired": "Expired",
+      "cancelled": "Cancelled",
+      "review": "Wrong amount"
+    },
+    "msg": {
+      "declined": {
+        "km": "ការបង់ត្រូវបានបដិសេធ។ អតិថិជនអាចព្យាយាមម្តងទៀត ឬជ្រើសវិធីផ្សេង។",
+        "en": "The payment was declined. The customer can try again or choose another method."
+      },
+      "expired": {
+        "km": "ពេលវេលាបង់ប្រាក់បានផុតកំណត់។",
+        "en": "The payment time ran out."
+      },
+      "cancelled": {
+        "km": "ការបង់ប្រាក់នេះត្រូវបានលុបចោល។",
+        "en": "This payment was cancelled."
+      },
+      "review": {
+        "km": "បានបង់ចំនួនខុស៖ មិនទទួលយកទេ អ្នកគ្រប់គ្រងនឹងសងប្រាក់វិញ។",
+        "en": "A different amount was paid: not taken, a manager will refund it."
+      }
+    }
+  },
+  "refDialog": {
+    "add": "Add payment",
+    "amount": "Amount (USD)",
+    "bad": "Letters, digits and . / # : - only (max 40)",
+    "ABA": {
+      "title": "Bank transfer",
+      "ref": "Transfer reference",
+      "hint": "From the customer's transfer receipt"
+    },
+    "card": {
+      "title": "Card on the terminal",
+      "ref": "Slip reference",
+      "hint": "PayWay is not set up: take the card on the bank's terminal"
+    }
+  }
 }

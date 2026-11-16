@@ -160,3 +160,47 @@ async def test_recount_cancel_one_open_and_branch_scope(client) -> None:
     assert (await client.post(f"{PREFIX}/counts/{count['id']}/cancel", json={"reason": "x"},
                               headers=APPROVER)).status_code == 409  # fmt: skip
     await start(client)  # a new one can start now
+
+
+# ---------------------------------------------------------------- T2: decided on Telegram
+
+
+async def _in_review(client, sku: str, qty: int, counted: int, controlled: str | None = None) -> dict:  # noqa: ANN001
+    med = await add_product(sku, controlled)
+    await receive(med, qty)
+    count = await start(client, "controlled" if controlled else "full")
+    await count_line(client, count, sku, counted)
+    if controlled:
+        await count_line(client, count, sku, counted, COUNTER_B)
+    r = await client.post(f"{PREFIX}/counts/{count['id']}/submit", headers=APPROVER)
+    assert r.status_code == 200, r.text
+    return count
+
+
+def _actor(role: str = "pharmacist", perms: str = "stockcount.approve") -> dict:
+    return {"user_id": APPROVER["X-User-Id"], "name": "Dara", "role": role, "branch_ids": [str(PP1)],
+            "permissions": perms.split(",")}  # fmt: skip
+
+
+async def test_count_approved_on_telegram_but_never_a_controlled_variance(client) -> None:
+    from .conftest import SERVICE_TOKEN
+
+    internal = {"X-Service-Token": SERVICE_TOKEN, "X-Service-Name": "notification"}
+    count = await _in_review(client, "PARA500", 100, 96)
+    submitted = [p for t, p in await outbox() if t == "count.submitted"][-1]
+    assert (submitted["needs_owner"], submitted["needs_pin"]) == (False, False)
+    url = f"/internal/v1/counts/{count['id']}/decide"
+    r = await client.post(url, json={"decision": "reject", "actor": _actor()}, headers=internal)
+    assert r.status_code == 422  # stock takes are sent back in the app
+    r = await client.post(url, json={"decision": "approve", "actor": _actor(perms="stockcount.count")}, headers=internal)
+    assert r.status_code == 403
+    r = await client.post(url, json={"decision": "approve", "actor": _actor()}, headers=internal)
+    assert r.status_code == 200 and r.json()["status"] == "approved"
+    approved = [p for t, p in await outbox() if t == "count.approved"][-1]
+    log = [p for t, p in await outbox() if t == "audit.recorded" and p["action"] == "stock_count.approved"][-1]
+    assert approved["via"] == "telegram" and log["after"]["via"] == "telegram"
+    ctl = await _in_review(client, "DIAZ5", 20, 18, controlled="IV")
+    assert [p for t, p in await outbox() if t == "count.submitted"][-1]["needs_pin"] is True
+    r = await client.post(f"/internal/v1/counts/{ctl['id']}/decide", json={"decision": "approve", "actor": _actor()},
+                          headers=internal)  # fmt: skip
+    assert r.status_code == 403 and "PIN" in r.json()["message"]

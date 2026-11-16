@@ -165,7 +165,7 @@ async def _failed_attempt(
     )
     _login_audit(session, user, "user.login_failed", client, reason=reason)
     await session.commit()
-    if reason == "code":
+    if reason in ("code", "backup code"):
         return AppError(ErrorCode.INVALID_MFA_CODE, "Wrong or expired code", status_code=401)
     return _invalid_credentials()
 

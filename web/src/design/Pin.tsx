@@ -70,7 +70,7 @@ export function PinPad({ length = 6, value, onChange, onComplete, disabled, erro
             onClick={() => press(k)}
             aria-label={k === '⌫' ? t('pin.delete') : k === 'C' ? t('pin.clear') : k}
             className={cx('h-[52px] rounded-lg border border-neutral-200 text-[20px] font-medium select-none active:bg-primary-100 disabled:opacity-50',
-              k === 'C' || k === '⌫' ? 'bg-white text-neutral-700' : 'bg-neutral-50')}
+              k === 'C' || k === '⌫' ? 'bg-surface text-neutral-700' : 'bg-neutral-50')}
           >
             {k}
           </button>
@@ -188,6 +188,8 @@ export function WitnessDialog({
     queryFn: () => call(api.auth.GET('/api/auth/v1/pin/witnesses', { params: { query: { branch_id: branchId } } })),
   });
   const list = (witnesses.data ?? []).filter((w) => !managerOnly || MANAGER_ROLES.includes(w.role));
+  // the witness types next: choosing them moves the keyboard to the PIN pad
+  const focusPad = (from: HTMLElement) => from.closest('[role=dialog]')?.querySelector<HTMLElement>('[data-pinpad]')?.focus();
   const submit = async (value: string) => {
     if (value.length < 4 || busy) return;
     if (step === 2 && !witnessId) {
@@ -212,7 +214,7 @@ export function WitnessDialog({
     }
   };
   return (
-    <Dialog open={open} onClose={onClose} title={title ?? t('pin.witnessTitle')} width={440}
+    <Dialog open={open} onClose={onClose} title={title ?? t('pin.witnessTitle')} width={440} initialFocus="[data-pinpad]"
       footer={<><Button onClick={onClose}>{t('action.back')}</Button><Button variant="primary" loading={busy} disabled={pin.length < 4} onClick={() => submit(pin)}>{step === 1 ? t('action.continue') : t('pin.sign')}</Button></>}>
       <div className="flex flex-col gap-4 text-[13px]">
         {context && <div className="rounded-lg bg-neutral-50 px-3 py-2.5 leading-5">{context}</div>}
@@ -232,7 +234,7 @@ export function WitnessDialog({
               <b>{managerOnly ? t('pin.witnessManager') : t('pin.witnessAny')}</b>
               <Field label={t('pin.chooseWitness')}>
                 {(id) => (
-                  <Select id={id} value={witnessId} onChange={(e) => setWitnessId(e.target.value)}>
+                  <Select id={id} value={witnessId} onChange={(e) => { setWitnessId(e.target.value); focusPad(e.currentTarget); }}>
                     <option value="">—</option>
                     {list.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
                   </Select>

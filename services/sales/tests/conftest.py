@@ -11,6 +11,7 @@ from decimal import Decimal
 from pathlib import Path
 from uuid import UUID, uuid4
 
+from pharmacy_shared.redis import connect as connect_redis
 from pharmacy_shared.testing import TEST_REDIS_URL, recreate_database, test_database_url
 
 SERVICE_TOKEN = "test-service-token-0123456789abcdef"
@@ -34,7 +35,6 @@ import httpx  # noqa: E402
 import pytest  # noqa: E402
 from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
-from redis.asyncio import Redis  # noqa: E402
 from sqlalchemy import select, text  # noqa: E402
 
 import customers_service.main as customers_main  # noqa: E402
@@ -123,7 +123,7 @@ async def clean(monkeypatch) -> AsyncIterator[None]:
             "TRUNCATE rx_holds, rx_attachments, rx_items, prescriptions, patient_branches, patient_allergies,"
             " patients, doctors, doc_sequences, branch_settings, known_customers, products, known_branches,"
             " processed_messages, outbox CASCADE"))  # fmt: skip
-    redis = Redis.from_url(TEST_REDIS_URL)
+    redis = connect_redis(TEST_REDIS_URL)
     await redis.flushdb()
     await redis.aclose()
     for bid, code in ((PP1, "PP1"), (PP2, "PP2")):

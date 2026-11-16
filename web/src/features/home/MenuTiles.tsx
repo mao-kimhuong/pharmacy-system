@@ -9,7 +9,7 @@ export function MenuTiles({ skip = [] as string[] }) {
   return (
     <div className="grid gap-2 tablet:grid-cols-2 desktop:grid-cols-3">
       {groups.map((g) => (
-        <div key={g.key} className="flex flex-col gap-1.5 rounded-xl border border-neutral-200 bg-white px-3 py-2.5">
+        <div key={g.key} className="flex flex-col gap-1.5 rounded-xl border border-neutral-200 bg-surface px-3 py-2.5">
           <div className="flex items-center gap-2.5 text-[14px] font-semibold">
             <span className="w-5 text-center text-primary-600" aria-hidden>{g.icon}</span>
             {t(`group.${g.key}`)}

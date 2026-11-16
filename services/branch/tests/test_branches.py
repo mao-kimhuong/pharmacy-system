@@ -168,6 +168,25 @@ async def test_prescription_settings_have_defaults_and_travel_in_events(client) 
     assert bad.status_code == 422
 
 
+async def test_telegram_settings_refill_days_and_opening_hours(client) -> None:
+    """T2: refill reminder days (3) and opening hours per weekday (not set by default: no opening alerts)."""
+    branch = await create(client)
+    url = f"{PREFIX}/branches/{branch['id']}/settings"
+    s = (await client.get(url, headers=OWNER)).json()
+    assert (s["refill_reminder_days"], s["opening_hours"]) == (3, None)
+    hours = {"mon": ["07:00", "21:00"], "sun": ["08:00", "12:00"]}
+    r = await client.put(url, headers=OWNER, json={"refill_reminder_days": 5, "opening_hours": hours})
+    assert r.status_code == 200, r.text
+    payload = [p for t, p in await outbox() if t == "branch.settings_updated"][-1]
+    assert (payload["refill_reminder_days"], payload["opening_hours"]) == (5, hours)
+    for bad in ({"mon": ["21:00", "07:00"]}, {"mon": ["7:00", "21:00"]}, {"monday": ["07:00", "21:00"]},
+                {"mon": ["07:00"]}):  # fmt: skip
+        assert (await client.put(url, headers=OWNER, json={"opening_hours": bad})).status_code == 422, bad
+    assert (await client.put(url, headers=OWNER, json={"refill_reminder_days": 0})).status_code == 422
+    r = await client.put(url, headers=OWNER, json={"opening_hours": None})
+    assert r.json()["opening_hours"] is None
+
+
 async def test_controlled_and_count_settings_have_defaults_and_travel_in_events(client) -> None:
     branch = await create(client)
     s = (await client.get(f"{PREFIX}/branches/{branch['id']}/settings", headers=OWNER)).json()

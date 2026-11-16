@@ -46,12 +46,14 @@ from pharmacy_shared.outbox import add_event
 from pharmacy_shared.pin import consume_pin, consume_witness
 
 from ..models import (
+    Batch,
     DocSequence,
     KnownBranch,
     OutboxEvent,
     Product,
     ShelfLocation,
     Shrinkage,
+    Stock,
     Transfer,
     TransferDiscrepancy,
     TransferLine,
@@ -305,10 +307,28 @@ async def create_request(session: AsyncSession, actor: CurrentUser | None, data:
     r.number = await next_number(session, DocSequence, to.id, to.code, "TQ")
     session.add(r)
     await session.flush()
-    add_event(session, OutboxEvent, "transfer_request.created", _request_payload(r))
+    add_event(session, OutboxEvent, "transfer_request.created", {
+        **_request_payload(r), "requested_by": str(r.requested_by) if r.requested_by else None,
+        "has_controlled": any(bool(p.controlled_schedule) for _, _, p, _ in lines),
+        "value": str(await _estimate(session, r.from_branch_id, lines))})  # fmt: skip
     audit(session, actor, "transfer_request.created", "transfer_request", r.id, branch_id=to.id,
           after={"number": r.number, "from": str(r.from_branch_id), "lines": len(r.lines), "reason": r.reason})  # fmt: skip
     return r
+
+
+async def _estimate(session: AsyncSession, branch_id: UUID, lines: list[tuple[UUID, int, Product, str | None]]) -> Decimal:
+    """About what a request is worth at the source (T2 Telegram approval limit): qty × the highest cost per base of
+    the source's active batches with stock of that medicine (on the high side, so the limit is never passed)."""
+    total = Decimal("0.00")
+    for mid, qty, _, _ in lines:
+        cost = (await session.execute(select(func.max(Batch.cost_per_base)).join(
+            Stock, Stock.batch_id == Batch.id).where(Batch.medicine_id == mid, Stock.branch_id == branch_id,
+                                                     Stock.qty_on_hand > 0))).scalar_one_or_none()  # fmt: skip
+        if cost is None:  # nothing on hand there: the highest cost anywhere
+            cost = (await session.execute(select(func.max(Batch.cost_per_base)).where(Batch.medicine_id == mid))
+                    ).scalar_one_or_none() or Decimal("0")  # fmt: skip
+        total += Decimal(cost) * qty
+    return total.quantize(Decimal("0.01"))
 
 
 def _request_payload(r: TransferRequest) -> dict[str, Any]:
@@ -333,24 +353,31 @@ async def _new_transfer(session: AsyncSession, actor_id: UUID | None, from_id: U
     return t
 
 
-async def approve_request(session: AsyncSession, actor: CurrentUser, request_id: UUID) -> Transfer:
+def _decided(r: TransferRequest, actor: CurrentUser, via: str | None) -> dict[str, Any]:
+    """decided_by + via in the event (T2: the Telegram approval message shows who decided)."""
+    return {**_request_payload(r), "decided_by": str(actor.id), "via": via or "app"}
+
+
+async def approve_request(session: AsyncSession, actor: CurrentUser, request_id: UUID, via: str | None = None) -> Transfer:
     r = await get_request(session, actor, request_id, lock=True)
     _need(actor, "transfers.approve", r.from_branch_id)
     if r.status != "requested":
         raise _state(f"This request is {r.status}", r.status)
     lines = await _lines(session, [{"medicine_id": x.medicine_id, "qty_base": x.qty_base, "source_ref": x.source_ref}
                                    for x in r.lines])  # fmt: skip
+    if via and any(p.controlled_schedule for _, _, p, _ in lines):
+        raise AppError(ErrorCode.FORBIDDEN, "Controlled medicines: approve in the app", status_code=403)
     t = await _new_transfer(session, actor.id, r.from_branch_id, r.to_branch_id, lines, r.reason, r.id)
     r.status, r.decided_by, r.decided_at, r.transfer_id = "approved", actor.id, clock.now(), t.id
-    add_event(session, OutboxEvent, "transfer_request.approved", _request_payload(r))
+    add_event(session, OutboxEvent, "transfer_request.approved", _decided(r, actor, via))
     audit(session, actor, "transfer_request.approved", "transfer_request", r.id, branch_id=r.from_branch_id,
-          after={"number": r.number, "transfer": t.number})  # fmt: skip
+          after={"number": r.number, "transfer": t.number, **({"via": via} if via else {})})  # fmt: skip
     await session.commit()
     return t
 
 
 async def decide_request(session: AsyncSession, actor: CurrentUser, request_id: UUID, reason: str,
-                         action: str) -> TransferRequest:  # fmt: skip
+                         action: str, via: str | None = None) -> TransferRequest:  # fmt: skip
     """reject (source, transfers.approve) or cancel (destination, transfers.request)."""
     r = await get_request(session, actor, request_id, lock=True)
     if action == "reject":
@@ -359,11 +386,15 @@ async def decide_request(session: AsyncSession, actor: CurrentUser, request_id: 
         _need(actor, "transfers.request", r.to_branch_id)
     if r.status != "requested":
         raise _state(f"This request is {r.status}", r.status)
+    if via:  # T2: Telegram never decides for controlled medicines
+        lines = await _lines(session, [{"medicine_id": x.medicine_id, "qty_base": x.qty_base} for x in r.lines])
+        if any(p.controlled_schedule for _, _, p, _ in lines):
+            raise AppError(ErrorCode.FORBIDDEN, "Controlled medicines: decide in the app", status_code=403)
     r.status = "rejected" if action == "reject" else "cancelled"
     r.decided_by, r.decided_at, r.decision_reason = actor.id, clock.now(), clean(reason)
-    add_event(session, OutboxEvent, f"transfer_request.{r.status}", _request_payload(r))
+    add_event(session, OutboxEvent, f"transfer_request.{r.status}", _decided(r, actor, via))
     audit(session, actor, f"transfer_request.{r.status}", "transfer_request", r.id, branch_id=r.to_branch_id,
-          after={"number": r.number, "reason": r.decision_reason})  # fmt: skip
+          after={"number": r.number, "reason": r.decision_reason, **({"via": via} if via else {})})  # fmt: skip
     await session.commit()
     return r
 

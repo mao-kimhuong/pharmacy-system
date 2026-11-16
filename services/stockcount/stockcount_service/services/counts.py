@@ -197,8 +197,11 @@ async def submit(session: AsyncSession, actor: CurrentUser, clients: Clients, co
     count.status, count.submitted_by, count.submitted_at = "review", actor.id, clock.now()
     count.variance_value = total
     count.version += 1
+    settings = await session.get(BranchSettingsCopy, count.branch_id)
+    owner_above = settings.owner_approval_above_usd if settings else OWNER_ABOVE
     _event(session, "count.submitted", count, submitted_by=str(actor.id), occurred_at=clock.now().isoformat(),
-           variance_value=str(total), lines=_variance_lines(count))
+           variance_value=str(total), lines=_variance_lines(count), needs_owner=total > owner_above,
+           needs_pin=any(x.is_controlled and x.variance for x in count.lines))  # fmt: skip
     _audit(session, actor, "stock_count.submitted", count, variance_value=str(total),
            lines_with_variance=sum(1 for x in count.lines if x.variance))  # fmt: skip
     await session.commit()
@@ -233,7 +236,7 @@ async def send_back(session: AsyncSession, actor: CurrentUser, count_id: UUID, l
 
 
 async def approve(session: AsyncSession, actor: CurrentUser, clients: Clients, count_id: UUID,
-                  pin_token: str | None) -> Count:  # fmt: skip
+                  pin_token: str | None, via: str | None = None) -> Count:  # fmt: skip
     count = await get_count(session, actor, count_id, lock=True)
     if count.status != "review":
         raise _state(f"Stock take {count.number} is {count.status}", count.status)
@@ -242,7 +245,10 @@ async def approve(session: AsyncSession, actor: CurrentUser, clients: Clients, c
     if count.variance_value > owner_above and not actor.is_owner:
         raise AppError(ErrorCode.OWNER_APPROVAL_REQUIRED, f"The variance is above {owner_above} USD: the owner approves",
                        status_code=403, details={"limit": str(owner_above)})  # fmt: skip
-    if any(x.is_controlled and x.variance for x in count.lines):
+    controlled = any(x.is_controlled and x.variance for x in count.lines)
+    if via and controlled:  # T2: a PIN cannot be typed on Telegram
+        raise AppError(ErrorCode.FORBIDDEN, "A controlled variance needs the PIN: approve in the app", status_code=403)
+    if controlled:
         await consume_pin(
             clients.auth, pin_token, "stockcount.approve", user=actor, branch_id=count.branch_id
         )
@@ -254,9 +260,10 @@ async def approve(session: AsyncSession, actor: CurrentUser, clients: Clients, c
         "counted_by": sorted({str(e.user_id) for e in x.entries if e.round == x.round and e.qty == x.counted_qty}),
     } for x in count.lines if x.variance]  # fmt: skip
     _event(session, "count.approved", count, approved_by=str(actor.id), adjustments=adjustments,
-           occurred_at=clock.now().isoformat(), variance_value=str(count.variance_value), lines=_variance_lines(count))
+           occurred_at=clock.now().isoformat(), variance_value=str(count.variance_value), lines=_variance_lines(count),
+           via=via or "app")  # fmt: skip
     _audit(session, actor, "stock_count.approved", count, variance_value=str(count.variance_value),
-           adjustments=len(adjustments))  # fmt: skip
+           adjustments=len(adjustments), **({"via": via} if via else {}))  # fmt: skip
     await session.commit()
     return count
 

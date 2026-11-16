@@ -29,6 +29,7 @@ from uuid import UUID
 import httpx
 from fastapi import Header, Request
 
+from . import clock
 from .auth import CurrentUser
 from .errors import AppError, ErrorCode
 
@@ -103,6 +104,9 @@ class InternalClient:
             headers["X-Acting-Branch-Id"] = str(branch_id)
         if idempotency_key:
             headers["Idempotency-Key"] = idempotency_key
+        dev_at = clock.override()  # development only: the called service runs at the same (dev) time
+        if dev_at is not None:
+            headers[clock.HEADER] = dev_at.isoformat()
         return headers
 
     async def post(

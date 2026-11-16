@@ -91,7 +91,11 @@ interface Form {
   double_count_above_usd: string; owner_approval_above_usd: string; shrinkage_approval_usd: string; reorder_sales_days: string; reorder_safety_days: string;
   reorder_lead_days: string; near_expiry_transfer_days: string; order_deposit_on_cancel: NonNullable<Update['order_deposit_on_cancel']>;
   max_discount_pct: Record<string, string>; khqr_account: string; khqr_name: string; khqr_city: string;
+  refill_reminder_days: string; hours: Record<Day, { open: boolean; from: string; to: string }>;
 }
+
+const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+type Day = (typeof DAYS)[number];
 
 const toForm = (s: Settings): Form => {
   const k = (s.khqr ?? {}) as { account_id?: string; merchant_name?: string; city?: string };
@@ -104,6 +108,11 @@ const toForm = (s: Settings): Form => {
     near_expiry_transfer_days: String(s.near_expiry_transfer_days), order_deposit_on_cancel: s.order_deposit_on_cancel as Form['order_deposit_on_cancel'],
     max_discount_pct: Object.fromEntries(ROLES.map((r) => [r, s.max_discount_pct[r] === undefined ? '' : String(s.max_discount_pct[r])])),
     khqr_account: k.account_id ?? '', khqr_name: k.merchant_name ?? '', khqr_city: k.city ?? '',
+    refill_reminder_days: String(s.refill_reminder_days ?? 3),
+    hours: Object.fromEntries(DAYS.map((d) => {
+      const h = s.opening_hours?.[d];
+      return [d, { open: !!h, from: h?.[0] ?? '07:00', to: h?.[1] ?? '21:00' }];
+    })) as Form['hours'],
   };
 };
 
@@ -131,6 +140,9 @@ export function BranchSettingsPage() {
         reorder_sales_days: int(f.reorder_sales_days), reorder_safety_days: int(f.reorder_safety_days), reorder_lead_days: int(f.reorder_lead_days),
         near_expiry_transfer_days: int(f.near_expiry_transfer_days), order_deposit_on_cancel: f.order_deposit_on_cancel, max_discount_pct: caps,
         khqr: f.khqr_account ? { account_id: f.khqr_account.trim(), merchant_name: f.khqr_name.trim(), city: f.khqr_city.trim() || undefined } : null,
+        refill_reminder_days: int(f.refill_reminder_days),
+        opening_hours: DAYS.some((d) => f.hours[d].open)
+          ? Object.fromEntries(DAYS.filter((d) => f.hours[d].open).map((d) => [d, [f.hours[d].from, f.hours[d].to]])) : null,
       };
       return call(api.branch.PUT('/api/branch/v1/branches/{branch_id}/settings', { params: { path: { branch_id: id } }, body }));
     },
@@ -171,6 +183,23 @@ export function BranchSettingsPage() {
                 </Select>
               )}</Field>
               <Field label={t('branches.expiryAlert')}>{(fid) => <Input id={fid} value={v.expiry_alert_days} onChange={(e) => set('expiry_alert_days')(e.target.value.replace(/[^\d,\s]/g, ''))} />}</Field>
+              {num('refill_reminder_days', t('branches.refillDays'))}
+            </div>
+          </Card>
+          <Card title={t('branches.hours')}>
+            <div className="flex flex-col gap-2">
+              <span className="text-[12px] text-neutral-500">{t('branches.hoursHint')}</span>
+              {DAYS.map((d) => {
+                const h = v.hours[d];
+                const put = (p: Partial<typeof h>) => set('hours')({ ...v.hours, [d]: { ...h, ...p } });
+                return (
+                  <div key={d} className="grid grid-cols-[110px_1fr_1fr] items-center gap-2" data-day={d}>
+                    <Checkbox label={t(`branches.day.${d}`)} checked={h.open} onChange={(e) => put({ open: e.target.checked })} />
+                    <Input type="time" aria-label={`${t(`branches.day.${d}`)} ${t('branches.opens')}`} disabled={!h.open} value={h.from} onChange={(e) => put({ from: e.target.value })} />
+                    <Input type="time" aria-label={`${t(`branches.day.${d}`)} ${t('branches.closes')}`} disabled={!h.open} value={h.to} onChange={(e) => put({ to: e.target.value })} />
+                  </div>
+                );
+              })}
             </div>
           </Card>
           <Card title={t('nav:group.stock')}>

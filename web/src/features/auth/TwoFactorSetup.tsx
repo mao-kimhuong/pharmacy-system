@@ -28,13 +28,30 @@ export function BackupCodes({ codes, onDone, doneLabel }: { codes: string[]; onD
   );
 }
 
+/** The new key: QR (`qr` is a complete data: URI from the auth service) and the key to type by hand. */
+export function KeyPanel({ secret, qr }: { secret: string; qr: string }) {
+  const { t } = useTranslation(['auth', 'common']);
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="flex flex-wrap items-center gap-4">
+      <img alt={t('setup.qrAlt')} className="size-40 rounded-lg border border-neutral-200 bg-surface p-2" src={qr} />
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <span className="text-[13px] text-neutral-500">{t('setup.cantScan')}</span>
+        <code data-testid="totp-secret" className="font-mono text-[14px] break-all">{secret.replace(/(.{4})/g, '$1 ').trim()}</code>
+        <button type="button" className="self-start text-[13px] font-medium text-primary-600" onClick={() => { void navigator.clipboard?.writeText(secret).then(() => setCopied(true)); }}>
+          {copied ? t('common:action.copied') : t('setup.copyKey')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function TwoFactorSetup({ onEnabled }: { onEnabled: (codes: string[] | null) => void }) {
   const { t } = useTranslation(['auth', 'common']);
   const [code, setCode] = useState('');
-  const [copied, setCopied] = useState(false);
   const setup = useMutation({ mutationFn: () => call(api.auth.POST('/api/auth/v1/2fa/setup')) });
   const enable = useMutation({
-    mutationFn: (c: string) => call(api.auth.POST('/api/auth/v1/2fa/enable', { body: { code: c } })),
+    mutationFn: (c: string) => call(api.auth.POST('/api/auth/v1/2fa/enable', { body: { code: c }, headers: { 'X-Refresh-Cookie': '1' } })),
     onSuccess: (res) => {
       if (res.access_token) session.set(res.access_token);
     },
@@ -54,19 +71,7 @@ export function TwoFactorSetup({ onEnabled }: { onEnabled: (codes: string[] | nu
           </div>
           {setup.isPending && <Spinner />}
           <ApiErrorAlert error={setup.error} />
-          {setup.data && (
-            <div className="flex flex-wrap items-center gap-4">
-              {/* qr_svg comes from our own auth service; shown as an image, never as inline markup. */}
-              <img alt="QR" className="size-40 rounded-lg border border-neutral-200 bg-white p-2" src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(setup.data.qr_svg)}`} />
-              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                <span className="text-[13px] text-neutral-500">{t('setup.cantScan')}</span>
-                <code className="font-mono text-[14px] break-all">{setup.data.secret.replace(/(.{4})/g, '$1 ').trim()}</code>
-                <button type="button" className="self-start text-[13px] font-medium text-primary-600" onClick={() => { void navigator.clipboard?.writeText(setup.data!.secret); setCopied(true); }}>
-                  {copied ? t('common:action.copied') : t('setup.copyKey')}
-                </button>
-              </div>
-            </div>
-          )}
+          {setup.data && <KeyPanel secret={setup.data.secret} qr={setup.data.qr_svg} />}
           <div className="flex flex-col gap-2">
             <span className="text-[13px] font-medium">{t('setup.enterCode')}</span>
             <OtpInput value={code} onChange={setCode} autoFocus={false} invalid={!!enable.error} onComplete={(c) => enable.mutate(c)} />

@@ -8,6 +8,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from uuid import UUID, uuid4
 
+from pharmacy_shared.redis import connect as connect_redis
 from pharmacy_shared.testing import TEST_REDIS_URL, recreate_database, test_database_url
 
 TEST_DB = "test_inventory"
@@ -28,7 +29,6 @@ import httpx  # noqa: E402
 import pytest  # noqa: E402
 from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
-from redis.asyncio import Redis  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 
 from inventory_service.db import db  # noqa: E402
@@ -66,7 +66,7 @@ async def clean(monkeypatch) -> AsyncIterator[None]:
             " transfers, transfer_request_lines, transfer_requests, reorder_lines, reorder_lists, reorder_settings,"
             " open_po_lines, alerts_sent, recall_lines, recalls CASCADE"
         ))  # fmt: skip
-    redis = Redis.from_url(TEST_REDIS_URL)
+    redis = connect_redis(TEST_REDIS_URL)
     await redis.flushdb()
     await redis.aclose()
     for bid, code in ((PP1, "PP1"), (PP2, "PP2")):

@@ -137,3 +137,31 @@ async def test_credit_status_and_statement_for_other_services(client) -> None:
     assert (await client.get(f"/internal/v1/customers/{c['id']}/credit")).status_code == 401
     st = await client.get(f"/internal/v1/customers/{c['id']}/statement", headers=INTERNAL)
     assert st.status_code == 200 and st.json()["closing_balance"] == "60.00"
+
+
+async def test_overdue_follows_the_customers_credit_terms(client) -> None:
+    """T2: a credit invoice is due credit_terms_days after the sale (Telegram balance reminders)."""
+    from datetime import UTC, datetime
+
+    from sqlalchemy import update
+
+    from customers_service.db import db
+    from customers_service.models import CustomerDebt
+
+    c = await create_customer(client, credit_terms_days=30, preferred_lang="en")
+    assert (c["credit_terms_days"], c["preferred_lang"]) == (30, "en")
+    old, new = uuid4(), uuid4()
+    await charge(client, c, "25.00", old)
+    await charge(client, c, "10.00", new)
+    async with db.sessionmaker() as s:  # sold on 20 Sep (due 20 Oct) and 20 Oct (due 19 Nov); today is 27 Oct
+        for inv, day in ((old, 20), (new, None)):
+            await s.execute(update(CustomerDebt).where(CustomerDebt.invoice_id == inv).values(
+                created_at=datetime(2026, 9 if day else 10, 20, 3, tzinfo=UTC)))  # fmt: skip
+        await s.commit()
+    r = (await client.get(f"/internal/v1/customers/{c['id']}/credit", headers=INTERNAL)).json()
+    assert (r["balance"], r["overdue"], r["oldest_due_on"]) == ("35.00", "25.00", "2026-10-20")
+    await client.patch(f"{PREFIX}/customers/{c['id']}", json={"credit_terms_days": 60}, headers=OWNER)
+    r = (await client.get(f"/internal/v1/customers/{c['id']}/credit", headers=INTERNAL)).json()
+    assert (r["overdue"], r["oldest_due_on"]) == ("0.00", "2026-11-19")
+    assert (await client.post(f"{PREFIX}/customers", json={"phone": "098 765 432", "name": "X", "preferred_lang": "fr"},
+                              headers=OWNER)).status_code == 422  # fmt: skip

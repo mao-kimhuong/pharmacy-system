@@ -64,3 +64,45 @@ def test_riel_needs_a_rate_and_whole_hundreds() -> None:
     assert exc.value.code == "EXCHANGE_RATE_MISSING"
     with pytest.raises(AppError):
         settle(D("1.00"), [cash("4150", "KHR")], 4100, "USD")
+
+
+def khqr(amount: str, currency: str = "KHR") -> PaymentIn:
+    return PaymentIn("KHQR", currency, D(amount))
+
+
+@pytest.mark.parametrize("method", ["KHQR", "cash"])
+def test_riel_that_rounds_up_settles_exactly(method) -> None:  # noqa: ANN001
+    # 2.70 USD × 4100 = 11 070 riel → 11 100 due; 11 100 / 4100 = 2.71 USD was refused as overpaying
+    s = settle(D("2.70"), [PaymentIn(method, "KHR", D("11100"))], 4100, "USD_KHR")
+    assert s.total_khr == 11100 and s.paid == D("2.70") and s.change_usd == 0 and s.change_given_khr == 0
+    assert s.payments[0][1] == D("2.70") and s.payment_rounding_khr == D("30.00")  # the shop got 30 riel more
+
+
+@pytest.mark.parametrize("method", ["KHQR", "cash"])
+def test_riel_that_rounds_down_settles_exactly(method) -> None:  # noqa: ANN001
+    # 2.62 USD × 4100 = 10 742 riel → 10 700 due; 10 700 / 4100 = 2.61 USD was refused as short
+    s = settle(D("2.62"), [PaymentIn(method, "KHR", D("10700"))], 4100, "USD_KHR")
+    assert s.total_khr == 10700 and s.paid == D("2.62") and s.change_usd == 0
+    assert s.payment_rounding_khr == D("-42.00")  # 42 riel less than the exact riel
+
+
+def test_riel_is_compared_in_riel_short_and_over() -> None:
+    with pytest.raises(AppError) as exc:
+        settle(D("2.70"), [khqr("11000")], 4100, "USD")
+    assert exc.value.code == "PAYMENT_SHORT" and exc.value.details["missing_khr"] == 100
+    with pytest.raises(AppError) as exc:
+        settle(D("2.70"), [khqr("11200")], 4100, "USD")  # a KHQR cannot give change
+    assert exc.value.code == "VALIDATION_ERROR" and exc.value.details["due_khr"] == 11100
+    s = settle(D("2.70"), [cash("12000", "KHR")], 4100, "KHR")  # cash in riel above what is due: change as before
+    assert s.change_usd == D("0.23") and s.change_given_khr == 900 and s.payment_rounding_khr == 0
+
+
+def test_usd_first_then_the_rest_due_in_riel() -> None:
+    # 5.00 USD paid; 2.35 left × 4100 = 9 635 → 9 600 riel due by KHQR
+    s = settle(D("7.35"), [cash("5.00"), khqr("9600")], 4100, "USD")
+    assert s.paid == D("7.35") and [u for _, u in s.payments] == [D("5.00"), D("2.35")]
+    assert s.payment_rounding_khr == D("-35.00")
+    with pytest.raises(AppError):
+        settle(D("7.35"), [cash("5.00"), khqr("9700")], 4100, "USD")
+    two = settle(D("2.70"), [khqr("5000"), PaymentIn("ABA", "KHR", D("6100"))], 4100, "USD")  # riel split over two
+    assert sum(u for _, u in two.payments) == D("2.70")
