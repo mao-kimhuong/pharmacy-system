@@ -16,10 +16,25 @@
       "Bash(git log *)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(echo *)"
+      "Bash(echo *)",
+      "Bash(*)",
+      "Read(*)",
+      "Edit(*)",
+      "Write(*)",
+      "WebFetch(*)",
+      "WebSearch"
     ],
     "deny": [
       "Bash(docker compose down -v *)",
+      "Bash(docker compose down -v)",
+      "Bash(docker compose -f docker-compose.yml down -v*)",
+      "Bash(docker compose -p pharmacy down -v*)",
+      "Bash(docker compose -p pharmacy -f *down -v*)",
+      "Bash(docker compose --project-name pharmacy *down -v*)",
+      "Bash(docker volume rm pharmacy_*)",
+      "Bash(docker volume prune*)",
+      "Bash(docker system prune*)",
+      "Bash(make seed-reset*)",
       "Bash(git push *)",
       "Bash(git reset --hard *)"
     ]
