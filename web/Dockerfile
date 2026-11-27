@@ -1,9 +1,10 @@
+# syntax=docker/dockerfile:1.7
 # Web front end. Build context: the repo root (the theme reads docs/design/tokens.json).
-# 1) node builds web/dist  2) nginx (unprivileged) serves it.
+# 1) node builds web/dist  2) nginx (unprivileged) serves it. npm downloads stay in a BuildKit cache.
 FROM node:24-alpine AS build
 WORKDIR /app/web
 COPY web/package.json web/package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
 COPY docs/design/tokens.json docs/design/error-messages.json /app/docs/design/
 COPY web/ ./
 ARG VITE_APP_ENV=""

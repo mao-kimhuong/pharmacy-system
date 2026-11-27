@@ -1,18 +1,14 @@
-# Test runner for `make test-docker`: the whole suite inside a container, so no
-# local Python is needed. Includes what the document service needs to render
-# labels (Pango/HarfBuzz for WeasyPrint, Noto Sans Khmer) and psql for the
-# init-script test. The repo is mounted at /repo; the venv lives in a volume.
-FROM python:3.12-slim
+# syntax=docker/dockerfile:1.7
+# Test runner for `make test-docker`: the whole suite inside a container, so no local Python is needed.
+# pharmacy-base already has what the document service needs to render labels (Pango/HarfBuzz for WeasyPrint,
+# Noto Sans Khmer); this adds psql for the init-script test. The repo is mounted at /repo; the venv lives in a volume.
+FROM pharmacy-base:local
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b libharfbuzz-subset0 fonts-noto-core \
-        postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-install postgresql-client
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+ENV PIP_NO_CACHE_DIR=1 \
     RUFF_CACHE_DIR=/tmp/ruff-cache \
     VENV=/venv
 
