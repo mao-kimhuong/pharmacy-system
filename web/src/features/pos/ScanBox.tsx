@@ -1,4 +1,5 @@
 // Barcode / search box (always focused, F2). Enter on a barcode adds that pack at once; otherwise pick a hit.
+// With onCamera the barcode icon is a button that opens the camera scanner; its codes come back through lookup().
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Kbd, SafetyBadge, Spinner, cx } from '@/design';
@@ -10,17 +11,22 @@ import type { CatalogS } from '@/api/types';
 export interface ScanBoxHandle {
   focus: () => void;
   isFocused: () => boolean;
+  lookup: (code: string) => void;
 }
 
-export const ScanBox = forwardRef<ScanBoxHandle, { onAdd: (m: CartMedicine, packUnitId?: string) => void; dark?: boolean; onError?: (q: string) => void }>(
-  function ScanBox({ onAdd, dark, onError }, ref) {
+export const ScanBox = forwardRef<ScanBoxHandle, { onAdd: (m: CartMedicine, packUnitId?: string) => void; dark?: boolean; onError?: (q: string) => void; onCamera?: () => void }>(
+  function ScanBox({ onAdd, dark, onError, onCamera }, ref) {
     const { t, i18n } = useTranslation('pos');
     const input = useRef<HTMLInputElement>(null);
     const [q, setQ] = useState('');
     const [hits, setHits] = useState<CatalogS['SearchHit'][] | null>(null);
     const [active, setActive] = useState(0);
     const [busy, setBusy] = useState(false);
-    useImperativeHandle(ref, () => ({ focus: () => input.current?.focus(), isFocused: () => document.activeElement === input.current }));
+    useImperativeHandle(ref, () => ({
+      focus: () => input.current?.focus(),
+      isFocused: () => document.activeElement === input.current,
+      lookup: (code: string) => { setQ(''); setHits(null); void search(code, true); },
+    }));
     const pick = (h: CatalogS['SearchHit'], pack?: string | null) => {
       onAdd(toCartMedicine(h), pack ?? h.matched_pack_unit_id ?? undefined);
       setHits(null);
@@ -45,7 +51,12 @@ export const ScanBox = forwardRef<ScanBoxHandle, { onAdd: (m: CartMedicine, pack
     return (
       <div className="relative">
         <div className={cx('flex h-[52px] items-center gap-3 rounded-lg border-2 border-primary-600 px-3.5 shadow-focus', dark ? 'bg-posdark-raised text-posdark-text' : 'bg-surface')}>
-          <span className="flex h-5 items-stretch gap-px" aria-hidden>{[2, 1, 3, 1, 2, 1].map((w, i) => <span key={i} style={{ width: w }} className={dark ? 'bg-posdark-text' : 'bg-neutral-900'} />)}</span>
+          {(() => {
+            const bars = <span className="flex h-5 items-stretch gap-px" aria-hidden>{[2, 1, 3, 1, 2, 1].map((w, i) => <span key={i} style={{ width: w }} className={dark ? 'bg-posdark-text' : 'bg-neutral-900'} />)}</span>;
+            return onCamera
+              ? <button type="button" onClick={onCamera} aria-label={t('lite.scan')} title={t('lite.scan')} className="-m-1.5 flex items-center rounded-md p-1.5 hover:bg-neutral-100">{bars}</button>
+              : bars;
+          })()}
           <input
             ref={input}
             autoFocus

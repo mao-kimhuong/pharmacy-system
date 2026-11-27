@@ -1,6 +1,6 @@
 // Service worker: precaches the app shell and fonts (vite-plugin-pwa). A cached app must not outlive a deploy: right
-// after a page load (nothing typed yet) a new version applies by itself; later, or at the till, the banner asks, so a
-// reload never drops a cart or a half-filled form.
+// after a page load (nothing typed yet) a new version applies by itself; later, or at the till (POS shows the banner
+// too), the banner asks, so a reload never drops a cart or a half-filled form.
 import { registerSW } from 'virtual:pwa-register';
 
 const FRESH_MS = 20_000;
