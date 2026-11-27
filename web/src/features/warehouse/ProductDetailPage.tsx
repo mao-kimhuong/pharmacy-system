@@ -33,10 +33,16 @@ export default function ProductDetailPage() {
   const save = useMutation({ mutationFn: () => call(api.catalog.PATCH('/api/catalog/v1/medicines/{medicine_id}', { params: { path: { medicine_id: id } }, body: toUpdate(edit!) })), onSuccess: () => { setEdit(null); toast.success(t('products.saved')); void refresh(); } });
   const savePack = useMutation({
     mutationFn: () => {
-      const body = { name: pack!.name ?? '', qty_in_base: Number(pack!.qty_in_base), barcode: pack!.barcode || null, sell_price: pack!.sell_price ?? '' };
-      return pack!.id
-        ? call(api.catalog.PATCH('/api/catalog/v1/pack-units/{pack_unit_id}', { params: { path: { pack_unit_id: pack!.id } }, body }))
-        : call(api.catalog.POST('/api/catalog/v1/medicines/{medicine_id}/pack-units', { params: { path: { medicine_id: id } }, body }));
+      const body = { name: pack!.name?.trim() ?? '', qty_in_base: Number(pack!.qty_in_base), barcode: pack!.barcode?.trim() || null, sell_price: pack!.sell_price ?? '' };
+      const old = pack!.id ? q.data?.pack_units.find((p) => p.id === pack!.id) : undefined;
+      if (!old) return call(api.catalog.POST('/api/catalog/v1/medicines/{medicine_id}/pack-units', { params: { path: { medicine_id: id } }, body }));
+      // Only what changed: the base unit refuses any name or qty_in_base (it is always 1, named by the medicine).
+      const patch: Partial<typeof body> = {};
+      if (!old.is_base && body.name !== old.name) patch.name = body.name;
+      if (!old.is_base && body.qty_in_base !== old.qty_in_base) patch.qty_in_base = body.qty_in_base;
+      if (body.barcode !== (old.barcode ?? null)) patch.barcode = body.barcode;
+      if (Number(body.sell_price) !== Number(old.sell_price)) patch.sell_price = body.sell_price;
+      return call(api.catalog.PATCH('/api/catalog/v1/pack-units/{pack_unit_id}', { params: { path: { pack_unit_id: old.id } }, body: patch }));
     },
     onSuccess: () => { setPack(null); void refresh(); },
   });

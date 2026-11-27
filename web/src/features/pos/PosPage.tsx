@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { ApiErrorAlert, BranchTag, ConfirmDialog, PinDialog, WitnessDialog, cx, useToast } from '@/design';
+import { ApiErrorAlert, BranchTag, ConfirmDialog, Dialog, PinDialog, Scanner, WitnessDialog, cx, useToast } from '@/design';
 import { api, call } from '@/api/client';
 import { LangToggle, ThemeToggle } from '@/app/shell/Header';
+import { UpdateBanner } from '@/app/shell/UpdateBanner';
 import { initials } from '@/lib/format';
 import { useMediaQuery, useOnline } from '@/lib/hooks';
 import { branchName } from '@/app/branch';
@@ -91,11 +92,12 @@ function PosDesktop() {
   const picker = usePaymentPicker(pos, setDlg);
   const cashField = useRef<HTMLInputElement>(null);
   const [notFound, setNotFound] = useState<string | null>(null);
+  const [camera, setCamera] = useState(false);
   const sel = pos.cart.lines[pos.cart.selected];
   // After a dialog closes or payment is left, the cashier is back at the scan box.
   useEffect(() => {
-    if (dlg.kind === '' && pos.mode === 'cart' && !pos.done) scan.current?.focus();
-  }, [dlg.kind, pos.mode, pos.done]);
+    if (dlg.kind === '' && !camera && pos.mode === 'cart' && !pos.done) scan.current?.focus();
+  }, [dlg.kind, camera, pos.mode, pos.done]);
   const ui = {
     linkRx: (key: string) => setDlg({ kind: 'rx', key }),
     options: (key: string) => setDlg({ kind: 'options', key }),
@@ -105,7 +107,7 @@ function PosDesktop() {
     handoff: () => setDlg({ kind: 'suspend' }),
   };
   const fa = useFindingActions(pos, ui);
-  const busy = dlg.kind !== '' || !!pos.done;
+  const busy = dlg.kind !== '' || camera || !!pos.done;
   useHotkeys({
     F2: (e) => { e.preventDefault(); scan.current?.focus(); },
     F4: (e) => { e.preventDefault(); customerBox.current?.focus(); },
@@ -133,6 +135,7 @@ function PosDesktop() {
   const tokens = [pos.pin && t('find.pinOk', { name: pos.pin.name }), pos.approval && t('find.approved', { name: pos.approval.name })].filter(Boolean);
   return (
     <div className="relative flex h-dvh flex-col bg-neutral-50">
+      <UpdateBanner />
       <header className="flex h-12 flex-none items-center gap-3.5 border-b border-neutral-200 bg-surface px-4 text-[13px]">
         <Link to="/" aria-label={t('common:action.goHome')} className="flex size-7 items-center justify-center rounded-[7px] bg-primary-600 font-bold text-white no-underline">+</Link>
         <span className="font-semibold">{t('title')}</span>
@@ -148,7 +151,10 @@ function PosDesktop() {
       </header>
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col gap-3 px-4 pt-3.5">
-          <ScanBox ref={scan} onAdd={(m, pack) => { setNotFound(null); pos.dispatch({ type: 'add', medicine: m, pack_unit_id: pack }); }} onError={setNotFound} />
+          <ScanBox ref={scan} onAdd={(m, pack) => { setNotFound(null); pos.dispatch({ type: 'add', medicine: m, pack_unit_id: pack }); }} onError={setNotFound} onCamera={() => setCamera(true)} />
+          <Dialog open={camera} onClose={() => setCamera(false)} title={t('lite.scan')}>
+            {camera && <Scanner onClose={() => setCamera(false)} onCode={(c) => { setCamera(false); scan.current?.lookup(c); }} />}
+          </Dialog>
           {notFound && <div role="alert" className="text-[13px] text-danger">{t('noMatch', { q: notFound })}</div>}
           {pos.cart.resumedFrom && (
             <div className="rounded-lg border border-info-bd bg-info-bg px-3.5 py-2.5 text-[13px] text-info-fg">

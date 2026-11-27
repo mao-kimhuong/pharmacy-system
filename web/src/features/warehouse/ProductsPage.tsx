@@ -1,4 +1,4 @@
-// 9a Medicines: search, filters (category, Rx only, controlled, inactive), Excel export, new medicine.
+// 9a Medicines: SKU, barcodes of the active pack units, search, filters (category, Rx only, controlled, inactive), Excel export, new medicine.
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
@@ -47,6 +47,10 @@ export default function ProductsPage() {
         paging={{ page: paging.page, size: paging.size, total: list.data?.total ?? 0, onPage: paging.setPage, onSize: paging.setSize }}
         columns={[
           { key: 'sku', header: t('products.sku'), cell: (m) => <span className="font-mono text-[12px]">{m.sku}</span> },
+          { key: 'b', header: t('packs.barcode'), cell: (m) => {
+            const codes = m.pack_units.filter((p) => p.is_active && p.barcode);
+            return codes.length ? <span className="flex flex-col font-mono text-[12px]">{codes.map((p) => <span key={p.id}>{p.barcode}{codes.length > 1 && <span className="font-sans text-neutral-500"> · {p.name}</span>}</span>)}</span> : '—';
+          } },
           { key: 'n', header: t('common:label.medicine'), cell: (m) => (
             <span className="flex flex-col gap-0.5">
               <span className="flex flex-wrap items-center gap-1.5 font-medium">{m.brand_name} {m.strength}{m.is_rx_only && <SafetyBadge kind="rx" />}{m.controlled_schedule && <SafetyBadge kind="controlled" />}{m.kind === 'hamper' && <SafetyBadge kind="hamper" />}</span>
