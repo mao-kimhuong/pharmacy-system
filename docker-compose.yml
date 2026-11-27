@@ -22,6 +22,15 @@ x-service-deps: &service-deps
     condition: service_started
 
 services:
+  # Build-only: the shared image every Python service is built FROM (infra/base/Dockerfile). Never started
+  # (profile "build-only"). Build it before the others: `make build` / `make up` do (`docker compose build base`).
+  base:
+    profiles: ["build-only"]
+    image: pharmacy-base:local
+    build:
+      context: .
+      dockerfile: infra/base/Dockerfile
+
   traefik:
     image: traefik:v3.6  # v3.6.1+ needed for Docker Engine 29 (API auto-negotiation)
     command:

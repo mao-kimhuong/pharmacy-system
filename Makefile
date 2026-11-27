@@ -1,10 +1,12 @@
 SERVICES := auth branch catalog inventory stockcount prescription controlled sales customers purchasing reports notification document ai
 
-.PHONY: help env up down logs ps owner smoke payway-check test test-docker test-db test-db-down lint migrate revision resync backfill seed-demo seed-realistic seed-reset bench-reports openapi api-types web-install web-dev web-test web-e2e web-test-docker
+.PHONY: help env up up-fast build base down logs ps owner smoke payway-check test test-docker test-db test-db-down lint migrate revision resync backfill seed-demo seed-realistic seed-reset bench-reports openapi api-types web-install web-dev web-test web-e2e web-test-docker
 
 help:
 	@echo "make env       copy .env.example to .env (first time)"
-	@echo "make up        build and start everything"
+	@echo "make up        start everything; builds only if an image is missing or the code changed (FORCE_BUILD=1 always)"
+	@echo "make up-fast   start everything with the images as they are (never builds)"
+	@echo "make build     build pharmacy-base, then every image (BuildKit caches apt, pip and npm downloads)"
 	@echo "make down      stop everything"
 	@echo "make logs s=sales   follow one service's logs"
 	@echo "make owner     create the first owner account"
@@ -28,7 +30,17 @@ env:
 	@test -f .env || cp .env.example .env && echo ".env ready - change the passwords"
 
 up:
-	docker compose up -d --build
+	COMPOSE="$(COMPOSE)" ./scripts/up.sh
+
+up-fast:
+	$(COMPOSE) up -d --no-build
+
+# The shared image every Python service is built FROM (infra/base/Dockerfile): apt runs here once, not per service.
+base:
+	$(COMPOSE) build base
+
+build: base
+	$(COMPOSE) build
 
 down:
 	docker compose down
@@ -60,7 +72,7 @@ backfill:
 
 # PayWay settings + a check-transaction of a made-up tran_id (must answer 6 = not found); QR=1 also makes a
 # 100 KHR sandbox QR. A one-off container: the running stack is not touched. Prints no secret.
-payway-check:
+payway-check: base
 	docker compose run --rm --no-deps --build sales python -m sales_service.cli payway-check $(if $(QR),--qr)
 
 # Realistic demo data (development only): 3 branches, staff, ~155 products, 90 days of trade, made through the
@@ -90,6 +102,7 @@ seed-realistic:
 
 seed-reset:
 	$(COMPOSE) down -v
+	$(COMPOSE) build base
 	$(COMPOSE) up -d --build --wait
 	$(MAKE) seed-realistic COMPOSE="$(COMPOSE)"
 
@@ -117,6 +130,7 @@ test: test-db
 
 # Same suite in a container (with Pango + Khmer font, so label tests run too).
 test-docker: test-db
+	docker compose -f docker-compose.test.yml build base
 	$(KEEP_AWAKE) docker compose -f docker-compose.test.yml --profile runner run --rm --build tests
 
 lint:

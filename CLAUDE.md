@@ -54,7 +54,13 @@ Traefik v3.6. Python 3.12. Lint with ruff.
 - Shell commands for Claude: no shell variables and no `$(…)` (they trigger a permission prompt). Use plain paths, or
   separate steps (list the files first, then read the one you need by its full path). Read files with the Read and Grep
   tools, not cat / grep / sed in Bash.
-- `make env` then `make up` – start everything at http://localhost
+- `make env` then `make up` – start everything at http://localhost. `make up` (`scripts/up.sh`) builds only when an image
+  is missing or the build inputs changed since its last build (`.build-stamp-<project>`; `FORCE_BUILD=1` always builds);
+  `make up-fast` never builds; `make build` builds everything. Images: every Python service is `FROM pharmacy-base:local`
+  (`infra/base/Dockerfile`, build-only compose service `base`, built first by make up / build / test-docker / seed-reset /
+  payway-check; plain `docker compose build` needs `docker compose build base` once before). System packages go there
+  (or in infra/test for test-only ones) through `apt-install` (HTTPS sources, retries, 3 tries) under BuildKit cache
+  mounts; pip and npm use cache mounts too. Never add `apt-get` to a service Dockerfile.
 - `make test` – starts the test Postgres + Redis (docker-compose.test.yml), then ruff + pytest everywhere
   (picks python3.13/3.12/python3 ≥ 3.12; recreates an older .venv)
 - `make test-docker` – the same suite in a python:3.12 container (infra/test/Dockerfile, with Pango +

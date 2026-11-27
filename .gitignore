@@ -33,3 +33,4 @@ dist/
 openapi/
 # make seed-realistic: demo logins and progress (development only)
 seed-output/
+.build-stamp-*

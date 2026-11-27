@@ -1,19 +1,14 @@
-# Build context is the repo root (see docker-compose.yml).
-FROM python:3.12-slim
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
-
-WORKDIR /app
+# syntax=docker/dockerfile:1.7
+# Build context is the repo root (see docker-compose.yml). pharmacy-base (infra/base/Dockerfile, `docker compose build base` first) brings Python,
+# the system packages and the appuser account; pip downloads stay in a BuildKit cache between builds.
+FROM pharmacy-base:local
 
 COPY shared /shared
-RUN pip install "/shared[storage,uploads]"
+RUN --mount=type=cache,target=/root/.cache/pip pip install "/shared[storage,uploads]"
 
 COPY services/prescription /app
-RUN pip install /app
+RUN --mount=type=cache,target=/root/.cache/pip pip install /app
 
-RUN useradd --create-home appuser
 USER appuser
 
 EXPOSE 8000

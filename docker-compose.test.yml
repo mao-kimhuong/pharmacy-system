@@ -3,6 +3,14 @@
 name: pharmacy-test
 
 services:
+  # Build-only: the shared base the test runner is built FROM (same as docker-compose.yml).
+  base:
+    profiles: ["build-only"]
+    image: pharmacy-base:local
+    build:
+      context: .
+      dockerfile: infra/base/Dockerfile
+
   postgres-test:
     image: postgres:16-alpine
     environment:
